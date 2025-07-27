@@ -2,7 +2,6 @@ package com.example;
 
 /**
  * Represents a football club with a name and ranking.
- * Extends {@link ClubSlot} to provide ranking information.
  *
  * <p>
  * Instances of this class store the club's name and its ranking coefficient.
@@ -10,7 +9,7 @@ package com.example;
  *
  * @author jkaste03
  */
-public class Club extends ClubSlot {
+public class Club {
 
     private static int id_counter = 0;
     private int id;
@@ -39,7 +38,6 @@ public class Club extends ClubSlot {
      *                        for this class
      * @return the ranking value of the club
      */
-    @Override
     public float getRanking(int callerCompLevel) {
         return ranking;
     }

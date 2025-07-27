@@ -21,7 +21,7 @@ public class Round {
     private ArrayList<ClubSlot> clubSlots;
     private ArrayList<ClubSlot> seeded;
     private ArrayList<ClubSlot> unseeded;
-    private ArrayList<Tie> ties;
+    private ArrayList<ClubSlot> ties;
 
     public Round(int compLevel, int roundNumber) {
         this.compLevel = compLevel;
@@ -36,11 +36,15 @@ public class Round {
         clubSlots.add(clubSlot);
     }
 
-    public void addTie(Tie tie) {
+    public void addClubSlots(ArrayList<ClubSlot> clubSlots) {
+        this.clubSlots.addAll(clubSlots);
+    }
+
+    public void addTie(ClubSlot tie) {
         ties.add(tie);
     }
 
-    public void addTies(ArrayList<Tie> ties) {
+    public void addTies(ArrayList<ClubSlot> ties) {
         this.ties.addAll(ties);
     }
 
@@ -85,7 +89,7 @@ public class Round {
         return unseeded;
     }
 
-    public ArrayList<Tie> getTies() {
+    public ArrayList<ClubSlot> getTies() {
         return ties;
     }
 
@@ -102,8 +106,8 @@ public class Round {
     }
 
     public void play() {
-        for (Tie tie : ties) {
-            tie.play();
+        for (ClubSlot tie : ties) {
+            tie.getTie().play();
         }
     }
 

@@ -1,7 +1,7 @@
 package com.example;
 
-import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
 
 /**
  * Represents a tie between two clubs at a specific competition level.
@@ -19,12 +19,18 @@ import java.util.Random;
  *
  * @author jkaste03
  */
-public class Tie extends ClubSlot {
+public class Tie {
     private ClubSlot clubSlot1;
     private ClubSlot clubSlot2;
     private int compLevel;
     private Integer club1Goals;
     private Integer club2Goals;
+    private Boolean club1Winner;
+
+    private static final int SIMS = 10_000; // kun én simulering
+    private static final double HFA = 50; // hjemmebanefordel
+    private static final double AVG_GOALS = 2.7;
+    private static final Random rnd = new Random();
 
     public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, int compLevel) {
         this.clubSlot1 = clubSlot1;
@@ -61,68 +67,119 @@ public class Tie extends ClubSlot {
     }
 
     /**
-     * Calculates the ranking for this tie based on the competition level of the
+     * Calculates the ranking for this Tie based on the competition level of the
      * caller.
      * <p>
-     * If this tie's competition level is higher than the caller's, returns the
-     * worst ranking of the two clubs. Otherwise, returns the best ranking.
+     * If ClubSlot1 or ClubSlot2 is a Tie and has a winner, assigns the correct club
+     * (winner or loser depending on competition level) to ClubSlot1/ClubSlot2
+     * before ranking calculation.
+     * <p>
+     * If the Tie has a winner, the method returns either the winner's or the
+     * loser's ranking
+     * depending on the relationship between this Tie's competition level and the
+     * caller's.
+     * <ul>
+     * <li>If this Tie's competition level is better than the caller's, returns the
+     * loser's ranking.</li>
+     * <li>Else, returns the winner's ranking.</li>
+     * </ul>
+     * If the Tie does not have a winner, the method returns:
+     * <ul>
+     * <li>The worst ranking of the two clubs if this Tie's competition level is
+     * better than the caller's.</li>
+     * <li>The best ranking of the two clubs otherwise.</li>
+     * </ul>
      *
-     * @param callerCompLevel the competition level from which the ranking is
-     *                        requested
-     * @return the ranking value for this tie in relation to the caller's
-     *         competition level
+     * @param callerCompLevel the competition level of the caller
+     * @return the calculated ranking for this Tie at the given competition level
      */
-    @Override
-    protected float getRanking(int callerCompLevel) {
+    public float getRanking(int callerCompLevel) {
+        // Resolve ClubSlot1 if it's a Tie and has a winner
+        if (clubSlot1.isTie()) {
+            Tie innerTie = clubSlot1.getTie();
+            Boolean winner = innerTie.isClub1Winner();
+            if (winner != null) {
+                if (this.compLevel < callerCompLevel) {
+                    // assign loser
+                    clubSlot1 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
+                } else {
+                    // assign winner
+                    clubSlot1 = winner ? innerTie.getClubSlot1() : innerTie.getClubSlot2();
+                }
+            }
+        }
+        // Resolve ClubSlot2 if it's a Tie and has a winner
+        if (clubSlot2.isTie()) {
+            Tie innerTie = clubSlot2.getTie();
+            Boolean winner = innerTie.isClub1Winner();
+            if (winner != null) {
+                if (this.compLevel < callerCompLevel) {
+                    // assign loser
+                    clubSlot2 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
+                } else {
+                    // assign winner
+                    clubSlot2 = winner ? innerTie.getClubSlot1() : innerTie.getClubSlot2();
+                }
+            }
+        }
+
+        // If this is a Tie with a winner, use the loser's/winner's ranking depending on
+        // the level
+        if (isClub1Winner() != null) {
+            boolean club1Won = isClub1Winner();
+            if (this.compLevel < callerCompLevel) {
+                // Return loser's ranking
+                return club1Won
+                        ? clubSlot2.getRanking(this.compLevel)
+                        : clubSlot1.getRanking(this.compLevel);
+            } else {
+                // Return winner's ranking
+                return club1Won
+                        ? clubSlot1.getRanking(this.compLevel)
+                        : clubSlot2.getRanking(this.compLevel);
+            }
+        }
+        // Otherwise: existing logic
         if (this.compLevel < callerCompLevel) {
-            return Math.max(clubSlot1.getRanking(callerCompLevel), clubSlot2.getRanking(callerCompLevel));
+            return Math.max(clubSlot1.getRanking(this.compLevel), clubSlot2.getRanking(this.compLevel));
         } else {
-            return Math.min(clubSlot1.getRanking(callerCompLevel), clubSlot2.getRanking(callerCompLevel));
+            return Math.min(clubSlot1.getRanking(this.compLevel), clubSlot2.getRanking(this.compLevel));
         }
     }
 
+    /**
+     * Kjører én simulering av returkampen (eller analytisk første kamp hvis eneste
+     * kamp)
+     * og setter club1Winner = true/false.
+     */
     public void play() {
-        // Hent Elo for begge klubber
-        double elo1 = ((Club) clubSlot1).getEloRating();
-        double elo2 = ((Club) clubSlot2).getEloRating();
+        Club club1 = clubSlot1.getClub();
+        Club club2 = clubSlot2.getClub();
 
-        // Dersom første ben ikke spilt: analytisk formel på samlet oppgjør
+        // Første ben ikke spilt: analytisk-probabilistisk enkeltutfall
         if (club1Goals == null) {
-            double dr = elo1 - elo2;
+            double dr = club1.getEloRating() - club2.getEloRating();
             double p1 = 1.0 / (Math.pow(10, -dr / 400.0) + 1.0);
-            System.out.printf("%s går videre: %.2f%%%n",
-                    ((Club) clubSlot1).getName(), p1 * 100);
-            System.out.printf("%s går videre: %.2f%%%n",
-                    ((Club) clubSlot2).getName(), (1 - p1) * 100);
+            // én trekning basert på p1
+            this.club1Winner = rnd.nextDouble() < p1;
             return;
         }
 
-        // Første kamp spilt – simuler 2. kamp
-        final int SIMS = 10_000;
-        double hfa = 50; // konstant hjemmebanefordel (alle lik)
-        double avgTotalGoals = 2.7; // anslått gjennomsnitt mål per kamp
-        Random rnd = new Random();
+        // Første kamp er spilt, simuler returkampen én gang:
+        int agg1 = club1Goals;
+        int agg2 = club2Goals;
 
-        // Akkumulerte mål fra første kamp
-        int agg1Base = club1Goals;
-        int agg2Base = club2Goals;
-
-        int count1 = 0, count2 = 0;
-        int countTie = 0;
-
-        // Beregn forventet Poisson‑lambda for 2. kamp
-        // Her er clubSlot2 hjemmelag i returkampen:
-        double eloHome = elo2 + hfa;
-        double eloAway = elo1;
+        // Elo-justert hjemmebanefordel for returkamp (clubSlot2 er hjemmelag)
+        double eloHome = club2.getEloRating() + HFA;
+        double eloAway = club1.getEloRating();
         double dr2 = eloHome - eloAway;
-        // Vinn‑sannsynlighet for hjemmelag (uten uavgjort)
         double pHomeWin = 1.0 / (Math.pow(10, -dr2 / 400.0) + 1.0);
-        // Fordel totalmålene proporsjonalt
-        double lambdaHome = pHomeWin * avgTotalGoals;
-        double lambdaAway = (1 - pHomeWin) * avgTotalGoals;
 
-        // Knuths algoritme for Poisson‑trekking
-        java.util.function.Function<Double, Integer> drawPoisson = (lambda) -> {
+        double lambdaHome = pHomeWin * AVG_GOALS;
+        double lambdaAway = (1 - pHomeWin) * AVG_GOALS;
+
+        // Poisson-trekker:
+        Function<Double, Integer> drawPoisson = lambda -> {
             double L = Math.exp(-lambda), p = 1.0;
             int k = 0;
             while (p > L) {
@@ -132,29 +189,98 @@ public class Tie extends ClubSlot {
             return k - 1;
         };
 
-        for (int i = 0; i < SIMS; i++) {
-            int goalsHome2 = drawPoisson.apply(lambdaHome);
-            int goalsAway2 = drawPoisson.apply(lambdaAway);
+        int goalsHome2 = drawPoisson.apply(lambdaHome);
+        int goalsAway2 = drawPoisson.apply(lambdaAway);
 
-            int total1 = agg1Base + goalsAway2;
-            int total2 = agg2Base + goalsHome2;
+        int total1 = agg1 + goalsAway2;
+        int total2 = agg2 + goalsHome2;
 
-            if (total1 > total2)
-                count1++;
-            else if (total2 > total1)
-                count2++;
-            else
-                countTie++;
+        if (total1 > total2) {
+            club1Winner = true;
+        } else if (total2 > total1) {
+            club1Winner = false;
+        } else {
+            // uavgjort etter aggregat – avgjør med coin flip (eller egen logikk)
+            club1Winner = rnd.nextBoolean();
         }
-
-        double pAdvance1 = (count1 + countTie * 0.5) / (double) SIMS;
-        double pAdvance2 = (count2 + countTie * 0.5) / (double) SIMS;
-
-        System.out.printf("%s går videre: %.2f%%%n",
-                ((Club) clubSlot1).getName(), pAdvance1 * 100);
-        System.out.printf("%s går videre: %.2f%%%n",
-                ((Club) clubSlot2).getName(), pAdvance2 * 100);
     }
+
+    /** Getter for å sjekke hvem som vant etter playOutcome() */
+    public Boolean isClub1Winner() {
+        return club1Winner;
+    }
+
+    // public void play() {
+    // Club club1 = clubSlot1.getClub();
+    // Club club2 = clubSlot2.getClub();
+
+    // // Hent Elo for begge klubber
+    // double elo1 = club1.getEloRating();
+    // double elo2 = club2.getEloRating();
+
+    // // Dersom første ben ikke spilt: analytisk formel på samlet oppgjør
+    // if (club1Goals == null) {
+    // double dr = elo1 - elo2;
+    // double p1 = 1.0 / (Math.pow(10, -dr / 400.0) + 1.0);
+    // System.out.printf("%s går videre: %.2f%%%n",
+    // club1.getName(), p1 * 100);
+    // System.out.printf("%s går videre: %.2f%%%n",
+    // club2.getName(), (1 - p1) * 100);
+    // return;
+    // }
+
+    // // Akkumulerte mål fra første kamp
+    // int agg1Base = club1Goals;
+    // int agg2Base = club2Goals;
+
+    // int count1 = 0, count2 = 0;
+    // int countTie = 0;
+
+    // // Beregn forventet Poisson‑lambda for 2. kamp
+    // // Her er clubSlot2 hjemmelag i returkampen:
+    // double eloHome = elo2 + HFA;
+    // double eloAway = elo1;
+    // double dr2 = eloHome - eloAway;
+    // // Vinn‑sannsynlighet for hjemmelag (uten uavgjort)
+    // double pHomeWin = 1.0 / (Math.pow(10, -dr2 / 400.0) + 1.0);
+    // // Fordel totalmålene proporsjonalt
+    // double lambdaHome = pHomeWin * AVG_GOALS;
+    // double lambdaAway = (1 - pHomeWin) * AVG_GOALS;
+
+    // // Knuths algoritme for Poisson‑trekking
+    // java.util.function.Function<Double, Integer> drawPoisson = (lambda) -> {
+    // double L = Math.exp(-lambda), p = 1.0;
+    // int k = 0;
+    // while (p > L) {
+    // p *= rnd.nextDouble();
+    // k++;
+    // }
+    // return k - 1;
+    // };
+
+    // for (int i = 0; i < SIMS; i++) {
+    // int goalsHome2 = drawPoisson.apply(lambdaHome);
+    // int goalsAway2 = drawPoisson.apply(lambdaAway);
+
+    // int total1 = agg1Base + goalsAway2;
+    // int total2 = agg2Base + goalsHome2;
+
+    // if (total1 > total2)
+    // count1++;
+    // else if (total2 > total1)
+    // count2++;
+    // else
+    // countTie++;
+    // }
+
+    // double pAdvance1 = (count1 + countTie * 0.5) / (double) SIMS;
+    // double pAdvance2 = (count2 + countTie * 0.5) / (double) SIMS;
+
+    // System.out.printf("%s går videre: %.2f%%%n",
+    // club1.getName(), pAdvance1 * 100);
+    // System.out.printf("%s går videre: %.2f%%%n",
+    // club2.getName(), pAdvance2 * 100);
+    // }
 
     @Override
     public String toString() {
@@ -165,5 +291,10 @@ public class Tie extends ClubSlot {
                 ", club1Goals=" + club1Goals +
                 ", club2Goals=" + club2Goals +
                 '}';
+    }
+
+    public String toCompactString() {
+        return clubSlot1.toCompactString() + " vs " +
+                clubSlot2.toCompactString();
     }
 }
