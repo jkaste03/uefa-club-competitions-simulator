@@ -1,5 +1,8 @@
 package com.example;
 
+import java.util.Map;
+import java.util.Random;
+
 /**
  * Represents a tie between two clubs at a specific competition level.
  * <p>
@@ -79,66 +82,78 @@ public class Tie extends ClubSlot {
     }
 
     public void play() {
-        // 1) Hent Elo for begge klubber
+        // Hent Elo for begge klubber
         double elo1 = ((Club) clubSlot1).getEloRating();
         double elo2 = ((Club) clubSlot2).getEloRating();
 
-        // 2) Definer hjemmebanefordel (samme for alle klubber)
-        final double HFA = 100; // kan justeres
-
-        // 3) Beregn sannsynlighet uten hjemmebanefordel:
-        // P(neutral) = 1 / (10^(-(elo1 - elo2)/400) + 1)
-        double drNeutral = elo1 - elo2;
-        double pNeutral = 1.0 / (Math.pow(10, -drNeutral / 400.0) + 1.0);
-
-        // Hvis club1Goals er null, spiller vi begge ben samtidig (ingen
-        // hjemmebanefordel)
+        // Dersom første ben ikke spilt: analytisk formel på samlet oppgjør
         if (club1Goals == null) {
-            System.out.printf("Sannsynlighet for at %s går videre: %.2f%%%n",
-                    ((Club) clubSlot1).getName(), pNeutral * 100);
-            System.out.printf("Sannsynlighet for at %s går videre: %.2f%%%n",
-                    ((Club) clubSlot2).getName(), (1 - pNeutral) * 100);
-
-        } else {
-            // Første kamp er allerede spilt, vi har resultater i club1Goals/club2Goals.
-            // Nå spiller vi én returkamp, der clubSlot2 er hjemmelag:
-            // 4) Juster Elo-differanse med hjemmebanefordel for returkampen
-            double drReturn = (elo2 + HFA) - elo1;
-            double pHomeWin = 1.0 / (Math.pow(10, -drReturn / 400.0) + 1.0);
-
-            // 5) Beregn sannsynlighet for at hver klubb går videre,
-            // basert på kjent første kamp og sannsynlighet for returkamp.
-            // Vi antar at dersom man vinner returkampen, man går videre,
-            // ved uavgjort tar vi bortemålsregelen:
-            int g1 = club1Goals;
-            int g2 = club2Goals;
-
-            // Sannsynlighet for at returkampen ender uavgjort:
-            double pDrawReturn = 1 - pHomeWin - (1 - pHomeWin);
-            // (her forenklet til ingen mulighet for uavgjort; kan settes til 0)
-
-            // Sjekk aggregate-situasjonen:
-            // Hvis g1 + x < g2 + y => club2 videre; > => club1;
-            // ved uavgjort avgjøres det på bortemål, altså
-            // club1 bortemål = x, club2 bortemål = y (x = number of goals clubSlot1 scorer
-            // hjemme)
-
-            // For enkelhets skyld, vi antar at:
-            // - Med sjanse pHomeWin vinner hjemmelaget (clubSlot2) med et bortemål mer →
-            // club2 går videre
-            // - Med sjanse pHome lose (1-pHomeWin) vinner borte (clubSlot1) → club1 går
-            // videre
-            // - Vi ignorerer returkamp-uavgjort i denne forenklingen.
-
-            double pClub2Advance = pHomeWin;
-            double pClub1Advance = 1 - pHomeWin;
-
-            System.out.printf("Basert på første kamp (%d–%d) og returkamp:\n", g1, g2);
-            System.out.printf("  %s går videre med sannsynlighet: %.2f%%%n",
-                    ((Club) clubSlot1).getName(), pClub1Advance * 100);
-            System.out.printf("  %s går videre med sannsynlighet: %.2f%%%n",
-                    ((Club) clubSlot2).getName(), pClub2Advance * 100);
+            double dr = elo1 - elo2;
+            double p1 = 1.0 / (Math.pow(10, -dr / 400.0) + 1.0);
+            System.out.printf("%s går videre: %.2f%%%n",
+                    ((Club) clubSlot1).getName(), p1 * 100);
+            System.out.printf("%s går videre: %.2f%%%n",
+                    ((Club) clubSlot2).getName(), (1 - p1) * 100);
+            return;
         }
+
+        // Første kamp spilt – simuler 2. kamp
+        final int SIMS = 10_000;
+        double hfa = 50; // konstant hjemmebanefordel (alle lik)
+        double avgTotalGoals = 2.7; // anslått gjennomsnitt mål per kamp
+        Random rnd = new Random();
+
+        // Akkumulerte mål fra første kamp
+        int agg1Base = club1Goals;
+        int agg2Base = club2Goals;
+
+        int count1 = 0, count2 = 0;
+        int countTie = 0;
+
+        // Beregn forventet Poisson‑lambda for 2. kamp
+        // Her er clubSlot2 hjemmelag i returkampen:
+        double eloHome = elo2 + hfa;
+        double eloAway = elo1;
+        double dr2 = eloHome - eloAway;
+        // Vinn‑sannsynlighet for hjemmelag (uten uavgjort)
+        double pHomeWin = 1.0 / (Math.pow(10, -dr2 / 400.0) + 1.0);
+        // Fordel totalmålene proporsjonalt
+        double lambdaHome = pHomeWin * avgTotalGoals;
+        double lambdaAway = (1 - pHomeWin) * avgTotalGoals;
+
+        // Knuths algoritme for Poisson‑trekking
+        java.util.function.Function<Double, Integer> drawPoisson = (lambda) -> {
+            double L = Math.exp(-lambda), p = 1.0;
+            int k = 0;
+            while (p > L) {
+                p *= rnd.nextDouble();
+                k++;
+            }
+            return k - 1;
+        };
+
+        for (int i = 0; i < SIMS; i++) {
+            int goalsHome2 = drawPoisson.apply(lambdaHome);
+            int goalsAway2 = drawPoisson.apply(lambdaAway);
+
+            int total1 = agg1Base + goalsAway2;
+            int total2 = agg2Base + goalsHome2;
+
+            if (total1 > total2)
+                count1++;
+            else if (total2 > total1)
+                count2++;
+            else
+                countTie++;
+        }
+
+        double pAdvance1 = (count1 + countTie * 0.5) / (double) SIMS;
+        double pAdvance2 = (count2 + countTie * 0.5) / (double) SIMS;
+
+        System.out.printf("%s går videre: %.2f%%%n",
+                ((Club) clubSlot1).getName(), pAdvance1 * 100);
+        System.out.printf("%s går videre: %.2f%%%n",
+                ((Club) clubSlot2).getName(), pAdvance2 * 100);
     }
 
     @Override

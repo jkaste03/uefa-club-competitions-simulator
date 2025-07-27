@@ -16,6 +16,8 @@ import java.util.ArrayList;
 public class Round {
     private int compLevel;
     private int roundNumber;
+    private Round nextPrimaryRnd;
+    private Round nextSecondaryRnd;
     private ArrayList<ClubSlot> clubSlots;
     private ArrayList<ClubSlot> seeded;
     private ArrayList<ClubSlot> unseeded;
@@ -50,6 +52,27 @@ public class Round {
         return roundNumber;
     }
 
+    public Round getNextPrimaryRnd() {
+        return nextPrimaryRnd;
+    }
+
+    public Round getNextSecondaryRnd() {
+        return nextSecondaryRnd;
+    }
+
+    public void setNextPrimaryRnd(Round nextPrimaryRnd) {
+        this.nextPrimaryRnd = nextPrimaryRnd;
+    }
+
+    public void setNextSecondaryRnd(Round nextSecondaryRnd) {
+        this.nextSecondaryRnd = nextSecondaryRnd;
+    }
+
+    public void setNextRounds(Round nextPrimaryRnd, Round nextSecondaryRnd) {
+        this.nextPrimaryRnd = nextPrimaryRnd;
+        this.nextSecondaryRnd = nextSecondaryRnd;
+    }
+
     public ArrayList<ClubSlot> getClubSlots() {
         return clubSlots;
     }
@@ -76,6 +99,12 @@ public class Round {
         int half = clubSlots.size() / 2;
         seeded.addAll(clubSlots.subList(0, half));
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));
+    }
+
+    public void play() {
+        for (Tie tie : ties) {
+            tie.play();
+        }
     }
 
     @Override
