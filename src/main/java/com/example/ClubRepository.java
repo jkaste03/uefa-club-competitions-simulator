@@ -1,5 +1,6 @@
 package com.example;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,11 +38,23 @@ public class ClubRepository {
                 .orElse(-1); // Return -1 if the club is not found
     }
 
+    public static ArrayList<Club> getAllClubs() {
+        return new ArrayList<>(clubs.values());
+    }
+
     /*
      * Adds a club to the static map of clubs. This method is used to populate the
      * repository with club data, which can be used for simulations and other
      */
     public static void addClub(Club club) {
         clubs.put(club.getId(), club);
+    }
+
+    // Add this method to your ClubRepository class
+    public static Club getClubByName(String name) {
+        return getAllClubs().stream()
+                .filter(club -> club.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

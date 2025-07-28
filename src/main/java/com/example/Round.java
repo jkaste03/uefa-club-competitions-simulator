@@ -1,5 +1,6 @@
 package com.example;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 
@@ -13,7 +14,7 @@ import java.util.ArrayList;
  *
  * @author jkaste03
  */
-public class Round {
+public class Round implements Serializable {
     private int compLevel;
     private int roundNumber;
     private Round nextPrimaryRnd;
@@ -99,7 +100,7 @@ public class Round {
      */
     public void seed() {
         // Sort clubSlots by ranking descending
-        clubSlots.sort((a, b) -> Float.compare(b.getRanking(compLevel), a.getRanking(compLevel)));
+        clubSlots.sort((a, b) -> Float.compare(a.getRanking(compLevel), b.getRanking(compLevel)));
         int half = clubSlots.size() / 2;
         seeded.addAll(clubSlots.subList(0, half));
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));

@@ -1,5 +1,6 @@
 package com.example;
 
+import java.io.Serializable;
 import java.util.Random;
 import java.util.function.Function;
 
@@ -19,7 +20,7 @@ import java.util.function.Function;
  *
  * @author jkaste03
  */
-public class Tie {
+public class Tie implements Serializable {
     private ClubSlot clubSlot1;
     private ClubSlot clubSlot2;
     private int compLevel;
@@ -66,6 +67,16 @@ public class Tie {
         return club2Goals;
     }
 
+    /** Getter for å sjekke hvem som vant etter playOutcome() */
+    public Boolean isClub1Winner() {
+        return club1Winner;
+    }
+
+    public void incrementSeedingCounter(boolean isSeeded) {
+        clubSlot1.incrementSeedingCounter(isSeeded);
+        clubSlot2.incrementSeedingCounter(isSeeded);
+    }
+
     /**
      * Calculates the ranking for this Tie based on the competition level of the
      * caller.
@@ -99,7 +110,7 @@ public class Tie {
             Tie innerTie = clubSlot1.getTie();
             Boolean winner = innerTie.isClub1Winner();
             if (winner != null) {
-                if (this.compLevel < callerCompLevel) {
+                if (clubSlot1.getTie().getCompLevel() < this.compLevel) {
                     // assign loser
                     clubSlot1 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
                 } else {
@@ -113,7 +124,7 @@ public class Tie {
             Tie innerTie = clubSlot2.getTie();
             Boolean winner = innerTie.isClub1Winner();
             if (winner != null) {
-                if (this.compLevel < callerCompLevel) {
+                if (clubSlot2.getTie().getCompLevel() < this.compLevel) {
                     // assign loser
                     clubSlot2 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
                 } else {
@@ -203,11 +214,6 @@ public class Tie {
             // uavgjort etter aggregat – avgjør med coin flip (eller egen logikk)
             club1Winner = rnd.nextBoolean();
         }
-    }
-
-    /** Getter for å sjekke hvem som vant etter playOutcome() */
-    public Boolean isClub1Winner() {
-        return club1Winner;
     }
 
     // public void play() {

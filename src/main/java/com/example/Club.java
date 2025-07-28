@@ -1,5 +1,7 @@
 package com.example;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Represents a football club with a name and ranking.
  *
@@ -15,6 +17,8 @@ public class Club {
     private int id;
     private String name;
     private float ranking;
+    private final AtomicInteger timesSeeded = new AtomicInteger(0);
+    private final AtomicInteger timesUnseeded = new AtomicInteger(0);
 
     public Club(String name, float ranking) {
         this.id = id_counter++;
@@ -44,6 +48,22 @@ public class Club {
 
     public double getEloRating() {
         return ClubEloDataLoader.getEloRating(id);
+    }
+
+    public int getTimesSeeded() {
+        return timesSeeded.get();
+    }
+
+    public int getTimesUnseeded() {
+        return timesUnseeded.get();
+    }
+
+    public void incrementSeedingCounter(boolean isSeeded) {
+        if (isSeeded) {
+            timesSeeded.incrementAndGet();
+        } else {
+            timesUnseeded.incrementAndGet();
+        }
     }
 
     @Override
