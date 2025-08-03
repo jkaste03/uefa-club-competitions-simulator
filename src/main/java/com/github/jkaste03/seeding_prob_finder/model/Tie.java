@@ -1,8 +1,10 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.io.Serializable;
 import java.util.Random;
 import java.util.function.Function;
+
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 
 /**
  * Represents a tie between two clubs at a specific competition level.
@@ -23,7 +25,7 @@ import java.util.function.Function;
 public class Tie implements Serializable {
     private ClubSlot clubSlot1;
     private ClubSlot clubSlot2;
-    private int compLevel;
+    private Tournament tournament;
     private Integer club1Goals;
     private Integer club2Goals;
     private Boolean club1Winner;
@@ -33,22 +35,22 @@ public class Tie implements Serializable {
     private static final double AVG_GOALS = 2.7;
     private static final Random rnd = new Random();
 
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, int compLevel) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
-        this.compLevel = compLevel;
+        this.tournament = tournament;
     }
 
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, int compLevel, Integer club1Goals, Integer club2Goals) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals, Integer club2Goals) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
-        this.compLevel = compLevel;
+        this.tournament = tournament;
         this.club1Goals = club1Goals;
         this.club2Goals = club2Goals;
     }
 
-    public int getCompLevel() {
-        return compLevel;
+    public Tournament getTournament() {
+        return tournament;
     }
 
     public ClubSlot getClubSlot1() {
@@ -104,13 +106,13 @@ public class Tie implements Serializable {
      * @param callerCompLevel the competition level of the caller
      * @return the calculated ranking for this Tie at the given competition level
      */
-    public float getRanking(int callerCompLevel) {
+    public float getRanking(Tournament callerTournament) {
         // Resolve ClubSlot1 if it's a Tie and has a winner
         if (clubSlot1.isTie()) {
             Tie innerTie = clubSlot1.getTie();
             Boolean winner = innerTie.isClub1Winner();
             if (winner != null) {
-                if (clubSlot1.getTie().getCompLevel() < this.compLevel) {
+                if (clubSlot1.getTie().getTournament().compareTo(this.tournament) > 0) {
                     // assign loser
                     clubSlot1 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
                 } else {
@@ -124,7 +126,7 @@ public class Tie implements Serializable {
             Tie innerTie = clubSlot2.getTie();
             Boolean winner = innerTie.isClub1Winner();
             if (winner != null) {
-                if (clubSlot2.getTie().getCompLevel() < this.compLevel) {
+                if (clubSlot2.getTie().getTournament().compareTo(this.tournament) > 0) {
                     // assign loser
                     clubSlot2 = winner ? innerTie.getClubSlot2() : innerTie.getClubSlot1();
                 } else {
@@ -138,23 +140,23 @@ public class Tie implements Serializable {
         // the level
         if (isClub1Winner() != null) {
             boolean club1Won = isClub1Winner();
-            if (this.compLevel < callerCompLevel) {
+            if (this.tournament.compareTo(callerTournament) > 0) {
                 // Return loser's ranking
                 return club1Won
-                        ? clubSlot2.getRanking(this.compLevel)
-                        : clubSlot1.getRanking(this.compLevel);
+                        ? clubSlot2.getRanking(this.tournament)
+                        : clubSlot1.getRanking(this.tournament);
             } else {
                 // Return winner's ranking
                 return club1Won
-                        ? clubSlot1.getRanking(this.compLevel)
-                        : clubSlot2.getRanking(this.compLevel);
+                        ? clubSlot1.getRanking(this.tournament)
+                        : clubSlot2.getRanking(this.tournament);
             }
         }
         // Otherwise: existing logic
-        if (this.compLevel < callerCompLevel) {
-            return Math.max(clubSlot1.getRanking(this.compLevel), clubSlot2.getRanking(this.compLevel));
+        if (this.tournament.compareTo(callerTournament) > 0) {
+            return Math.max(clubSlot1.getRanking(this.tournament), clubSlot2.getRanking(this.tournament));
         } else {
-            return Math.min(clubSlot1.getRanking(this.compLevel), clubSlot2.getRanking(this.compLevel));
+            return Math.min(clubSlot1.getRanking(this.tournament), clubSlot2.getRanking(this.tournament));
         }
     }
 
@@ -164,8 +166,8 @@ public class Tie implements Serializable {
      * og setter club1Winner = true/false.
      */
     public void play() {
-        Club club1 = clubSlot1.getClub();
-        Club club2 = clubSlot2.getClub();
+        ClubIdWrapper club1 = clubSlot1.getClubIdWrapper();
+        ClubIdWrapper club2 = clubSlot2.getClubIdWrapper();
 
         // Første ben ikke spilt: analytisk-probabilistisk enkeltutfall
         if (club1Goals == null) {
@@ -291,7 +293,7 @@ public class Tie implements Serializable {
     @Override
     public String toString() {
         return "Tie{" +
-                "compLevel=" + compLevel +
+                "tournament=" + tournament +
                 ", clubSlot1=" + clubSlot1 +
                 ", clubSlot2=" + clubSlot2 +
                 ", club1Goals=" + club1Goals +

@@ -1,4 +1,4 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,8 +8,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.stream.IntStream;
 
-public class Main {
-    private static final int SIMS = 100_000;
+import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
+import com.github.jkaste03.seeding_prob_finder.model.Rounds;
+
+public class UefaCCSim {
+    private static final int SIMS = 1_000;
 
     public static void main(String[] args) {
         // Create a new instance of Rounds
@@ -46,7 +49,7 @@ public class Main {
         System.out.printf("%-21s %14s %18s%n", "Club", "Cond. Seeded", "Cond. Unseeded");
         System.out.println("-----------------------------------------------------------------------------------");
         ClubRepository.getAllClubs().stream()
-                .filter(club -> club.getRanking(3) != -1)
+                .filter(club -> club.getRanking() != -1)
                 .sorted((c1, c2) -> {
                     int c1Seeded = c1.getTimesSeeded();
                     int c1Unseeded = c1.getTimesUnseeded();
@@ -89,7 +92,7 @@ public class Main {
         System.out.printf("%-21s %12s %16s%n", "Club", "Abs. Seeded", "Abs. Unseeded");
         System.out.println("---------------------------------------------------------------");
         ClubRepository.getAllClubs().stream()
-                .filter(club -> club.getRanking(3) != -1)
+                .filter(club -> club.getRanking() != -1)
                 .sorted((c1, c2) -> {
                     double c1AbsSeed = (double) c1.getTimesSeeded() / SIMS;
                     double c2AbsSeed = (double) c2.getTimesSeeded() / SIMS;

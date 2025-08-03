@@ -1,8 +1,9 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
+
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 
 /**
  * Represents a round in a football competition, managing club slots and their
@@ -15,7 +16,7 @@ import java.util.ArrayList;
  * @author jkaste03
  */
 public class Round implements Serializable {
-    private int compLevel;
+    private Tournament tournament;
     private int roundNumber;
     private Round nextPrimaryRnd;
     private Round nextSecondaryRnd;
@@ -24,8 +25,8 @@ public class Round implements Serializable {
     private ArrayList<ClubSlot> unseeded;
     private ArrayList<ClubSlot> ties;
 
-    public Round(int compLevel, int roundNumber) {
-        this.compLevel = compLevel;
+    public Round(Tournament tournament, int roundNumber) {
+        this.tournament = tournament;
         this.roundNumber = roundNumber;
         clubSlots = new ArrayList<>();
         seeded = new ArrayList<>();
@@ -49,8 +50,8 @@ public class Round implements Serializable {
         this.ties.addAll(ties);
     }
 
-    public int getCompLevel() {
-        return compLevel;
+    public Tournament getTournament() {
+        return tournament;
     }
 
     public int getRoundNumber() {
@@ -100,7 +101,7 @@ public class Round implements Serializable {
      */
     public void seed() {
         // Sort clubSlots by ranking descending
-        clubSlots.sort((a, b) -> Float.compare(a.getRanking(compLevel), b.getRanking(compLevel)));
+        clubSlots.sort((a, b) -> Float.compare(a.getRanking(tournament), b.getRanking(tournament)));
         int half = clubSlots.size() / 2;
         seeded.addAll(clubSlots.subList(0, half));
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));
@@ -115,7 +116,7 @@ public class Round implements Serializable {
     @Override
     public String toString() {
         return "Round{" +
-                "compLevel=" + compLevel +
+                "tournament=" + tournament +
                 ", roundNumber=" + roundNumber +
                 ", clubSlots=" + clubSlots +
                 ", seeded=" + seeded +

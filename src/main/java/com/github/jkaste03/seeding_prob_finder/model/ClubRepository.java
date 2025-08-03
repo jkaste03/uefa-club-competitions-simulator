@@ -1,4 +1,4 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;

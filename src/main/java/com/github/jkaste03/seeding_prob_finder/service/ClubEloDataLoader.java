@@ -1,10 +1,12 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder.service;
 
 import java.io.*;
 import java.net.URI;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.*;
+
+import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
 
 /**
  * ClubEloService provides functionality to retrieve and manage Elo ratings for
@@ -28,13 +30,13 @@ public class ClubEloDataLoader implements Serializable {
     private static final String BASE_URL = "http://api.clubelo.com/";
     private static final String DATA_FOLDER = "src/main/java/com/example/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
-    private static final Map<Integer, Double> eloMap = new HashMap<>();
+    private final Map<Integer, Double> eloMap = new HashMap<>();
 
     /**
      * Initializes the Elo ratings by downloading the latest data if not already
      * present.
      */
-    public static void init() {
+    public void init() {
         // Download file if it does not exist
         if (!Files.exists(Path.of(filePath))) {
             deleteExistingCSVFiles();
@@ -76,7 +78,7 @@ public class ClubEloDataLoader implements Serializable {
     /**
      * Loads Elo ratings from the CSV file into memory.
      */
-    private static void loadEloRatings() {
+    private void loadEloRatings() {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
             while ((line = br.readLine()) != null) {
@@ -100,7 +102,7 @@ public class ClubEloDataLoader implements Serializable {
      * @param clubId the id of the club whose Elo rating is requested
      * @return the Elo rating for the club if available, or 0.0 if not found
      */
-    public static double getEloRating(int clubId) {
+    public double getEloRating(int clubId) {
         return eloMap.getOrDefault(clubId, 0.0);
     }
 
@@ -110,7 +112,7 @@ public class ClubEloDataLoader implements Serializable {
      * @param clubId the id of the club whose Elo rating is to be set
      * @param elo    the new Elo rating for the club
      */
-    public static void setEloRating(int clubId, double elo) {
+    public void setEloRating(int clubId, double elo) {
         eloMap.put(clubId, elo);
     }
 }

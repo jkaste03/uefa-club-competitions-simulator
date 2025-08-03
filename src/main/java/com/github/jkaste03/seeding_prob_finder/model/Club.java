@@ -1,4 +1,4 @@
-package com.example;
+package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,17 +37,11 @@ public class Club {
 
     /**
      * Returns the ranking of the club.
-     *
-     * @param callerCompLevel the competition level of the caller is not relevant
-     *                        for this class
+     * 
      * @return the ranking value of the club
      */
-    public float getRanking(int callerCompLevel) {
+    public float getRanking() {
         return ranking;
-    }
-
-    public double getEloRating() {
-        return ClubEloDataLoader.getEloRating(id);
     }
 
     public int getTimesSeeded() {
@@ -72,7 +66,6 @@ public class Club {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", coefficientRanking=" + ranking +
-                ", eloRating=" + getEloRating() +
                 '}';
     }
 }
