@@ -3,7 +3,10 @@ package com.github.jkaste03.seeding_prob_finder.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.RoundType;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.PathType;
+import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
  * Represents a round in a football competition, managing club slots and their
@@ -17,7 +20,8 @@ import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
  */
 public class Round implements Serializable {
     private Tournament tournament;
-    private int roundNumber;
+    private RoundType roundType;
+    private PathType pathType;
     private Round nextPrimaryRnd;
     private Round nextSecondaryRnd;
     private ArrayList<ClubSlot> clubSlots;
@@ -25,9 +29,10 @@ public class Round implements Serializable {
     private ArrayList<ClubSlot> unseeded;
     private ArrayList<ClubSlot> ties;
 
-    public Round(Tournament tournament, int roundNumber) {
+    public Round(Tournament tournament, RoundType roundType, PathType pathType) {
         this.tournament = tournament;
-        this.roundNumber = roundNumber;
+        this.roundType = roundType;
+        this.pathType = pathType;
         clubSlots = new ArrayList<>();
         seeded = new ArrayList<>();
         unseeded = new ArrayList<>();
@@ -54,8 +59,12 @@ public class Round implements Serializable {
         return tournament;
     }
 
-    public int getRoundNumber() {
-        return roundNumber;
+    public RoundType getRoundType() {
+        return roundType;
+    }
+
+    public String getName() {
+        return tournament + " " + roundType + " " + pathType;
     }
 
     public Round getNextPrimaryRnd() {
@@ -107,9 +116,9 @@ public class Round implements Serializable {
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));
     }
 
-    public void play() {
+    public void play(ClubEloDataLoader clubEloDataLoader) {
         for (ClubSlot tie : ties) {
-            tie.getTie().play();
+            tie.getTie().play(clubEloDataLoader);
         }
     }
 
@@ -117,7 +126,7 @@ public class Round implements Serializable {
     public String toString() {
         return "Round{" +
                 "tournament=" + tournament +
-                ", roundNumber=" + roundNumber +
+                ", roundType=" + roundType +
                 ", clubSlots=" + clubSlots +
                 ", seeded=" + seeded +
                 ", unseeded=" + unseeded +

@@ -28,7 +28,7 @@ import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
  */
 public class ClubEloDataLoader implements Serializable {
     private static final String BASE_URL = "http://api.clubelo.com/";
-    private static final String DATA_FOLDER = "src/main/java/com/example/data/";
+    private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/seeding_prob_finder/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
     private final Map<Integer, Double> eloMap = new HashMap<>();
 

@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.PathType;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.RoundType;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Country;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
@@ -29,14 +32,14 @@ public class Rounds implements Serializable {
      * simulation by creating each qualifying and league phase round instance.
      */
     public Rounds() {
-        uclQ2 = new Round(Tournament.CHAMPIONS_LEAGUE, 2);
-        uelQ2 = new Round(Tournament.EUROPA_LEAGUE, 2);
-        ueclQ2 = new Round(Tournament.CONFERENCE_LEAGUE, 2);
+        uclQ2 = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH);
+        uelQ2 = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
+        ueclQ2 = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
 
-        uelQ3 = new Round(Tournament.EUROPA_LEAGUE, 3);
-        ueclQ3 = new Round(Tournament.CONFERENCE_LEAGUE, 3);
+        uelQ3 = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
+        ueclQ3 = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
 
-        ueclPO = new Round(Tournament.CONFERENCE_LEAGUE, 4);
+        ueclPO = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
 
         // Aggregate all rounds into a list for streamlined processing.
         rounds = new ArrayList<>(
@@ -53,9 +56,9 @@ public class Rounds implements Serializable {
         ueclQ3.setNextPrimaryRnd(ueclPO);
 
         // UCL Q2 ties
-        ClubSlot uclQ2Tie1 = new ClubSlot(new ClubSlot("Brann", 189f, clubEloDataLoader), new ClubSlot("Salzburg", 44f, clubEloDataLoader), uclQ2.getTournament(), 1, 4);
-        ClubSlot uclQ2Tie2 = new ClubSlot(new ClubSlot("Viktoria Plzen", 56f, clubEloDataLoader), new ClubSlot("Servette", 140f, clubEloDataLoader), uclQ2.getTournament(), 0, 1);
-        ClubSlot uclQ2Tie3 = new ClubSlot(new ClubSlot("Rangers", 25f, clubEloDataLoader), new ClubSlot("Panathinaikos", 111f, clubEloDataLoader), uclQ2.getTournament(), 2, 0);
+        ClubSlot uclQ2Tie1 = new ClubSlot(new ClubSlot("Brann", Country.NOR, 189f), new ClubSlot("Salzburg", Country.AUT, 44f), uclQ2.getTournament(), 1, 4);
+        ClubSlot uclQ2Tie2 = new ClubSlot(new ClubSlot("Viktoria Plzen", Country.CZE, 56f), new ClubSlot("Servette", Country.SUI, 140f), uclQ2.getTournament(), 0, 1);
+        ClubSlot uclQ2Tie3 = new ClubSlot(new ClubSlot("Rangers", Country.SCO, 25f), new ClubSlot("Panathinaikos", Country.GRE, 111f), uclQ2.getTournament(), 2, 0);
 
         uclQ2.addTies(new ArrayList<>(Arrays.asList(
                 uclQ2Tie1,
@@ -63,14 +66,14 @@ public class Rounds implements Serializable {
                 uclQ2Tie3)));
 
         // UEL Q2 ties
-        ClubSlot uelQ2Tie1 = new ClubSlot(new ClubSlot("Banik Ostrava", 168f, clubEloDataLoader), new ClubSlot("Legia", 70f, clubEloDataLoader), uelQ2.getTournament(), 2, 2);
-        ClubSlot uelQ2Tie2 = new ClubSlot(new ClubSlot("Sheriff Tiraspol", 88f, clubEloDataLoader), new ClubSlot("Utrecht", 125.1f, clubEloDataLoader), uelQ2.getTournament(), 1, 3);
-        ClubSlot uelQ2Tie3 = new ClubSlot(new ClubSlot("Midtjylland", 67f, clubEloDataLoader), new ClubSlot("Hibernian", 207f, clubEloDataLoader), uelQ2.getTournament(), 1, 1);
-        ClubSlot uelQ2Tie4 = new ClubSlot(new ClubSlot("Levski", 312f, clubEloDataLoader), new ClubSlot("Braga", 48f, clubEloDataLoader), uelQ2.getTournament(), 0, 0);
-        ClubSlot uelQ2Tie5 = new ClubSlot(new ClubSlot("Anderlecht", 72f, clubEloDataLoader), new ClubSlot("Haecken", 211f, clubEloDataLoader), uelQ2.getTournament(), 1, 0);
-        ClubSlot uelQ2Tie6 = new ClubSlot(new ClubSlot("Besiktas", 113f, clubEloDataLoader), new ClubSlot("Shakhtar", 41f, clubEloDataLoader), uelQ2.getTournament(), 2, 4);
-        ClubSlot uelQ2Tie7 = new ClubSlot(new ClubSlot("Celje", 120f, clubEloDataLoader), new ClubSlot("Larnaca", 199f, clubEloDataLoader), uelQ2.getTournament(), 1, 1);
-        ClubSlot uelQ2Tie8 = new ClubSlot(new ClubSlot("Lugano", 90f, clubEloDataLoader), new ClubSlot("CFR Cluj", 92f, clubEloDataLoader), uelQ2.getTournament(), 0, 0);
+        ClubSlot uelQ2Tie1 = new ClubSlot(new ClubSlot("Banik Ostrava", Country.CZE, 168f), new ClubSlot("Legia", Country.POL, 70f), uelQ2.getTournament(), 2, 2);
+        ClubSlot uelQ2Tie2 = new ClubSlot(new ClubSlot("Sheriff Tiraspol", Country.MOL, 88f), new ClubSlot("Utrecht", Country.NED, 125.1f), uelQ2.getTournament(), 1, 3);
+        ClubSlot uelQ2Tie3 = new ClubSlot(new ClubSlot("Midtjylland", Country.DEN, 67f), new ClubSlot("Hibernian", Country.SCO, 207f), uelQ2.getTournament(), 1, 1);
+        ClubSlot uelQ2Tie4 = new ClubSlot(new ClubSlot("Levski", Country.BUL, 312f), new ClubSlot("Braga", Country.POR, 48f), uelQ2.getTournament(), 0, 0);
+        ClubSlot uelQ2Tie5 = new ClubSlot(new ClubSlot("Anderlecht", Country.BEL, 72f), new ClubSlot("Haecken", Country.SWE, 211f), uelQ2.getTournament(), 1, 0);
+        ClubSlot uelQ2Tie6 = new ClubSlot(new ClubSlot("Besiktas", Country.TUR, 113f), new ClubSlot("Shakhtar", Country.UKR, 41f), uelQ2.getTournament(), 2, 4);
+        ClubSlot uelQ2Tie7 = new ClubSlot(new ClubSlot("Celje", Country.SVN, 120f), new ClubSlot("Larnaca", Country.CYP, 199f), uelQ2.getTournament(), 1, 1);
+        ClubSlot uelQ2Tie8 = new ClubSlot(new ClubSlot("Lugano", Country.SUI, 90f), new ClubSlot("CFR Cluj", Country.ROM, 92f), uelQ2.getTournament(), 0, 0);
 
         uelQ2.addTies(new ArrayList<>(Arrays.asList(
                 uelQ2Tie1,
@@ -93,52 +96,52 @@ public class Rounds implements Serializable {
         // ClubSlot("Milsami Orhei", 259f), ueclQ2.getCompLevel(), 0, 0);
         // ClubSlot ueclQ2Tie5 = new ClubSlot(new ClubSlot("Zalgiris Vilnius", 137f),
         // new ClubSlot("Linfield", 179f), ueclQ2.getCompLevel(), 0, 0);
-        ClubSlot ueclQ2Tie6 = new ClubSlot(new ClubSlot("Cherno More", 333f, clubEloDataLoader), new ClubSlot("Bueyueksehir", 82f, clubEloDataLoader), ueclQ2.getTournament(), 0, 1);
+        ClubSlot ueclQ2Tie6 = new ClubSlot(new ClubSlot("Cherno More", Country.BUL, 333f), new ClubSlot("Bueyueksehir", Country.TUR, 82f), ueclQ2.getTournament(), 0, 1);
         // ClubSlot ueclQ2Tie7 = new ClubSlot(new ClubSlot("Dinamo Minsk", 249f), new
         // ClubSlot("Egnatia", 369f), ueclQ2.getCompLevel(), 0, 2);
-        ClubSlot ueclQ2Tie8 = new ClubSlot(new ClubSlot("Dundee United", 208f, clubEloDataLoader), new ClubSlot("Una Strassen", 416f, clubEloDataLoader), ueclQ2.getTournament(), 1, 0);
-        ClubSlot ueclQ2Tie9 = new ClubSlot(new ClubSlot("Larne", 212f, clubEloDataLoader), new ClubSlot("Prishtine", 377f, clubEloDataLoader), ueclQ2.getTournament(), 0, 0);
-        ClubSlot ueclQ2Tie10 = new ClubSlot(new ClubSlot("Kosice", 314.1f, clubEloDataLoader), new ClubSlot("Neman Grodno", 341f, clubEloDataLoader), ueclQ2.getTournament(), 2, 3);
-        ClubSlot ueclQ2Tie11 = new ClubSlot(new ClubSlot("Vaduz", 202f, clubEloDataLoader), new ClubSlot("Dungannon", 398.5f, clubEloDataLoader), ueclQ2.getTournament(), 0, 1);
-        ClubSlot ueclQ2Tie12 = new ClubSlot(new ClubSlot("Silkeborg", 229f, clubEloDataLoader), new ClubSlot("Akureyri", 363f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie13 = new ClubSlot(new ClubSlot("Rosenborg", 191f, clubEloDataLoader), new ClubSlot("Banga", 402.1f, clubEloDataLoader), ueclQ2.getTournament(), 5, 0);
-        ClubSlot ueclQ2Tie14 = new ClubSlot(new ClubSlot("Atletic Club Escaldes", 344f, clubEloDataLoader), new ClubSlot("Dinamo Tirana", 406.1f, clubEloDataLoader), ueclQ2.getTournament(), 1, 2);
-        ClubSlot ueclQ2Tie15 = new ClubSlot(new ClubSlot("Austria Wien", 200f, clubEloDataLoader), new ClubSlot("FC Spaeri", 420.1f, clubEloDataLoader), ueclQ2.getTournament(), 2, 0);
-        ClubSlot ueclQ2Tie16 = new ClubSlot(new ClubSlot("Ballkani", 181f, clubEloDataLoader), new ClubSlot("Floriana", 309f, clubEloDataLoader), ueclQ2.getTournament(), 4, 2);
-        ClubSlot ueclQ2Tie17 = new ClubSlot(new ClubSlot("Viking", 192f, clubEloDataLoader), new ClubSlot("Koper", 317f, clubEloDataLoader), ueclQ2.getTournament(), 7, 0);
-        ClubSlot ueclQ2Tie18 = new ClubSlot(new ClubSlot("AEK", 160f, clubEloDataLoader), new ClubSlot("Beer-Sheva", 109f, clubEloDataLoader), ueclQ2.getTournament(), 1, 0);
-        ClubSlot ueclQ2Tie19 = new ClubSlot(new ClubSlot("Pyunik", 176f, clubEloDataLoader), new ClubSlot("Gyoer", 297.1f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie20 = new ClubSlot(new ClubSlot("FK Riga", 155f, clubEloDataLoader), new ClubSlot("Dila Gori", 328f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie21 = new ClubSlot(new ClubSlot("Rakow", 186f, clubEloDataLoader), new ClubSlot("Zilina", 282f, clubEloDataLoader), ueclQ2.getTournament(), 3, 0);
-        ClubSlot ueclQ2Tie22 = new ClubSlot(new ClubSlot("Petrocub", 177f, clubEloDataLoader), new ClubSlot("Sabah", 319f, clubEloDataLoader), ueclQ2.getTournament(), 0, 2);
-        ClubSlot ueclQ2Tie23 = new ClubSlot(new ClubSlot("Ararat", 197f, clubEloDataLoader), new ClubSlot("Universitatea Cluj", 300.1f, clubEloDataLoader), ueclQ2.getTournament(), 0, 0);
-        ClubSlot ueclQ2Tie24 = new ClubSlot(new ClubSlot("Varazdin", 270.1f, clubEloDataLoader), new ClubSlot("Santa Clara", 131f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie25 = new ClubSlot(new ClubSlot("Kauno Zalgiris", 281f, clubEloDataLoader), new ClubSlot("Valur", 351f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie26 = new ClubSlot(new ClubSlot("Paksi", 291f, clubEloDataLoader), new ClubSlot("Maribor", 159f, clubEloDataLoader), ueclQ2.getTournament(), 1, 0);
-        ClubSlot ueclQ2Tie27 = new ClubSlot(new ClubSlot("Vllaznia", 279f, clubEloDataLoader), new ClubSlot("Vikingur", 150f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie28 = new ClubSlot(new ClubSlot("Hammarby", 264f, clubEloDataLoader), new ClubSlot("Charleroi", 144f, clubEloDataLoader), ueclQ2.getTournament(), 0, 0);
-        ClubSlot ueclQ2Tie29 = new ClubSlot(new ClubSlot("Kragujevac", 271f, clubEloDataLoader), new ClubSlot("Klaksvik", 148f, clubEloDataLoader), ueclQ2.getTournament(), 0, 0);
-        ClubSlot ueclQ2Tie30 = new ClubSlot(new ClubSlot("Novi Pazar", 272.1f, clubEloDataLoader), new ClubSlot("Jagiellonia", 119f, clubEloDataLoader), ueclQ2.getTournament(), 1, 2);
-        ClubSlot ueclQ2Tie31 = new ClubSlot(new ClubSlot("Polissya Zhytomyr", 287f, clubEloDataLoader), new ClubSlot("Santa Coloma", 329f, clubEloDataLoader), ueclQ2.getTournament(), 1, 2);
-        ClubSlot ueclQ2Tie32 = new ClubSlot(new ClubSlot("Vardar", 422.1f, clubEloDataLoader), new ClubSlot("Lausanne", 235.1f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie33 = new ClubSlot(new ClubSlot("HB Torshavn", 251f, clubEloDataLoader), new ClubSlot("Brondby", 215f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie34 = new ClubSlot(new ClubSlot("Olexandriya", 290.1f, clubEloDataLoader), new ClubSlot("Partizan", 85f, clubEloDataLoader), ueclQ2.getTournament(), 0, 2);
-        ClubSlot ueclQ2Tie35 = new ClubSlot(new ClubSlot("Hibernians Paola", 265f, clubEloDataLoader), new ClubSlot("Trnava", 178f, clubEloDataLoader), ueclQ2.getTournament(), 1, 2);
-        ClubSlot ueclQ2Tie36 = new ClubSlot(new ClubSlot("St Patricks", 258f, clubEloDataLoader), new ClubSlot("Nomme Kalju", 405f, clubEloDataLoader), ueclQ2.getTournament(), 1, 0);
-        ClubSlot ueclQ2Tie37 = new ClubSlot(new ClubSlot("Paide Linnameeskond", 214f, clubEloDataLoader), new ClubSlot("AIK", 268f, clubEloDataLoader), ueclQ2.getTournament(), 0, 2);
-        ClubSlot ueclQ2Tie38 = new ClubSlot(new ClubSlot("FK Sarajevo", 252f, clubEloDataLoader), new ClubSlot("Craiova", 240f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie39 = new ClubSlot(new ClubSlot("Aris Limassol", 256f, clubEloDataLoader), new ClubSlot("Puskas Akademia", 237f, clubEloDataLoader), ueclQ2.getTournament(), 3, 2);
-        ClubSlot ueclQ2Tie40 = new ClubSlot(new ClubSlot("St Josephs", 327f, clubEloDataLoader), new ClubSlot("Shamrock", 99f, clubEloDataLoader), ueclQ2.getTournament(), 0, 4);
-        ClubSlot ueclQ2Tie41 = new ClubSlot(new ClubSlot("Ilves Tampere", 348f, clubEloDataLoader), new ClubSlot("Alkmaar", 39f, clubEloDataLoader), ueclQ2.getTournament(), 4, 3);
-        ClubSlot ueclQ2Tie42 = new ClubSlot(new ClubSlot("Zira", 318f, clubEloDataLoader), new ClubSlot("Hajduk", 154f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie43 = new ClubSlot(new ClubSlot("Arda", 335f, clubEloDataLoader), new ClubSlot("HJK Helsinki", 128f, clubEloDataLoader), ueclQ2.getTournament(), 0, 0);
-        ClubSlot ueclQ2Tie44 = new ClubSlot(new ClubSlot("Aktobe", 352f, clubEloDataLoader), new ClubSlot("Sparta Praha", 71f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie45 = new ClubSlot(new ClubSlot("FK Astana", 134f, clubEloDataLoader), new ClubSlot("Zimbru", 349f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie46 = new ClubSlot(new ClubSlot("Decic", 320f, clubEloDataLoader), new ClubSlot("Rapid Wien", 68f, clubEloDataLoader), ueclQ2.getTournament(), 0, 2);
-        ClubSlot ueclQ2Tie47 = new ClubSlot(new ClubSlot("Torpedo Zhodino", 325f, clubEloDataLoader), new ClubSlot("Maccabi Haifa", 98f, clubEloDataLoader), ueclQ2.getTournament(), 1, 1);
-        ClubSlot ueclQ2Tie48 = new ClubSlot(new ClubSlot("Nakchivan", 338.1f, clubEloDataLoader), new ClubSlot("Aris", 195f, clubEloDataLoader), ueclQ2.getTournament(), 2, 1);
-        ClubSlot ueclQ2Tie49 = new ClubSlot(new ClubSlot("Omonia", 101f, clubEloDataLoader), new ClubSlot("Torpedo Kutaisi", 350f, clubEloDataLoader), ueclQ2.getTournament(), 1, 0);
-        ClubSlot ueclQ2Tie50 = new ClubSlot(new ClubSlot("Sutjeska", 263f, clubEloDataLoader), new ClubSlot("Beitar", 246f, clubEloDataLoader), ueclQ2.getTournament(), 1, 2);
+        ClubSlot ueclQ2Tie8 = new ClubSlot(new ClubSlot("Dundee United", Country.SCO, 208f), new ClubSlot("Una Strassen", Country.LUX, 416f), ueclQ2.getTournament(), 1, 0);
+        ClubSlot ueclQ2Tie9 = new ClubSlot(new ClubSlot("Larne", Country.NIR, 212f), new ClubSlot("Prishtine", Country.KOS, 377f), ueclQ2.getTournament(), 0, 0);
+        ClubSlot ueclQ2Tie10 = new ClubSlot(new ClubSlot("Kosice", Country.SLK, 314.1f), new ClubSlot("Neman Grodno", Country.BLR, 341f), ueclQ2.getTournament(), 2, 3);
+        ClubSlot ueclQ2Tie11 = new ClubSlot(new ClubSlot("Vaduz", Country.LIE, 202f), new ClubSlot("Dungannon", Country.NIR, 398.5f), ueclQ2.getTournament(), 0, 1);
+        ClubSlot ueclQ2Tie12 = new ClubSlot(new ClubSlot("Silkeborg", Country.DEN, 229f), new ClubSlot("Akureyri", Country.ISL, 363f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie13 = new ClubSlot(new ClubSlot("Rosenborg", Country.NOR, 191f), new ClubSlot("Banga", Country.LIT, 402.1f), ueclQ2.getTournament(), 5, 0);
+        ClubSlot ueclQ2Tie14 = new ClubSlot(new ClubSlot("Atletic Club Escaldes", Country.AND, 344f), new ClubSlot("Dinamo Tirana", Country.ALB, 406.1f), ueclQ2.getTournament(), 1, 2);
+        ClubSlot ueclQ2Tie15 = new ClubSlot(new ClubSlot("Austria Wien", Country.AUT, 200f), new ClubSlot("FC Spaeri", Country.ALB, 420.1f), ueclQ2.getTournament(), 2, 0);
+        ClubSlot ueclQ2Tie16 = new ClubSlot(new ClubSlot("Ballkani", Country.KOS, 181f), new ClubSlot("Floriana", Country.MLT, 309f), ueclQ2.getTournament(), 4, 2);
+        ClubSlot ueclQ2Tie17 = new ClubSlot(new ClubSlot("Viking", Country.NOR, 192f), new ClubSlot("Koper", Country.SVN, 317f), ueclQ2.getTournament(), 7, 0);
+        ClubSlot ueclQ2Tie18 = new ClubSlot(new ClubSlot("AEK", Country.GRE, 160f), new ClubSlot("Beer-Sheva", Country.ISR, 109f), ueclQ2.getTournament(), 1, 0);
+        ClubSlot ueclQ2Tie19 = new ClubSlot(new ClubSlot("Pyunik", Country.ARM, 176f), new ClubSlot("Gyoer", Country.HUN, 297.1f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie20 = new ClubSlot(new ClubSlot("FK Riga", Country.LAT, 155f), new ClubSlot("Dila Gori", Country.GEO, 328f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie21 = new ClubSlot(new ClubSlot("Rakow", Country.POL, 186f), new ClubSlot("Zilina", Country.SLK, 282f), ueclQ2.getTournament(), 3, 0);
+        ClubSlot ueclQ2Tie22 = new ClubSlot(new ClubSlot("Petrocub", Country.MOL, 177f), new ClubSlot("Sabah", Country.AZE, 319f), ueclQ2.getTournament(), 0, 2);
+        ClubSlot ueclQ2Tie23 = new ClubSlot(new ClubSlot("Ararat", Country.ARM, 197f), new ClubSlot("Universitatea Cluj", Country.ROM, 300.1f), ueclQ2.getTournament(), 0, 0);
+        ClubSlot ueclQ2Tie24 = new ClubSlot(new ClubSlot("Varazdin", Country.CRO, 270.1f), new ClubSlot("Santa Clara", Country.POR, 131f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie25 = new ClubSlot(new ClubSlot("Kauno Zalgiris", Country.LIT, 281f), new ClubSlot("Valur", Country.ISL, 351f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie26 = new ClubSlot(new ClubSlot("Paksi", Country.HUN, 291f), new ClubSlot("Maribor", Country.SVN, 159f), ueclQ2.getTournament(), 1, 0);
+        ClubSlot ueclQ2Tie27 = new ClubSlot(new ClubSlot("Vllaznia", Country.ALB, 279f), new ClubSlot("Vikingur", Country.ISL, 150f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie28 = new ClubSlot(new ClubSlot("Hammarby", Country.SWE, 264f), new ClubSlot("Charleroi", Country.BEL, 144f), ueclQ2.getTournament(), 0, 0);
+        ClubSlot ueclQ2Tie29 = new ClubSlot(new ClubSlot("Kragujevac", Country.SRB, 271f), new ClubSlot("Klaksvik", Country.FAR, 148f), ueclQ2.getTournament(), 0, 0);
+        ClubSlot ueclQ2Tie30 = new ClubSlot(new ClubSlot("Novi Pazar", Country.SRB, 272.1f), new ClubSlot("Jagiellonia", Country.POL, 119f), ueclQ2.getTournament(), 1, 2);
+        ClubSlot ueclQ2Tie31 = new ClubSlot(new ClubSlot("Polissya Zhytomyr", Country.UKR, 287f), new ClubSlot("Santa Coloma", Country.AND, 329f), ueclQ2.getTournament(), 1, 2);
+        ClubSlot ueclQ2Tie32 = new ClubSlot(new ClubSlot("Vardar", Country.MAC, 422.1f), new ClubSlot("Lausanne", Country.SUI, 235.1f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie33 = new ClubSlot(new ClubSlot("HB Torshavn", Country.FAR, 251f), new ClubSlot("Brondby", Country.DEN, 215f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie34 = new ClubSlot(new ClubSlot("Olexandriya", Country.UKR, 290.1f), new ClubSlot("Partizan", Country.SRB, 85f), ueclQ2.getTournament(), 0, 2);
+        ClubSlot ueclQ2Tie35 = new ClubSlot(new ClubSlot("Hibernians Paola", Country.MLT, 265f), new ClubSlot("Trnava", Country.SLK, 178f), ueclQ2.getTournament(), 1, 2);
+        ClubSlot ueclQ2Tie36 = new ClubSlot(new ClubSlot("St Patricks", Country.IRL, 258f), new ClubSlot("Nomme Kalju", Country.EST, 405f), ueclQ2.getTournament(), 1, 0);
+        ClubSlot ueclQ2Tie37 = new ClubSlot(new ClubSlot("Paide Linnameeskond", Country.EST, 214f), new ClubSlot("AIK", Country.SWE, 268f), ueclQ2.getTournament(), 0, 2);
+        ClubSlot ueclQ2Tie38 = new ClubSlot(new ClubSlot("FK Sarajevo", Country.BHZ, 252f), new ClubSlot("Craiova", Country.ROM, 240f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie39 = new ClubSlot(new ClubSlot("Aris Limassol", Country.CYP, 256f), new ClubSlot("Puskas Akademia", Country.HUN, 237f), ueclQ2.getTournament(), 3, 2);
+        ClubSlot ueclQ2Tie40 = new ClubSlot(new ClubSlot("St Josephs", Country.MLT, 327f), new ClubSlot("Shamrock", Country.IRL, 99f), ueclQ2.getTournament(), 0, 4);
+        ClubSlot ueclQ2Tie41 = new ClubSlot(new ClubSlot("Ilves Tampere", Country.FIN, 348f), new ClubSlot("Alkmaar", Country.NED, 39f), ueclQ2.getTournament(), 4, 3);
+        ClubSlot ueclQ2Tie42 = new ClubSlot(new ClubSlot("Zira", Country.AZE, 318f), new ClubSlot("Hajduk", Country.CRO, 154f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie43 = new ClubSlot(new ClubSlot("Arda", Country.BUL, 335f), new ClubSlot("HJK Helsinki", Country.FIN, 128f), ueclQ2.getTournament(), 0, 0);
+        ClubSlot ueclQ2Tie44 = new ClubSlot(new ClubSlot("Aktobe", Country.KAZ, 352f), new ClubSlot("Sparta Praha", Country.CZE, 71f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie45 = new ClubSlot(new ClubSlot("FK Astana", Country.KAZ, 134f), new ClubSlot("Zimbru", Country.MOL, 349f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie46 = new ClubSlot(new ClubSlot("Decic", Country.MNT, 320f), new ClubSlot("Rapid Wien", Country.AUT, 68f), ueclQ2.getTournament(), 0, 2);
+        ClubSlot ueclQ2Tie47 = new ClubSlot(new ClubSlot("Torpedo Zhodino", Country.BLR, 325f), new ClubSlot("Maccabi Haifa", Country.ISR, 98f), ueclQ2.getTournament(), 1, 1);
+        ClubSlot ueclQ2Tie48 = new ClubSlot(new ClubSlot("Nakchivan", Country.AZE, 338.1f), new ClubSlot("Aris", Country.CYP, 195f), ueclQ2.getTournament(), 2, 1);
+        ClubSlot ueclQ2Tie49 = new ClubSlot(new ClubSlot("Omonia", Country.CYP, 101f), new ClubSlot("Torpedo Kutaisi", Country.GEO, 350f), ueclQ2.getTournament(), 1, 0);
+        ClubSlot ueclQ2Tie50 = new ClubSlot(new ClubSlot("Sutjeska", Country.MNT, 263f), new ClubSlot("Beitar", Country.ISR, 246f), ueclQ2.getTournament(), 1, 2);
 
         ueclQ2.addTies(new ArrayList<>(Arrays.asList(
                 ueclQ2Tie6, ueclQ2Tie8, ueclQ2Tie9, ueclQ2Tie10, ueclQ2Tie11, ueclQ2Tie12,
@@ -156,9 +159,9 @@ public class Rounds implements Serializable {
                 new ClubSlot(uclQ2Tie2, uelQ2Tie2, uelQ3.getTournament()),
                 new ClubSlot(uclQ2Tie3, uelQ2Tie6, uelQ3.getTournament()),
                 new ClubSlot(uelQ2Tie7, uelQ2Tie1, uelQ3.getTournament()),
-                new ClubSlot(new ClubSlot("Fredrikstad", 194.1f, clubEloDataLoader), uelQ2Tie3, uelQ3.getTournament()),
+                new ClubSlot(new ClubSlot("Fredrikstad", Country.NOR, 194.1f), uelQ2Tie3, uelQ3.getTournament()),
                 new ClubSlot(uelQ2Tie8, uelQ2Tie4, uelQ3.getTournament()),
-                new ClubSlot(new ClubSlot("PAOK", 52f, clubEloDataLoader), new ClubSlot("Wolfsberg", 162f, clubEloDataLoader), uelQ3.getTournament()))));
+                new ClubSlot(new ClubSlot("PAOK", Country.GRE, 52f), new ClubSlot("Wolfsberg", Country.AUT, 162f), uelQ3.getTournament()))));
 
         // Add ties to UECL Q3
         ueclQ3.addTies(new ArrayList<>(Arrays.asList(
@@ -192,11 +195,11 @@ public class Rounds implements Serializable {
 
         // Add clubs to UECL playoff
         ueclPO.addClubSlots(new ArrayList<>(Arrays.asList(
-                new ClubSlot("Fiorentina", 33f, clubEloDataLoader),
-                new ClubSlot("Crystal Palace", 80.1f, clubEloDataLoader),
-                new ClubSlot("Rayo Vallecano", 96.1f, clubEloDataLoader),
-                new ClubSlot("Mainz", 106.1f, clubEloDataLoader),
-                new ClubSlot("Strasbourg", 117.1f, clubEloDataLoader))));
+                new ClubSlot("Fiorentina", Country.ITA, 33f),
+                new ClubSlot("Crystal Palace", Country.ENG, 80.1f),
+                new ClubSlot("Rayo Vallecano", Country.ESP, 96.1f),
+                new ClubSlot("Mainz", Country.GER, 106.1f),
+                new ClubSlot("Strasbourg", Country.FRA, 117.1f))));
 
         // Initialize the ClubEloDataLoader to fetch club Elo ratings.
         clubEloDataLoader.init();
@@ -215,9 +218,9 @@ public class Rounds implements Serializable {
      */
     public void run(String threadName) {
         // Play the Q2 matches
-        uclQ2.play();
-        uelQ2.play();
-        ueclQ2.play();
+        uclQ2.play(clubEloDataLoader);
+        uelQ2.play(clubEloDataLoader);
+        ueclQ2.play(clubEloDataLoader);
 
         // Add ties to UECL playoff
         ArrayList<ClubSlot> combinedTies = new ArrayList<>(uelQ3.getTies());

@@ -2,8 +2,8 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.io.Serializable;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 public class ClubSlot implements Serializable {
     private Tie tie;
@@ -26,8 +26,13 @@ public class ClubSlot implements Serializable {
         this.type = Type.TIE;
     }
 
-    public ClubSlot(String name, float ranking, ClubEloDataLoader clubEloDataLoader) {
-        this.clubIdWrapper = new ClubIdWrapper(new Club(name, ranking), clubEloDataLoader);
+    public ClubSlot(String name, Country country, float ranking) {
+        this.clubIdWrapper = new ClubIdWrapper(new Club(name, country, ranking));
+        this.type = Type.CLUB;
+    }
+
+    public ClubSlot(Club club) {
+        this.clubIdWrapper = new ClubIdWrapper(club);
         this.type = Type.CLUB;
     }
 

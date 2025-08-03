@@ -12,7 +12,7 @@ import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
 import com.github.jkaste03.seeding_prob_finder.model.Rounds;
 
 public class UefaCCSim {
-    private static final int SIMS = 1_000;
+    private static final int SIMS = 100_000;
 
     public static void main(String[] args) {
         // Create a new instance of Rounds

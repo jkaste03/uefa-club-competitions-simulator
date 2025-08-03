@@ -4,7 +4,8 @@ import java.io.Serializable;
 import java.util.Random;
 import java.util.function.Function;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
  * Represents a tie between two clubs at a specific competition level.
@@ -41,7 +42,8 @@ public class Tie implements Serializable {
         this.tournament = tournament;
     }
 
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals, Integer club2Goals) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
+            Integer club2Goals) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
         this.tournament = tournament;
@@ -165,13 +167,13 @@ public class Tie implements Serializable {
      * kamp)
      * og setter club1Winner = true/false.
      */
-    public void play() {
+    public void play(ClubEloDataLoader clubEloDataLoader) {
         ClubIdWrapper club1 = clubSlot1.getClubIdWrapper();
         ClubIdWrapper club2 = clubSlot2.getClubIdWrapper();
 
         // Første ben ikke spilt: analytisk-probabilistisk enkeltutfall
         if (club1Goals == null) {
-            double dr = club1.getEloRating() - club2.getEloRating();
+            double dr = club1.getEloRating(clubEloDataLoader) - club2.getEloRating(clubEloDataLoader);
             double p1 = 1.0 / (Math.pow(10, -dr / 400.0) + 1.0);
             // én trekning basert på p1
             this.club1Winner = rnd.nextDouble() < p1;
@@ -183,8 +185,8 @@ public class Tie implements Serializable {
         int agg2 = club2Goals;
 
         // Elo-justert hjemmebanefordel for returkamp (clubSlot2 er hjemmelag)
-        double eloHome = club2.getEloRating() + HFA;
-        double eloAway = club1.getEloRating();
+        double eloHome = club2.getEloRating(clubEloDataLoader) + HFA;
+        double eloAway = club1.getEloRating(clubEloDataLoader);
         double dr2 = eloHome - eloAway;
         double pHomeWin = 1.0 / (Math.pow(10, -dr2 / 400.0) + 1.0);
 

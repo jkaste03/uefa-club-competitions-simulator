@@ -2,6 +2,8 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.jkaste03.seeding_prob_finder.enums.Country;
+
 /**
  * Represents a football club with a name and ranking.
  *
@@ -16,19 +18,25 @@ public class Club {
     private static int id_counter = 0;
     private int id;
     private String name;
+    private Country country;
     private float ranking;
     private final AtomicInteger timesSeeded = new AtomicInteger(0);
     private final AtomicInteger timesUnseeded = new AtomicInteger(0);
 
-    public Club(String name, float ranking) {
+    public Club(String name, Country country, float ranking) {
         this.id = id_counter++;
         this.name = name;
+        this.country = country;
         this.ranking = ranking;
         ClubRepository.addClub(this);
     }
 
     public int getId() {
         return id;
+    }
+
+    public void setId() {
+        this.id = id_counter++;
     }
 
     public String getName() {
@@ -65,6 +73,7 @@ public class Club {
         return "Club{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", country=" + country +
                 ", coefficientRanking=" + ranking +
                 '}';
     }

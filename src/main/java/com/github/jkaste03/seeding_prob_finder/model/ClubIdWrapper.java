@@ -24,7 +24,6 @@ import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
  */
 public class ClubIdWrapper implements Serializable {
     private int id;
-    private ClubEloDataLoader clubEloDataLoader;
 
     /**
      * Constructs a ClubIdWrapper with the specified club id.
@@ -35,9 +34,8 @@ public class ClubIdWrapper implements Serializable {
         this.id = id;
     }
 
-    public ClubIdWrapper(Club club, ClubEloDataLoader clubEloDataLoader) {
+    public ClubIdWrapper(Club club) {
         this.id = club.getId();
-        this.clubEloDataLoader = clubEloDataLoader;
     }
 
     public int getId() {
@@ -48,7 +46,7 @@ public class ClubIdWrapper implements Serializable {
         return getClub(id).getRanking();
     }
 
-    public double getEloRating() {
+    public double getEloRating(ClubEloDataLoader clubEloDataLoader) {
         return clubEloDataLoader.getEloRating(id);
     }
 
