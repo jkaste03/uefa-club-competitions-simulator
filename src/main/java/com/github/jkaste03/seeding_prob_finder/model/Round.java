@@ -75,17 +75,13 @@ public class Round implements Serializable {
         return nextSecondaryRnd;
     }
 
-    public void setNextPrimaryRnd(Round nextPrimaryRnd) {
-        this.nextPrimaryRnd = nextPrimaryRnd;
-    }
-
-    public void setNextSecondaryRnd(Round nextSecondaryRnd) {
-        this.nextSecondaryRnd = nextSecondaryRnd;
-    }
-
     public void setNextRounds(Round nextPrimaryRnd, Round nextSecondaryRnd) {
         this.nextPrimaryRnd = nextPrimaryRnd;
         this.nextSecondaryRnd = nextSecondaryRnd;
+    }
+
+    public void setNextRound(Round nextPrimaryRnd) {
+        this.nextPrimaryRnd = nextPrimaryRnd;
     }
 
     public ArrayList<ClubSlot> getClubSlots() {
