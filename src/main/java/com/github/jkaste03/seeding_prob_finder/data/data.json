@@ -51,6 +51,13 @@
             {"name": "Rangers", "ranking": 25.0, "country": "SCO"},
             {"name": "Panathinaikos", "ranking": 111.0, "country": "GRE"}
         ],
+        "CHAMPIONS_LEAGUE Q3 LEAGUE_PATH": [
+            {"name": "Brugge", "ranking": 24.0, "country": "BEL"},
+            {"name": "Nice", "ranking": 87.0, "country": "FRA"},
+            {"name": "Benfica", "ranking": 15.0, "country": "POR"},
+            {"name": "Feyenoord", "ranking": 26.0, "country": "NED"},
+            {"name": "Fenerbahce", "ranking": 47.0, "country": "TUR"}
+        ],
         "CHAMPIONS_LEAGUE PLAYOFF CHAMPIONS_PATH": [
             {"name": "Bodoe Glimt", "ranking": 43.0, "country": "NOR"},
             {"name": "Basel", "ranking": 66.0, "country": "SUI"},
@@ -145,9 +152,7 @@
             {"name": "St Josephs", "ranking": 327.0, "country": "MLT"},
             {"name": "Cliftonville", "ranking": 370.0, "country": "NIR"},
             {"name": "Borac Banja Luka", "ranking": 121.0, "country": "BHZ"},
-            {"name": "Santa Coloma", "ranking": 329.0, "country": "AND"},
-            {"name": "Dinamo Tirana", "ranking": 406.1, "country": "ALB"},
-            {"name": "Shamrock", "ranking": 99.0, "country": "IRL"}
+            {"name": "Santa Coloma", "ranking": 329.0, "country": "AND"}
         ],
         "CONFERENCE_LEAGUE Q2 MAIN_PATH": [
             {"name": "Cherno More", "ranking": 333.0, "country": "BUL"},
@@ -203,7 +208,9 @@
             {"name": "Aris", "ranking": 195.0, "country": "CYP"},
             {"name": "Omonia", "ranking": 101.0, "country": "CYP"},
             {"name": "Beitar", "ranking": 246.0, "country": "ISR"},
-            {"name": "Banga", "ranking": 402.1, "country": "LIT"}
+            {"name": "Banga", "ranking": 402.1, "country": "LIT"},
+            {"name": "Dinamo Tirana", "ranking": 406.1, "country": "ALB"},
+            {"name": "Shamrock", "ranking": 99.0, "country": "IRL"}
         ],
         "CONFERENCE_LEAGUE PLAYOFF MAIN_PATH": [
             {"name": "Fiorentina", "ranking": 33.0, "country": "ITA"},

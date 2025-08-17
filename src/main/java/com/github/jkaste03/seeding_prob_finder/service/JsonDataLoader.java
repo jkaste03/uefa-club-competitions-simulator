@@ -31,7 +31,7 @@ public class JsonDataLoader {
     /**
      * The path to the JSON data file.
      */
-    private static final String DATA_FILE = "src/main/java/com/github/jkaste03/uefa_cc_sim/data/data.json";
+    private static final String DATA_FILE = "src/main/java/com/github/jkaste03/seeding_prob_finder/data/data.json";
 
     /**
      * Loads club data from the JSON file and assigns clubs to corresponding rounds.

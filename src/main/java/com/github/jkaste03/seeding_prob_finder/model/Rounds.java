@@ -21,9 +21,10 @@ import com.github.jkaste03.seeding_prob_finder.service.JsonDataLoader;
 public class Rounds implements Serializable {
 
     // Declare qualifying rounds and league rounds for all competitions.
-    private Round uclQ1CP, uclQ2CP, uclQ2LP, uclQ3CP, uclQ3LP, uclPoCP, uclPoLP;
-    private Round uelQ1MP, uelQ2MP, uelQ3MP, uelQ3CP, uelPo;
-    private Round ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
+    private QRound uclQ1CP, uclQ2CP, uclQ2LP, uclQ3CP, uclQ3LP, uclPoCP, uclPoLP;
+    private QRound uelQ1MP, uelQ2MP, uelQ3MP, uelQ3CP, uelPo;
+    private QRound ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
+    private LeaguePhaseRound uclLP, uelLP, ueclLP;
     private List<Round> rounds;
 
     // Initialize the ClubEloDataLoader to fetch club elo ratings.
@@ -36,34 +37,38 @@ public class Rounds implements Serializable {
      */
     public Rounds() {
         // Create instances for Champions League qualifier rounds.
-        uclQ1CP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH);
-        uclQ2CP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
-        uclQ2LP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH);
-        uclQ3CP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
-        uclQ3LP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.LEAGUE_PATH);
-        uclPoCP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
-        uclPoLP = new Round(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
+        uclQ1CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH);
+        uclQ2CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
+        uclQ2LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH);
+        uclQ3CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
+        uclQ3LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.LEAGUE_PATH);
+        uclPoCP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
+        uclPoLP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
+        uclLP = new UclUelLeaguePhaseRound(Tournament.CHAMPIONS_LEAGUE);
 
         // Create instances for Europa League qualifier rounds.
-        uelQ1MP = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
-        uelQ2MP = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
-        uelQ3MP = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
-        uelQ3CP = new Round(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
-        uelPo = new Round(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
+        uelQ1MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
+        uelQ2MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
+        uelQ3MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
+        uelQ3CP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
+        uelPo = new QRound(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
+        uelLP = new UclUelLeaguePhaseRound(Tournament.EUROPA_LEAGUE);
 
         // Create instances for Conference League qualifier rounds.
-        ueclQ1MP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
-        ueclQ2MP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
-        ueclQ2CP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
-        ueclQ3MP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
-        ueclQ3CP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
-        ueclPoMP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
-        ueclPoCP = new Round(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
+        ueclQ1MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
+        ueclQ2MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
+        ueclQ2CP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
+        ueclQ3MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
+        ueclQ3CP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
+        ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
+        ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
+        ueclLP = new UclUelLeaguePhaseRound(Tournament.CONFERENCE_LEAGUE);
 
         // Aggregate all rounds into a list for streamlined processing.
         rounds = new ArrayList<>(
                 Arrays.asList(uclQ1CP, uelQ1MP, ueclQ1MP, uclQ2CP, uclQ2LP, uelQ2MP, ueclQ2MP, ueclQ2CP, uclQ3CP,
-                        uclQ3LP, uelQ3MP, uelQ3CP, ueclQ3MP, ueclQ3CP, uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP));
+                        uclQ3LP, uelQ3MP, uelQ3CP, ueclQ3MP, ueclQ3CP, uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP,
+                        uclLP, uelLP, ueclLP));
 
         // Initialize data for each round.
         JsonDataLoader.loadDataForRounds(rounds);
@@ -127,24 +132,26 @@ public class Rounds implements Serializable {
      * Initiates the simulation by executing all rounds in their respective order.
      * This method drives the simulation from qualifiers through league matches.
      */
-    public void run(String threadName) {
-        // Play the Q2 matches
-        uclQ2.play(clubEloDataLoader);
-        uelQ2.play(clubEloDataLoader);
-        ueclQ2.play(clubEloDataLoader);
+    // public void run(String threadName) {
+    // // Play the Q2 matches
+    // uclQ2.play(clubEloDataLoader);
+    // uelQ2.play(clubEloDataLoader);
+    // ueclQ2.play(clubEloDataLoader);
 
-        // Add ties to UECL playoff
-        ArrayList<ClubSlot> combinedTies = new ArrayList<>(uelQ3.getTies());
-        combinedTies.addAll(ueclQ3.getTies());
-        ueclPO.addClubSlots(combinedTies);
+    // // Add ties to UECL playoff
+    // ArrayList<ClubSlot> combinedTies = new ArrayList<>(uelQ3.getTies());
+    // combinedTies.addAll(ueclQ3.getTies());
+    // ueclPO.addClubSlots(combinedTies);
 
-        // Seed the UECL playoff
-        ueclPO.seed();
+    // // Seed the UECL playoff
+    // ueclPO.seed();
 
-        // Increment seeding counters for all clubs in UECL playoff
-        ueclPO.getSeeded().forEach(clubSlot -> clubSlot.incrementSeedingCounter(true));
-        ueclPO.getUnseeded().forEach(clubSlot -> clubSlot.incrementSeedingCounter(false));
-    }
+    // // Increment seeding counters for all clubs in UECL playoff
+    // ueclPO.getSeeded().forEach(clubSlot ->
+    // clubSlot.incrementSeedingCounter(true));
+    // ueclPO.getUnseeded().forEach(clubSlot ->
+    // clubSlot.incrementSeedingCounter(false));
+    // }
 
     /**
      * Processes each qualifying round by iterating over all round types,
@@ -193,11 +200,11 @@ public class Rounds implements Serializable {
      * @param roundsOfType list of rounds
      */
     private void seedDrawQRounds(List<Round> roundsOfType) {
-        // if (roundsOfType.get(0) instanceof QRound) {
-        roundsOfType.forEach(round -> {
-            round.seedDraw();
-        });
-        // }
+        if (roundsOfType.get(0) instanceof QRound) {
+            roundsOfType.forEach(round -> {
+                round.seedDraw();
+            });
+        }
     }
 
     /** Updates club slots in ties for all rounds in the list. */
@@ -215,11 +222,11 @@ public class Rounds implements Serializable {
      *                     stage
      */
     private void regTiesForNextQRounds(List<Round> roundsOfType) {
-        // if (roundsOfType.get(0).getNextPrimaryRnd() instanceof QRound) {
-        roundsOfType.forEach(round -> {
-            (/* (QRound) */round).regTiesForNextRounds();
-        });
-        // }
+        if (roundsOfType.get(0).getNextPrimaryRnd() instanceof QRound) {
+            roundsOfType.forEach(round -> {
+                ((QRound) round).regTiesForNextRounds();
+            });
+        }
     }
 
     /**
@@ -233,7 +240,7 @@ public class Rounds implements Serializable {
         // First legs of play
         roundsOfType.forEach(r -> r.play(clubEloDataLoader));
         // Second legs of play to determine tie outcomes.
-        roundsOfType.forEach(r -> r.play(clubEloDataLoader));
+        // roundsOfType.forEach(r -> r.play(clubEloDataLoader));
     }
 
     /**

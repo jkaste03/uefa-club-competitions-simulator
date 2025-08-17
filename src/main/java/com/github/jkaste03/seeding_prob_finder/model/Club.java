@@ -43,11 +43,10 @@ public class Club {
         return name;
     }
 
-    /**
-     * Returns the ranking of the club.
-     * 
-     * @return the ranking value of the club
-     */
+    public Country getCountry() {
+        return country;
+    }
+
     public float getRanking() {
         return ranking;
     }
