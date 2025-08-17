@@ -75,7 +75,7 @@ public abstract class Tie implements Serializable {
     /**
      * Get the ranking of the tie given the caller's tournament context.
      */
-    public abstract float getRanking(Tournament callerTournament);
+    public abstract float getRankingAndResolveSlots(Tournament callerTournament);
 
     /**
      * Simulates the match.

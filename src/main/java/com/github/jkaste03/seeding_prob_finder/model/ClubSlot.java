@@ -65,7 +65,7 @@ public class ClubSlot implements Serializable {
 
     public float getRanking(Tournament tournament) {
         if (isTie()) {
-            return tie.getRanking(tournament);
+            return tie.getRankingAndResolveSlots(tournament);
         } else if (isClub()) {
             return clubIdWrapper.getRanking();
         } else {

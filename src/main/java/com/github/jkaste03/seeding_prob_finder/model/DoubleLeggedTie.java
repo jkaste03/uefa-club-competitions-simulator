@@ -62,7 +62,7 @@ public class DoubleLeggedTie extends Tie {
      * @return the calculated ranking for this Tie at the given competition level
      */
     @Override
-    public float getRanking(Tournament callerTournament) {
+    public float getRankingAndResolveSlots(Tournament callerTournament) {
         // Resolve ClubSlot1 if it's a Tie and has a winner
         if (clubSlot1.isTie()) {
             Tie innerTie = clubSlot1.getTie();
