@@ -9,7 +9,7 @@ import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 public class ClubSlot implements Serializable {
-    private DoubleLeggedTie tie;
+    private Tie tie;
     private ClubIdWrapper clubIdWrapper;
 
     private enum Type {
@@ -17,6 +17,11 @@ public class ClubSlot implements Serializable {
     }
 
     private Type type;
+
+    public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+        this.tie = new SingleLeggedTie(clubSlot1, clubSlot2);
+        this.type = Type.TIE;
+    }
 
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
@@ -47,7 +52,7 @@ public class ClubSlot implements Serializable {
         return type == Type.CLUB;
     }
 
-    public DoubleLeggedTie getTie() {
+    public Tie getTie() {
         return tie;
     }
 
@@ -65,7 +70,7 @@ public class ClubSlot implements Serializable {
 
     public float getRanking(Tournament tournament) {
         if (isTie()) {
-            return tie.getRankingAndResolveSlots(tournament);
+            return tie.getRanking(tournament);
         } else if (isClub()) {
             return clubIdWrapper.getRanking();
         } else {
@@ -89,6 +94,21 @@ public class ClubSlot implements Serializable {
                     .flatMap(cs -> cs.getCountries().stream())
                     .collect(Collectors.toList());
         }
+    }
+
+    // Kompakt versjon
+    public void resolveSlot(Tournament callerTournament) {
+        if (!isTie())
+            return;
+        DoubleLeggedTie t = (DoubleLeggedTie) this.getTie();
+        Boolean club1Won = t.isClub1Winner();
+        if (club1Won == null)
+            return; // Vinner ikke avklart
+        boolean higher = t.getTournament().compareTo(callerTournament) > 0; // innerTie på høyere nivå => ta taper
+        ClubSlot chosen = (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
+        this.clubIdWrapper = chosen.getClubIdWrapper();
+        this.tie = null;
+        this.type = Type.CLUB;
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {

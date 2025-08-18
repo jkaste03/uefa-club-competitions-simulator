@@ -21,7 +21,6 @@ public class QRound extends Round {
     private CompetitionData.PathType pathType;
     private List<ClubSlot> seeded = new ArrayList<>();
     private List<ClubSlot> unseeded = new ArrayList<>();
-    private List<ClubSlot> ties = new ArrayList<>();
 
     /**
      * Constructs a qualifying round for the specified tournament and round type,
@@ -69,6 +68,13 @@ public class QRound extends Round {
         int half = clubSlots.size() / 2;
         seeded.addAll(clubSlots.subList(0, half));
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));
+
+        incrementSeedingCounters();
+    }
+
+    private void incrementSeedingCounters() {
+        seeded.forEach(clubSlot -> clubSlot.incrementSeedingCounter(true));
+        unseeded.forEach(clubSlot -> clubSlot.incrementSeedingCounter(false));
     }
 
     /**

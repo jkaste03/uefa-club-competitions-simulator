@@ -52,7 +52,7 @@ public class JsonDataLoader {
                     // Deserialize JSON into a Club instance.
                     // Note: Gson will bypass the Club constructor.
                     Club club = gson.fromJson(jsonElement, Club.class);
-                    club.setId();
+                    club.init();
                     ClubRepository.addClub(club);
                     round.addClubSlot(new ClubSlot(club));
                 });

@@ -20,8 +20,8 @@ public class Club {
     private String name;
     private Country country;
     private float ranking;
-    private final AtomicInteger timesSeeded = new AtomicInteger(0);
-    private final AtomicInteger timesUnseeded = new AtomicInteger(0);
+    private AtomicInteger timesSeeded;
+    private AtomicInteger timesUnseeded;
 
     public Club(String name, Country country, float ranking) {
         this.id = id_counter++;
@@ -33,10 +33,6 @@ public class Club {
 
     public int getId() {
         return id;
-    }
-
-    public void setId() {
-        this.id = id_counter++;
     }
 
     public String getName() {
@@ -57,6 +53,12 @@ public class Club {
 
     public int getTimesUnseeded() {
         return timesUnseeded.get();
+    }
+
+    public void init() {
+        this.id = id_counter++;
+        timesSeeded = new AtomicInteger(0);
+        timesUnseeded = new AtomicInteger(0);
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {

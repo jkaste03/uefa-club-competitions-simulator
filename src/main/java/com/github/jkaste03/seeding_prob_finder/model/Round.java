@@ -3,6 +3,7 @@ package com.github.jkaste03.seeding_prob_finder.model;
 import java.util.List;
 
 import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData;
+import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 import java.io.Serializable;
@@ -16,6 +17,7 @@ public abstract class Round implements Serializable {
     protected CompetitionData.RoundType roundType;
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
+    protected List<ClubSlot> ties = new ArrayList<>();
     protected List<ClubSlot> clubSlots = new ArrayList<>();
 
     /**
@@ -142,6 +144,22 @@ public abstract class Round implements Serializable {
      * Plays the round.
      */
     public abstract void play(ClubEloDataLoader clubEloDataLoader);
+
+    /**
+     * Updates the club slots in all ties.
+     * <p>
+     * This method iterates through all the ties and updates the participating
+     * club slots by calling the {@link Tie#updateClubSlotsIfTie()} method on each
+     * tie. The {@code updateClubSlotsIfTie} method ensures that if a club slot
+     * is a wrapper (such as an instance of {@code DoubleLeggedTieWrapper}), it
+     * retrieves the appropriate underlying club slot (tie winner or loser) for
+     * further use.
+     */
+    public void resolveClubSlots() {
+        for (ClubSlot clubSlot : clubSlots) {
+            clubSlot.resolveSlot(tournament);
+        }
+    }
 
     @Override
     public String toString() {

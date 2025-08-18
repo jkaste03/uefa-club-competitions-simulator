@@ -174,7 +174,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         }
         Helper helper = new Helper();
 
-        List<SingleLeggedTie> tempTies = new ArrayList<>();
+        List<ClubSlot> tempTies = new ArrayList<>();
         Random random = new Random();
         final int MAX_ATTEMPTS = 1000000;
         boolean success = false;
@@ -270,11 +270,11 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                                 break;
                             }
                             if (chooseOption1) {
-                                tempTies.add(new SingleLeggedTie(club, selectedCandidate));
+                                tempTies.add(new ClubSlot(club, selectedCandidate));
                                 currentReq.get(club)[opponentPot][0]--; // club spiller hjemme mot opponentPot
                                 candidateReq[currentPot][1]--; // selectedCandidate spiller borte mot currentPot
                             } else {
-                                tempTies.add(new SingleLeggedTie(selectedCandidate, club));
+                                tempTies.add(new ClubSlot(selectedCandidate, club));
                                 currentReq.get(club)[opponentPot][1]--; // club spiller borte mot opponentPot
                                 candidateReq[currentPot][0]--; // selectedCandidate spiller hjemme mot currentPot
                             }

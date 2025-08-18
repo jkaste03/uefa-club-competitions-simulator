@@ -168,7 +168,7 @@ public class Rounds implements Serializable {
             // Filter rounds by the current round type.
             roundsOfType = getRoundsOfType(roundTypes[i]);
             // Update club slots in ties for the current round type.
-            // updateClubSlotsInTies(roundsOfType);
+            resolveClubSlots(roundsOfType);
             // Register ties for the next round type.
             regTiesForNextQRounds(roundsOfType);
             // Execute seeding and draws for next round type.
@@ -208,11 +208,11 @@ public class Rounds implements Serializable {
     }
 
     /** Updates club slots in ties for all rounds in the list. */
-    // private void updateClubSlotsInTies(List<Round> roundsOfType) {
-    // roundsOfType.forEach(round -> {
-    // round.updateClubSlotsInTies();
-    // });
-    // }
+    private void resolveClubSlots(List<Round> roundsOfType) {
+        roundsOfType.forEach(round -> {
+            round.resolveClubSlots();
+        });
+    }
 
     /**
      * Registers ties for the next rounds if the current rounds are QRounds.
