@@ -3,7 +3,7 @@ package com.github.jkaste03.seeding_prob_finder.model;
 import java.io.Serializable;
 import java.util.Random;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**

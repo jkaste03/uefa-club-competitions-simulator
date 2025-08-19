@@ -51,9 +51,7 @@ public class JsonDataLoader {
                 clubsJson.forEach(jsonElement -> {
                     // Deserialize JSON into a Club instance.
                     // Note: Gson will bypass the Club constructor.
-                    Club club = gson.fromJson(jsonElement, Club.class);
-                    club.init();
-                    ClubRepository.addClub(club);
+                    Club club = gson.fromJson(jsonElement, Club.class); // no-arg ctor runs automatically
                     round.addClubSlot(new ClubSlot(club));
                 });
             }

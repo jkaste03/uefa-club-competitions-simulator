@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.PathType;
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.RoundType;
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.PathType;
+import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 import com.github.jkaste03.seeding_prob_finder.service.JsonDataLoader;
 

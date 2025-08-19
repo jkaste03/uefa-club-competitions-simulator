@@ -2,7 +2,8 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
@@ -43,8 +44,8 @@ public abstract class LeaguePhaseRound extends Round {
      * @param tournament the tournament for which this league phase round is
      *                   initialized.
      */
-    public LeaguePhaseRound(CompetitionData.Tournament tournament) {
-        super(tournament, CompetitionData.RoundType.LEAGUE_PHASE);
+    public LeaguePhaseRound(Tournament tournament) {
+        super(tournament, RoundType.LEAGUE_PHASE);
         pots = new ArrayList<>();
     }
 
@@ -56,7 +57,7 @@ public abstract class LeaguePhaseRound extends Round {
      */
     @Override
     public String getName() {
-        return super.getName() + " " + CompetitionData.RoundType.LEAGUE_PHASE;
+        return super.getName() + " " + RoundType.LEAGUE_PHASE;
     }
 
     public List<Pot> getPots() {

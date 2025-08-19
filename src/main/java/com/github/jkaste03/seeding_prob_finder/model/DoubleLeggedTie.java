@@ -2,7 +2,7 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.function.Function;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**

@@ -1,17 +1,10 @@
 package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 /**
- * Represents a football club with a name and ranking.
- *
- * <p>
- * Instances of this class store the club's name and its ranking coefficient.
- * </p>
- *
- * @author jkaste03
+ * Represents a football club with a name, country, and UEFA ranking.
  */
 public class Club {
 
@@ -23,11 +16,15 @@ public class Club {
     private AtomicInteger timesSeeded;
     private AtomicInteger timesUnseeded;
 
-    public Club(String name, Country country, float ranking) {
+    /**
+     * No-arg constructor used by Gson. Initializes id, counters and registers the
+     * club in the {@code ClubRepository}. Field values (name, country, ranking)
+     * will be populated by Gson after construction.
+     */
+    public Club() {
         this.id = id_counter++;
-        this.name = name;
-        this.country = country;
-        this.ranking = ranking;
+        this.timesSeeded = new AtomicInteger(0);
+        this.timesUnseeded = new AtomicInteger(0);
         ClubRepository.addClub(this);
     }
 
@@ -53,12 +50,6 @@ public class Club {
 
     public int getTimesUnseeded() {
         return timesUnseeded.get();
-    }
-
-    public void init() {
-        this.id = id_counter++;
-        timesSeeded = new AtomicInteger(0);
-        timesUnseeded = new AtomicInteger(0);
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {

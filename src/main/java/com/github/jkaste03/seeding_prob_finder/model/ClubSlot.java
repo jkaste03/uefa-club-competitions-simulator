@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 public class ClubSlot implements Serializable {
@@ -32,11 +32,6 @@ public class ClubSlot implements Serializable {
             Integer club2Goals) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals, club2Goals);
         this.type = Type.TIE;
-    }
-
-    public ClubSlot(String name, Country country, float ranking) {
-        this.clubIdWrapper = new ClubIdWrapper(new Club(name, country, ranking));
-        this.type = Type.CLUB;
     }
 
     public ClubSlot(Club club) {

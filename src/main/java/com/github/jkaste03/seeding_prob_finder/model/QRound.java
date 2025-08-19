@@ -2,8 +2,10 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.List;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.PathType;
+import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,7 +20,7 @@ public class QRound extends Round {
     // Tournament.CONFERENCE_LEAGUE + " " + CompetitionData.RoundType.Q3
     // + " " + CompetitionData.PathType.CHAMPIONS_PATH;
 
-    private CompetitionData.PathType pathType;
+    private PathType pathType;
     private List<ClubSlot> seeded = new ArrayList<>();
     private List<ClubSlot> unseeded = new ArrayList<>();
 
@@ -32,8 +34,7 @@ public class QRound extends Round {
      * @param roundType  the type of the qualifying round.
      * @param pathType   the path type representing the qualifying route.
      */
-    public QRound(CompetitionData.Tournament tournament, CompetitionData.RoundType roundType,
-            CompetitionData.PathType pathType) {
+    public QRound(Tournament tournament, RoundType roundType, PathType pathType) {
         super(tournament, roundType);
         this.pathType = pathType;
     }
@@ -166,9 +167,9 @@ public class QRound extends Round {
      * @return the number of clubs that can skip the secondary round.
      */
     private int noOfClubsCanSkipSecondary() {
-        int noOfClubsToSkip = (tournament == CompetitionData.Tournament.CHAMPIONS_LEAGUE
-                && roundType == CompetitionData.RoundType.Q1
-                && pathType == CompetitionData.PathType.CHAMPIONS_PATH) ? UCL_Q1_CP_TIES_NO_REBALANCE - ties.size() : 0;
+        int noOfClubsToSkip = (tournament == Tournament.CHAMPIONS_LEAGUE
+                && roundType == RoundType.Q1
+                && pathType == PathType.CHAMPIONS_PATH) ? UCL_Q1_CP_TIES_NO_REBALANCE - ties.size() : 0;
         return noOfClubsToSkip;
     }
 

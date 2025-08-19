@@ -2,8 +2,8 @@ package com.github.jkaste03.seeding_prob_finder.model;
 
 import java.util.List;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData;
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 import java.io.Serializable;
@@ -13,8 +13,8 @@ import java.util.ArrayList;
  * Abstract class representing a round in the UEFA competitions.
  */
 public abstract class Round implements Serializable {
-    protected CompetitionData.Tournament tournament;
-    protected CompetitionData.RoundType roundType;
+    protected Tournament tournament;
+    protected RoundType roundType;
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
     protected List<ClubSlot> ties = new ArrayList<>();
@@ -26,7 +26,7 @@ public abstract class Round implements Serializable {
      * @param tournament the tournament of the round.
      * @param roundType  the type of the round.
      */
-    public Round(CompetitionData.Tournament tournament, CompetitionData.RoundType roundType) {
+    public Round(Tournament tournament, RoundType roundType) {
         this.tournament = tournament;
         this.roundType = roundType;
     }
@@ -35,11 +35,11 @@ public abstract class Round implements Serializable {
         return tournament + "";
     }
 
-    public CompetitionData.Tournament getTournament() {
+    public Tournament getTournament() {
         return tournament;
     }
 
-    public CompetitionData.RoundType getRoundType() {
+    public RoundType getRoundType() {
         return roundType;
     }
 

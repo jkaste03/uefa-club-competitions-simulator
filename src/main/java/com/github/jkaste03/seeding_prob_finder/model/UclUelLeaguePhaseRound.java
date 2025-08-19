@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData;
-import com.github.jkaste03.seeding_prob_finder.enums.CompetitionData.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 /**
@@ -21,7 +21,7 @@ import com.github.jkaste03.seeding_prob_finder.enums.Country;
 public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     // Constant for clubs skipping a round (e.g., UCL Q3 LP to UEL LP)
     private final static String ROUND_CLUBS_SKIP_TO = Tournament.EUROPA_LEAGUE + " "
-            + CompetitionData.RoundType.LEAGUE_PHASE;
+            + RoundType.LEAGUE_PHASE;
     private final static int POT_COUNT = 4;
 
     private final static int MAX_RESTART_ATTEMPTS = 100000;

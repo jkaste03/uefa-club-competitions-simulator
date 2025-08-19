@@ -61,6 +61,9 @@ public enum Country {
     GIB("Gibraltar"),
     SMR("San Marino");
 
+    /**
+     * The full name of the country associated with the enum constant.
+     */
     private final String countryName;
 
     /**
