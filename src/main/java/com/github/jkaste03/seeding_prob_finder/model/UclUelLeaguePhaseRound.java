@@ -98,7 +98,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Check if the UCL winner is present in the club slots and move them to the top
         if (tournament == Tournament.CHAMPIONS_LEAGUE) {
             clubSlots.stream()
-                    .filter(c -> c.toCompactString().equals(ClubRepository.getLastUclWinnerName()))
+                    .filter(c -> c.toCompactString().equals(ClubRepository.getLastUclWinnerId()))
                     .findFirst()
                     .ifPresent(c -> {
                         Collections.swap(clubSlots, 0, clubSlots.indexOf(c));

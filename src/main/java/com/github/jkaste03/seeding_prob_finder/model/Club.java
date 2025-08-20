@@ -44,14 +44,17 @@ public class Club {
         return ranking;
     }
 
+    // TODO: Needs changing
     public int getTimesSeeded() {
         return timesSeeded.get();
     }
 
+    // TODO: Needs changing
     public int getTimesUnseeded() {
         return timesUnseeded.get();
     }
 
+    // TODO: Needs changing
     public void incrementSeedingCounter(boolean isSeeded) {
         if (isSeeded) {
             timesSeeded.incrementAndGet();

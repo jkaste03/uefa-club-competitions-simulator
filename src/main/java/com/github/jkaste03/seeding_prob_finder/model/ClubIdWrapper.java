@@ -5,65 +5,40 @@ import java.io.Serializable;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
- * ClubIdWrapper is a specialized implementation of ClubSlot that encapsulates a
- * club's unique id.
- * <p>
- * This wrapper delegates the retrieval of club details (such as name, ranking,
- * and associated countries)
- * to the Clubs repository using the stored identifier. It provides a convenient
- * abstraction to access a
- * club's properties without holding a direct reference to the Club object.
- * <p>
- * Example usage:
- * 
- * <pre>
- * ClubIdWrapper wrapper = new ClubIdWrapper(5);
- * String clubName = wrapper.getName();
- * float clubRanking = wrapper.getRanking();
- * </pre>
+ * Immutable wrapper around a club identifier that provides convenient,
+ * on‑demand access to derived club properties without duplicating or eagerly
+ * loading the underlying club data.
  */
-public class ClubIdWrapper implements Serializable {
-    private int id;
+public record ClubIdWrapper(int id) implements Serializable {
 
-    /**
-     * Constructs a ClubIdWrapper with the specified club id.
-     *
-     * @param id the unique identifier of the club
-     */
-    public ClubIdWrapper(int id) {
-        this.id = id;
-    }
+    // Getters and methods to access club properties
 
-    public ClubIdWrapper(Club club) {
-        this.id = club.getId();
-    }
-
-    public int getId() {
-        return id;
+    public String getName() {
+        return ClubRepository.getClub(id).getName();
     }
 
     public float getRanking() {
-        return getClub(id).getRanking();
+        return ClubRepository.getClub(id).getRanking();
     }
 
+    /**
+     * Retrieves the current Elo rating for this club using the provided data
+     * loader.
+     *
+     * @param clubEloDataLoader the loader responsible for supplying Elo ratings
+     * @return the Elo rating associated with this club's identifier
+     */
     public double getEloRating(ClubEloDataLoader clubEloDataLoader) {
         return clubEloDataLoader.getEloRating(id);
     }
 
-    public String getName() {
-        return getClub(id).getName();
-    }
-
-    private Club getClub(int id) {
-        return ClubRepository.getClub(id);
-    }
-
+    // TODO: Needs changing
     public void incrementSeedingCounter(boolean isSeeded) {
-        getClub(id).incrementSeedingCounter(isSeeded);
+        ClubRepository.getClub(id).incrementSeedingCounter(isSeeded);
     }
 
     @Override
     public String toString() {
-        return getClub(id).toString();
+        return ClubRepository.getClub(id).toString();
     }
 }

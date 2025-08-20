@@ -9,33 +9,65 @@ import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 public class ClubSlot implements Serializable {
+
+    // This either represents a tie between two clubs or a single club; whichever is
+    // not used is null.
     private Tie tie;
     private ClubIdWrapper clubIdWrapper;
 
+    // Enum representing the type of this ClubSlot
     private enum Type {
         TIE, CLUB
     }
 
     private Type type;
 
+    /**
+     * Constructs a single‑leg tie between the two given child slots.
+     * 
+     * @param clubSlot1 left/first participant
+     * @param clubSlot2 right/second participant
+     */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2) {
         this.tie = new SingleLeggedTie(clubSlot1, clubSlot2);
         this.type = Type.TIE;
     }
 
+    /**
+     * Constructs a two‑legged tie for the given child slots in the specified
+     * tournament.
+     * 
+     * @param clubSlot1  first participant
+     * @param clubSlot2  second participant
+     * @param tournament tournament context
+     */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
         this.type = Type.TIE;
     }
 
+    /**
+     * Constructs a two‑legged tie with optional preset goals (first leg).
+     * 
+     * @param clubSlot1  first participant
+     * @param clubSlot2  second participant
+     * @param tournament tournament context
+     * @param club1Goals goals for club 1
+     * @param club2Goals goals for club 2
+     */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
             Integer club2Goals) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals, club2Goals);
         this.type = Type.TIE;
     }
 
+    /**
+     * Wraps a concrete club.
+     * 
+     * @param club club
+     */
     public ClubSlot(Club club) {
-        this.clubIdWrapper = new ClubIdWrapper(club);
+        this.clubIdWrapper = new ClubIdWrapper(club.getId());
         this.type = Type.CLUB;
     }
 
@@ -55,9 +87,19 @@ public class ClubSlot implements Serializable {
         return clubIdWrapper;
     }
 
+    /**
+     * Retrieves the {@code Club} associated with this slot.
+     * <p>
+     * This method is only valid when this slot actually represents a club
+     * (i.e., {@link #isClub()} returns {@code true}). If the slot does not
+     * represent a concrete club, an {@link IllegalStateException} is thrown.
+     *
+     * @return the resolved {@code Club} instance for this slot
+     * @throws IllegalStateException if this slot does not currently hold a club
+     */
     public Club getClub() {
         if (isClub()) {
-            return ClubRepository.getClub(clubIdWrapper.getId());
+            return ClubRepository.getClub(clubIdWrapper.id());
         } else {
             throw new IllegalStateException("This ClubSlot is not a club");
         }

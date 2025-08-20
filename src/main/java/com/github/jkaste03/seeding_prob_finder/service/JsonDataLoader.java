@@ -70,7 +70,9 @@ public class JsonDataLoader {
     private static void setPreviousChampionsLeagueWinner() {
         try (Reader reader = new FileReader(DATA_FILE)) {
             JsonObject jsonData = JsonParser.parseReader(reader).getAsJsonObject();
-            ClubRepository.setLastUclWinnerName(jsonData.get(PREVIOUS_UCL_WINNER).getAsString());
+            String previousUclWinnerName = jsonData.get(PREVIOUS_UCL_WINNER).getAsString();
+            int previousUclWinnerId = ClubRepository.getIdByName(previousUclWinnerName);
+            ClubRepository.setLastUclWinnerId(previousUclWinnerId);
         } catch (IOException e) {
             e.printStackTrace();
         }
