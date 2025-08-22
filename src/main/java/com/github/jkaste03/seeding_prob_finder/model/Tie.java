@@ -95,6 +95,11 @@ public abstract class Tie implements Serializable {
                 '}';
     }
 
+    /**
+     * Returns a compact "Club1 vs Club2" string for the tie.
+     * 
+     * @return compact string representation of the tie
+     */
     public String toCompactString() {
         return clubSlot1.toCompactString() + " vs " +
                 clubSlot2.toCompactString();

@@ -8,6 +8,12 @@ import java.util.stream.Stream;
 import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
+/**
+ * Represents a slot in a tournament bracket, which can either be a specific
+ * club or a tie (pairing) between two clubs.
+ * <p>
+ * A {@code ClubSlot} is a flexible abstraction.
+ */
 public class ClubSlot implements Serializable {
 
     // This either represents a tie between two clubs or a single club; whichever is
@@ -15,42 +21,33 @@ public class ClubSlot implements Serializable {
     private Tie tie;
     private ClubIdWrapper clubIdWrapper;
 
-    // Enum representing the type of this ClubSlot
-    private enum Type {
-        TIE, CLUB
-    }
-
-    private Type type;
-
     /**
-     * Constructs a single‑leg tie between the two given child slots.
+     * Constructs a single‑leg tie between the two given child slots. Order matters.
      * 
-     * @param clubSlot1 left/first participant
-     * @param clubSlot2 right/second participant
+     * @param clubSlot1 home participant
+     * @param clubSlot2 away participant
      */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2) {
         this.tie = new SingleLeggedTie(clubSlot1, clubSlot2);
-        this.type = Type.TIE;
     }
 
     /**
      * Constructs a two‑legged tie for the given child slots in the specified
-     * tournament.
+     * tournament. Order matters.
      * 
-     * @param clubSlot1  first participant
-     * @param clubSlot2  second participant
+     * @param clubSlot1  home participant first leg
+     * @param clubSlot2  away participant first leg
      * @param tournament tournament context
      */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
-        this.type = Type.TIE;
     }
 
     /**
      * Constructs a two‑legged tie with optional preset goals (first leg).
      * 
-     * @param clubSlot1  first participant
-     * @param clubSlot2  second participant
+     * @param clubSlot1  home participant first leg
+     * @param clubSlot2  away participant first leg
      * @param tournament tournament context
      * @param club1Goals goals for club 1
      * @param club2Goals goals for club 2
@@ -58,25 +55,23 @@ public class ClubSlot implements Serializable {
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
             Integer club2Goals) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals, club2Goals);
-        this.type = Type.TIE;
     }
 
     /**
-     * Wraps a concrete club.
-     * 
-     * @param club club
+     * Creates a ClubSlot representing a specific club.
+     *
+     * @param clubId the ID of the club
      */
-    public ClubSlot(Club club) {
-        this.clubIdWrapper = new ClubIdWrapper(club.getId());
-        this.type = Type.CLUB;
+    public ClubSlot(int clubId) {
+        this.clubIdWrapper = new ClubIdWrapper(clubId);
     }
 
     public boolean isTie() {
-        return type == Type.TIE;
+        return tie != null;
     }
 
     public boolean isClub() {
-        return type == Type.CLUB;
+        return clubIdWrapper != null;
     }
 
     public Tie getTie() {
@@ -88,31 +83,24 @@ public class ClubSlot implements Serializable {
     }
 
     /**
-     * Retrieves the {@code Club} associated with this slot.
-     * <p>
-     * This method is only valid when this slot actually represents a club
-     * (i.e., {@link #isClub()} returns {@code true}). If the slot does not
-     * represent a concrete club, an {@link IllegalStateException} is thrown.
+     * Retrieves the {@link Club} instance associated with the
+     * {@code clubIdWrapper}'s ID of this {@link ClubSlot}.
      *
-     * @return the resolved {@code Club} instance for this slot
-     * @throws IllegalStateException if this slot does not currently hold a club
+     * @return the {@link Club} corresponding to the {@code clubIdWrapper}'s ID
      */
-    public Club getClub() {
-        if (isClub()) {
-            return ClubRepository.getClub(clubIdWrapper.id());
-        } else {
-            throw new IllegalStateException("This ClubSlot is not a club");
-        }
+    private Club getClub() {
+        return ClubRepository.getClub(clubIdWrapper.id());
     }
 
+    /**
+     * Retrieves the ranking of this ClubSlot in the context of the given
+     * tournament.
+     *
+     * @param tournament the tournament context
+     * @return the ranking of this ClubSlot in the context of the given tournament
+     */
     public float getRanking(Tournament tournament) {
-        if (isTie()) {
-            return tie.getRanking(tournament);
-        } else if (isClub()) {
-            return clubIdWrapper.getRanking();
-        } else {
-            throw new IllegalStateException("ClubSlot must be either a Tie or a Club");
-        }
+        return isTie() ? tie.getRanking(tournament) : clubIdWrapper.getRanking();
     }
 
     /**
@@ -133,9 +121,20 @@ public class ClubSlot implements Serializable {
         }
     }
 
-    // Kompakt versjon
+    /**
+     * Resolves the current slot to a specific club based on the outcome of the
+     * associated tie.
+     * <p>
+     * If this slot already represents a club, the method returns immediately.
+     * Otherwise, it determines the winner of the tie and, depending on the
+     * tournament hierarchy, assigns the appropriate club to this slot. If the
+     * winner is not yet decided, the method returns without making changes.
+     *
+     * @param callerTournament the tournament context in which the slot is being
+     *                         resolved
+     */
     public void resolveSlot(Tournament callerTournament) {
-        if (!isTie())
+        if (isClub())
             return;
         DoubleLeggedTie t = (DoubleLeggedTie) this.getTie();
         Boolean club1Won = t.isClub1Winner();
@@ -145,7 +144,6 @@ public class ClubSlot implements Serializable {
         ClubSlot chosen = (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
         this.clubIdWrapper = chosen.getClubIdWrapper();
         this.tie = null;
-        this.type = Type.CLUB;
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {
@@ -156,6 +154,12 @@ public class ClubSlot implements Serializable {
         }
     }
 
+    /**
+     * Returns a compact "Club1 vs Club2" string for ties, or the club name if not a
+     * tie.
+     *
+     * @return compact string representation of this ClubSlot
+     */
     public String toCompactString() {
         return isTie() ? tie.toCompactString() : clubIdWrapper.getName();
     }
