@@ -37,18 +37,18 @@ public class ClubSlot implements Serializable {
      * 
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
-     * @param tournament tournament context
+     * @param tournament tournament
      */
     public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
     }
 
     /**
-     * Constructs a two‑legged tie with optional preset goals (first leg).
+     * Constructs a two‑legged tie with preset goals (first leg). Order matters.
      * 
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
-     * @param tournament tournament context
+     * @param tournament tournament
      * @param club1Goals goals for club 1
      * @param club2Goals goals for club 2
      */
@@ -96,11 +96,11 @@ public class ClubSlot implements Serializable {
      * Retrieves the ranking of this ClubSlot in the context of the given
      * tournament.
      *
-     * @param tournament the tournament context
+     * @param callerTournament the tournament context
      * @return the ranking of this ClubSlot in the context of the given tournament
      */
-    public float getRanking(Tournament tournament) {
-        return isTie() ? tie.getRanking(tournament) : clubIdWrapper.getRanking();
+    public float getRanking(Tournament callerTournament) {
+        return isTie() ? tie.getRanking(callerTournament) : clubIdWrapper.getRanking();
     }
 
     /**
@@ -130,17 +130,17 @@ public class ClubSlot implements Serializable {
      * tournament hierarchy, assigns the appropriate club to this slot. If the
      * winner is not yet decided, the method returns without making changes.
      *
-     * @param callerTournament the tournament context in which the slot is being
-     *                         resolved
+     * @param tournament the tournament context in which the slot is being
+     *                   resolved
      */
-    public void resolveSlot(Tournament callerTournament) {
+    public void resolveSlot(Tournament tournament) {
         if (isClub())
             return;
         DoubleLeggedTie t = (DoubleLeggedTie) this.getTie();
         Boolean club1Won = t.isClub1Winner();
         if (club1Won == null)
             return; // Vinner ikke avklart
-        boolean higher = t.getTournament().compareTo(callerTournament) > 0; // innerTie på høyere nivå => ta taper
+        boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie på høyere nivå => ta taper
         ClubSlot chosen = (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
         this.clubIdWrapper = chosen.getClubIdWrapper();
         this.tie = null;

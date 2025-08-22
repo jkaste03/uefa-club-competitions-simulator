@@ -6,27 +6,41 @@ import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
 import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 
 /**
- * SingleLeggedTie is a specialized implementation of the Tie class that
- * represents a single-legged tie between two clubs.
+ * DoubleLeggedTie is a specialized implementation of the Tie class that
+ * represents a double-legged tie between two clubs.
  * <p>
  * This class extends the abstract Tie class and implements the specific
- * behavior for a single-legged tie, including score calculation and determining
+ * behavior for a double-legged tie, including score calculation and determining
  * the winner.
  */
 public class DoubleLeggedTie extends Tie {
     private Tournament tournament;
 
-    /*
-     * * Constructs a new double-legged tie with the specified club slots.
+    /**
+     * Constructs a two‑legged tie for the given slots in the specified
+     * tournament. Order matters.
+     * 
+     * @param clubSlot1  home participant first leg
+     * @param clubSlot2  away participant first leg
+     * @param tournament tournament
      */
-    public DoubleLeggedTie(ClubSlot club1, ClubSlot club2, Tournament tournament) {
-        super(club1, club2);
+    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
+        super(clubSlot1, clubSlot2);
         this.tournament = tournament;
     }
 
-    public DoubleLeggedTie(ClubSlot club1, ClubSlot club2, Tournament tournament, Integer club1Goals,
+    /**
+     * Constructs a two‑legged tie with preset goals (first leg).
+     * 
+     * @param clubSlot1  home participant first leg
+     * @param clubSlot2  away participant first leg
+     * @param tournament tournament
+     * @param club1Goals goals for club 1
+     * @param club2Goals goals for club 2
+     */
+    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
             Integer club2Goals) {
-        super(club1, club2, club1Goals, club2Goals);
+        super(clubSlot1, clubSlot2, club1Goals, club2Goals);
         this.tournament = tournament;
     }
 
@@ -36,31 +50,49 @@ public class DoubleLeggedTie extends Tie {
 
     // Ny metode: løser opp (resolves) eventuelle underliggende Ties til konkrete
     // ClubSlots
-    public void resolveSlots() {
-        clubSlot1 = resolveSlot(clubSlot1);
-        clubSlot2 = resolveSlot(clubSlot2);
-    }
+    // public void resolveSlots() {
+    // clubSlot1 = resolveSlot(clubSlot1);
+    // clubSlot2 = resolveSlot(clubSlot2);
+    // }
 
-    // Kompakt versjon
-    private ClubSlot resolveSlot(ClubSlot slot) {
-        if (!slot.isTie())
-            return slot;
-        DoubleLeggedTie t = (DoubleLeggedTie) slot.getTie();
-        Boolean club1Won = t.isClub1Winner();
-        if (club1Won == null)
-            return slot; // Vinner ikke avklart
-        boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie på høyere nivå => ta taper
-        return (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
-    }
+    // // Kompakt versjon
+    // private ClubSlot resolveSlot(ClubSlot slot) {
+    // if (!slot.isTie())
+    // return slot;
+    // DoubleLeggedTie t = (DoubleLeggedTie) slot.getTie();
+    // Boolean club1Won = t.isClub1Winner();
+    // if (club1Won == null)
+    // return slot; // Vinner ikke avklart
+    // boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie på
+    // høyere nivå => ta taper
+    // return (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
+    // }
 
-    // Kompakt versjon
+    /**
+     * Calculates the ranking of this double-legged tie based on the provided
+     * tournament context.
+     * <p>
+     * If the winner of the tie is already determined, returns the ranking of the
+     * winning club
+     * (taking into account which club slot corresponds to the winner and the
+     * tournament comparison).
+     * If the winner is not determined, returns either the maximum or minimum
+     * ranking of the two clubs,
+     * depending on the comparison between this tie's tournament and the caller
+     * tournament.
+     * </p>
+     *
+     * @param callerTournament the tournament context from which the ranking is
+     *                         requested
+     * @return the ranking value
+     */
     @Override
     public float getRanking(Tournament callerTournament) {
         boolean higher = tournament.compareTo(callerTournament) > 0;
-        Boolean club1Won = isClub1Winner();
-        if (club1Won != null) {
-            return ((club1Won ^ higher) ? clubSlot1 : clubSlot2).getRanking(tournament);
-        }
+        // Boolean club1Won = isClub1Winner();
+        // if (club1Won != null) {
+        // return ((club1Won ^ higher) ? clubSlot1 : clubSlot2).getRanking(tournament);
+        // }
         float r1 = clubSlot1.getRanking(tournament);
         float r2 = clubSlot2.getRanking(tournament);
         return higher ? Math.max(r1, r2) : Math.min(r1, r2);
