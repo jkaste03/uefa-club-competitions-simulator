@@ -50,7 +50,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         for (int i = 0; i < POT_COUNT; i++) {
             // Defensive copy to decouple from backing list
             addPot(i, new java.util.ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-            printClubSlotList(pots.get(i).getClubs());
+            printClubSlotList(pots.get(i).clubs());
         }
     }
 

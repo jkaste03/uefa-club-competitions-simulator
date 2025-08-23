@@ -21,14 +21,14 @@ import com.github.jkaste03.seeding_prob_finder.service.JsonDataLoader;
 public class Rounds implements Serializable {
 
     // Declare qualifying rounds and league rounds for all competitions.
-    private QRound uclQ1CP, uclQ2CP, uclQ2LP, uclQ3CP, uclQ3LP, uclPoCP, uclPoLP;
-    private QRound uelQ1MP, uelQ2MP, uelQ3MP, uelQ3CP, uelPo;
-    private QRound ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
-    private LeaguePhaseRound uclLP, uelLP, ueclLP;
-    private List<Round> rounds;
+    private final QRound uclQ1CP, uclQ2CP, uclQ2LP, uclQ3CP, uclQ3LP, uclPoCP, uclPoLP;
+    private final QRound uelQ1MP, uelQ2MP, uelQ3MP, uelQ3CP, uelPo;
+    private final QRound ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
+    private final LeaguePhaseRound uclLP, uelLP, ueclLP;
+    private final List<Round> rounds;
 
     // Initialize the ClubEloDataLoader to fetch club elo ratings.
-    private ClubEloDataLoader clubEloDataLoader = new ClubEloDataLoader();
+    private final ClubEloDataLoader clubEloDataLoader = new ClubEloDataLoader();
 
     /**
      * Constructs all rounds for UEFA competitions, initializes club Elo API,
@@ -192,7 +192,7 @@ public class Rounds implements Serializable {
      */
     @SafeVarargs
     public final List<Round> getRoundsOfType(RoundType... roundTypes) {
-        List<RoundType> roundTypeList = Arrays.asList(roundTypes);
+        final List<RoundType> roundTypeList = Arrays.asList(roundTypes);
         return rounds.stream()
                 .filter(round -> roundTypeList.contains(round.getRoundType()))
                 .toList();
@@ -254,7 +254,7 @@ public class Rounds implements Serializable {
 
     private void seedDrawLeagueRounds() {
         // Extract all league phase rounds
-        List<Round> roundsOfType = getRoundsOfType(RoundType.LEAGUE_PHASE);
+        final List<Round> roundsOfType = getRoundsOfType(RoundType.LEAGUE_PHASE);
         roundsOfType.forEach(round -> {
             round.seedDraw();
         });

@@ -20,10 +20,10 @@ public class QRound extends Round {
     // Tournament.CONFERENCE_LEAGUE + " " + CompetitionData.RoundType.Q3
     // + " " + CompetitionData.PathType.CHAMPIONS_PATH;
 
-    private List<DoubleLeggedTie> ties = new ArrayList<>();
-    private PathType pathType;
-    private List<ClubSlot> seeded = new ArrayList<>();
-    private List<ClubSlot> unseeded = new ArrayList<>();
+    private final List<DoubleLeggedTie> ties = new ArrayList<>();
+    private final PathType pathType;
+    private final List<ClubSlot> seeded = new ArrayList<>();
+    private final List<ClubSlot> unseeded = new ArrayList<>();
 
     /**
      * Constructs a qualifying round for the specified tournament and round type,
@@ -88,8 +88,8 @@ public class QRound extends Round {
      */
     @Override
     public void draw() {
-        List<ClubSlot> remainingSeeded = new ArrayList<>(seeded);
-        List<ClubSlot> remainingUnseeded = new ArrayList<>(unseeded);
+        final List<ClubSlot> remainingSeeded = new ArrayList<>(seeded);
+        final List<ClubSlot> remainingUnseeded = new ArrayList<>(unseeded);
         ties.clear();
 
         // First, draw opponents for seeded clubs that have at least one club that it's

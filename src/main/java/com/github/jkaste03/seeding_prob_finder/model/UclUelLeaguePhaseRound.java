@@ -79,8 +79,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Divide the club slots into pots for the league phase.
         for (int i = 0; i < POT_COUNT; i++) {
             addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-            System.out.print(pots.get(i).getClubs());
-            printClubSlotList(pots.get(i).getClubs());
+            System.out.print(pots.get(i).clubs());
+            printClubSlotList(pots.get(i).clubs());
         }
     }
 
@@ -119,9 +119,9 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     protected void draw() {
         // Lag mapping fra klubb til pot og samlet liste over klubber.
         Map<ClubSlot, Integer> clubToPot = new HashMap<>();
-        List<ClubSlot> allClubs = new ArrayList<>();
+        final List<ClubSlot> allClubs = new ArrayList<>();
         for (int i = 0; i < pots.size(); i++) {
-            for (ClubSlot club : pots.get(i).getClubs()) {
+            for (ClubSlot club : pots.get(i).clubs()) {
                 clubToPot.put(club, i);
                 allClubs.add(club);
             }
@@ -177,7 +177,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         }
         Helper helper = new Helper();
 
-        List<SingleLeggedTie> tempTies = new ArrayList<>();
+        final List<SingleLeggedTie> tempTies = new ArrayList<>();
         Random random = new Random();
         final int MAX_ATTEMPTS = 1000000;
         boolean success = false;
@@ -208,7 +208,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             // For hver pot (0..POT_COUNT-1) trekkes alle oppgjør for klubbene i den potten.
             for (int currentPot = 0; currentPot < POT_COUNT; currentPot++) {
                 // Hent og bland klubbene i den nåværende potten.
-                List<ClubSlot> clubsInPot = new ArrayList<>(pots.get(currentPot).getClubs());
+                final List<ClubSlot> clubsInPot = new ArrayList<>(pots.get(currentPot).clubs());
                 Collections.shuffle(clubsInPot, random);
 
                 for (ClubSlot club : clubsInPot) {
@@ -218,9 +218,9 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                         // Så lenge kravene for kamp (hjem og/eller borte) mot opponentPot ikke er
                         // oppfylt:
                         while (currentReq.get(club)[opponentPot][0] + currentReq.get(club)[opponentPot][1] > 0) {
-                            List<ClubSlot> candidates = new ArrayList<>();
+                            final List<ClubSlot> candidates = new ArrayList<>();
                             // Finn kandidater i pot opponentPot:
-                            List<ClubSlot> clubsCandidatePool = new ArrayList<>(pots.get(opponentPot).getClubs());
+                            final List<ClubSlot> clubsCandidatePool = new ArrayList<>(pots.get(opponentPot).clubs());
                             Collections.shuffle(clubsCandidatePool, random);
                             for (ClubSlot candidate : clubsCandidatePool) {
                                 // Unngå kamp mot seg selv ved intra–pot trekk:

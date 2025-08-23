@@ -12,27 +12,18 @@ import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
  * format.
  */
 public abstract class LeaguePhaseRound extends Round {
-    // Replaced raw nested list with typed Pot objects
-    protected List<SingleLeggedTie> ties = new ArrayList<>();
-    protected final List<Pot> pots;
+    protected List<SingleLeggedTie> ties;
+    protected final List<Pot> pots = new ArrayList<>();
 
-    public static class Pot {
-        private final int index;
-        private final List<ClubSlot> clubs;
-
-        public Pot(int index, List<ClubSlot> clubs) {
-            this.index = index;
-            this.clubs = clubs;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public List<ClubSlot> getClubs() {
-            return clubs;
-        }
-
+    /**
+     * Immutable container (Java record) representing a seeding pot in a league
+     * phase round. A pot groups several ClubSlot entries that will later be drawn.
+     * The pot index is the tier of the pot.
+     * 
+     * @param index zero-based pot index (must be >= 0)
+     * @param clubs list of ClubSlot instances in this pot
+     */
+    public static record Pot(int index, List<ClubSlot> clubs) {
         @Override
         public String toString() {
             return "Pot " + (index + 1) + " " + clubs;
@@ -40,14 +31,13 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Constructs a LeaguePhaseRound with the specified tournament.
+     * Constructs a LeaguePhaseRound for the specified tournament.
      *
      * @param tournament the tournament for which this league phase round is
      *                   initialized.
      */
     public LeaguePhaseRound(Tournament tournament) {
         super(tournament, RoundType.LEAGUE_PHASE);
-        pots = new ArrayList<>();
     }
 
     /**
@@ -65,7 +55,9 @@ public abstract class LeaguePhaseRound extends Round {
         return pots;
     }
 
-    // Helper for subclasses when constructing pots
+    /**
+     * Helper for subclasses when constructing pots
+     */
     protected void addPot(int index, List<ClubSlot> clubs) {
         pots.add(new Pot(index, clubs));
     }

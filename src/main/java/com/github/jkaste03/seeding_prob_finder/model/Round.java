@@ -18,7 +18,7 @@ public abstract class Round implements Serializable {
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
     // protected List<ClubSlot> ties = new ArrayList<>();
-    protected List<ClubSlot> clubSlots = new ArrayList<>();
+    protected final List<ClubSlot> clubSlots = new ArrayList<>();
 
     /**
      * Constructor that initializes the round with a tournament and round type.
@@ -62,10 +62,6 @@ public abstract class Round implements Serializable {
 
     public List<ClubSlot> getClubSlots() {
         return clubSlots;
-    }
-
-    public void setClubSlots(List<ClubSlot> clubSlots) {
-        this.clubSlots = clubSlots;
     }
 
     /**
