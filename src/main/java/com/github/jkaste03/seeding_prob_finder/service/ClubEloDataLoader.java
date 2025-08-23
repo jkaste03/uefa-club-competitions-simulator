@@ -88,8 +88,11 @@ public class ClubEloDataLoader implements Serializable {
                 String clubName = values[1].trim();
                 int clubid = ClubRepository.getIdByName(clubName);
                 double elo = Double.parseDouble(values[4].trim());
-
                 eloMap.put(clubid, elo);
+                // if (ClubRepository.getIdByName(clubName) == -1) {
+                // System.out.println("Loaded Elo for " + clubName + " (id " + clubid + "): " +
+                // elo);
+                // }
             }
         } catch (IOException e) {
             System.err.println("Could not read API data: " + e.getMessage());
