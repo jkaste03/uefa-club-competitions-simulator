@@ -17,7 +17,7 @@ public abstract class Round implements Serializable {
     protected RoundType roundType;
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
-    protected List<ClubSlot> ties = new ArrayList<>();
+    // protected List<ClubSlot> ties = new ArrayList<>();
     protected List<ClubSlot> clubSlots = new ArrayList<>();
 
     /**
@@ -111,7 +111,7 @@ public abstract class Round implements Serializable {
      *                     printed
      */
     protected static void printClubSlotList(List<ClubSlot> clubSlotList) {
-        // clubSlotList.forEach(clubSlot -> System.out.println(clubSlot.getName()));
+        clubSlotList.forEach(clubSlot -> System.out.println(clubSlot.toCompactString()));
     }
 
     /**
@@ -156,6 +156,7 @@ public abstract class Round implements Serializable {
      * further use.
      */
     public void resolveClubSlots() {
+        System.out.println("Resolving club slots... (" + getName() + ")");
         for (ClubSlot clubSlot : clubSlots) {
             clubSlot.resolveSlot(tournament);
         }

@@ -66,6 +66,15 @@ public class ClubSlot implements Serializable {
         this.clubIdWrapper = new ClubIdWrapper(clubId);
     }
 
+    /**
+     * Constructs a ClubSlot with the specified Tie.
+     *
+     * @param tie the Tie associated with this ClubSlot
+     */
+    public ClubSlot(Tie tie) {
+        this.tie = tie;
+    }
+
     public boolean isTie() {
         return tie != null;
     }
@@ -134,9 +143,10 @@ public class ClubSlot implements Serializable {
      *                   resolved
      */
     public void resolveSlot(Tournament tournament) {
+        System.out.println("1: " + toCompactString());
         if (isClub())
             return;
-        DoubleLeggedTie t = (DoubleLeggedTie) this.getTie();
+        DoubleLeggedTie t = (DoubleLeggedTie) getTie();
         Boolean club1Won = t.isClub1Winner();
         if (club1Won == null)
             return; // Vinner ikke avklart

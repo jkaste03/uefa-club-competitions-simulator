@@ -96,16 +96,18 @@ public class Rounds implements Serializable {
         uclQ2CP.setNextRounds(uclQ3CP, uelQ3CP);
         uclQ2LP.setNextRounds(uclQ3LP, uelQ3MP);
         uclQ3CP.setNextRounds(uclPoCP, uelPo);
-        uclQ3LP.setNextRounds(uclPoLP, null);
-        uclPoCP.setNextRounds(null, null);
-        uclPoLP.setNextRounds(null, null);
+        uclQ3LP.setNextRounds(uclPoLP, uelLP);
+        uclPoCP.setNextRounds(uclLP, uelLP);
+        uclPoLP.setNextRounds(uclLP, uelLP);
+        uclLP.setNextRound(null);
 
         // Linking for Europa League
         uelQ1MP.setNextRounds(uelQ2MP, ueclQ2MP);
         uelQ2MP.setNextRounds(uelQ3MP, ueclQ3MP);
         uelQ3MP.setNextRounds(uelPo, ueclPoMP);
         uelQ3CP.setNextRounds(uelPo, ueclPoCP);
-        uelPo.setNextRounds(null, null);
+        uelPo.setNextRounds(uelLP, ueclLP);
+        uelLP.setNextRound(null);
 
         // Linking for Conference League (single next round linkage in some cases)
         ueclQ1MP.setNextRound(ueclQ2MP);
@@ -113,8 +115,9 @@ public class Rounds implements Serializable {
         ueclQ2CP.setNextRound(ueclQ3CP);
         ueclQ3MP.setNextRound(ueclPoMP);
         ueclQ3CP.setNextRound(ueclPoCP);
-        ueclPoMP.setNextRound(null);
-        ueclPoCP.setNextRound(null);
+        ueclPoMP.setNextRound(ueclLP);
+        ueclPoCP.setNextRound(ueclLP);
+        ueclLP.setNextRound(null);
     }
 
     /**
@@ -125,7 +128,7 @@ public class Rounds implements Serializable {
         // Start by processing the qualifying rounds.
         runQRounds();
         // Proceed to the league phase rounds.
-        // runLeagueRounds();
+        runLeagueRounds();
     }
 
     /**
@@ -178,6 +181,7 @@ public class Rounds implements Serializable {
         }
         // Register clubs for league phase after qualifiers complete.
         // registerClubsForLeagues(roundsOfType);
+        resolveClubSlots(getRoundsOfType(RoundType.LEAGUE_PHASE));
     }
 
     /**
@@ -222,11 +226,9 @@ public class Rounds implements Serializable {
      *                     stage
      */
     private void regTiesForNextQRounds(List<Round> roundsOfType) {
-        if (roundsOfType.get(0).getNextPrimaryRnd() instanceof QRound) {
-            roundsOfType.forEach(round -> {
-                ((QRound) round).regTiesForNextRounds();
-            });
-        }
+        roundsOfType.forEach(round -> {
+            ((QRound) round).regTiesForNextRounds();
+        });
     }
 
     /**
@@ -241,6 +243,21 @@ public class Rounds implements Serializable {
         roundsOfType.forEach(r -> r.play(clubEloDataLoader));
         // Second legs of play to determine tie outcomes.
         // roundsOfType.forEach(r -> r.play(clubEloDataLoader));
+    }
+
+    private void runLeagueRounds() {
+        // Execute seeding and draws for league phase rounds.
+        seedDrawLeagueRounds();
+        // Play the league phase rounds.
+        // playRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
+    }
+
+    private void seedDrawLeagueRounds() {
+        // Extract all league phase rounds
+        List<Round> roundsOfType = getRoundsOfType(RoundType.LEAGUE_PHASE);
+        roundsOfType.forEach(round -> {
+            round.seedDraw();
+        });
     }
 
     /**

@@ -20,6 +20,7 @@ public class QRound extends Round {
     // Tournament.CONFERENCE_LEAGUE + " " + CompetitionData.RoundType.Q3
     // + " " + CompetitionData.PathType.CHAMPIONS_PATH;
 
+    private List<DoubleLeggedTie> ties = new ArrayList<>();
     private PathType pathType;
     private List<ClubSlot> seeded = new ArrayList<>();
     private List<ClubSlot> unseeded = new ArrayList<>();
@@ -58,8 +59,6 @@ public class QRound extends Round {
      */
     @Override
     public void seed() {
-        System.out.println(getName());
-        System.out.println(clubSlots.size());
         if (clubSlots == null || clubSlots.size() % 2 != 0) {
             throw new IllegalArgumentException("The number of clubSlots must be even to seed them properly.");
         }
@@ -104,15 +103,15 @@ public class QRound extends Round {
                     } while (isIllegalTie(seeded, opponent));
                     remainingSeeded.remove(seeded);
                     remainingUnseeded.remove(opponent);
-                    ties.add(Math.random() < 0.5 ? new ClubSlot(seeded, opponent, tournament)
-                            : new ClubSlot(opponent, seeded, tournament));
+                    ties.add(Math.random() < 0.5 ? new DoubleLeggedTie(seeded, opponent, tournament)
+                            : new DoubleLeggedTie(opponent, seeded, tournament));
                 });
 
         // Then, draw opponents for the remaining seeded clubs
         remainingSeeded.forEach(seeded -> {
             ClubSlot opponent = remainingUnseeded.remove((int) (Math.random() * remainingUnseeded.size()));
-            ties.add(Math.random() < 0.5 ? new ClubSlot(seeded, opponent, tournament)
-                    : new ClubSlot(opponent, seeded, tournament));
+            ties.add(Math.random() < 0.5 ? new DoubleLeggedTie(seeded, opponent, tournament)
+                    : new DoubleLeggedTie(opponent, seeded, tournament));
         });
     }
 
@@ -147,15 +146,15 @@ public class QRound extends Round {
         // Add ties to the next primary round and the next secondary round if applicable
         ties.forEach(tie -> {
             // Add tie to the next primary round
-            this.nextPrimaryRnd.addClubSlot(tie);
+            this.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
             // Add tie to the next secondary round if applicable
             if (this.nextSecondaryRnd != null) {
                 // Add tie to the next primary round of the secondary round if it can skip,
                 // otherwise add to the secondary round
                 if (ties.indexOf(tie) < noOfClubsToSkipSecondary) {
-                    this.nextSecondaryRnd.nextPrimaryRnd.addClubSlot(tie);
+                    this.nextSecondaryRnd.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
                 } else {
-                    this.nextSecondaryRnd.addClubSlot(tie);
+                    this.nextSecondaryRnd.addClubSlot(new ClubSlot(tie));
                 }
             }
         });
@@ -177,12 +176,8 @@ public class QRound extends Round {
      * Plays the ties in the qualifying round.
      */
     public void play(ClubEloDataLoader clubEloDataLoader) {
-        System.out.println("Playing qualifying round: " + getName());
-        for (ClubSlot tie : ties) {
-            System.out.println("Playing tie: " + tie.toCompactString());
-        }
-        for (ClubSlot tie : ties) {
-            tie.getTie().play(clubEloDataLoader);
+        for (DoubleLeggedTie tie : ties) {
+            tie.play(clubEloDataLoader);
         }
         // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches
     }

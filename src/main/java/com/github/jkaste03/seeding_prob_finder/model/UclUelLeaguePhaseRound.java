@@ -58,6 +58,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
      */
     @Override
     protected void seed() {
+        System.out.println(clubSlots);
+
         // Ensure the number of clubSlots is divisible by POT_COUNT.
         if (clubSlots == null || clubSlots.size() % POT_COUNT != 0) {
             throw new IllegalStateException("ClubSlot count must be divisible by " + POT_COUNT + " to seed properly.");
@@ -77,6 +79,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Divide the club slots into pots for the league phase.
         for (int i = 0; i < POT_COUNT; i++) {
             addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
+            System.out.print(pots.get(i).getClubs());
             printClubSlotList(pots.get(i).getClubs());
         }
     }
@@ -174,7 +177,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         }
         Helper helper = new Helper();
 
-        List<ClubSlot> tempTies = new ArrayList<>();
+        List<SingleLeggedTie> tempTies = new ArrayList<>();
         Random random = new Random();
         final int MAX_ATTEMPTS = 1000000;
         boolean success = false;
@@ -270,11 +273,11 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                                 break;
                             }
                             if (chooseOption1) {
-                                tempTies.add(new ClubSlot(club, selectedCandidate));
+                                tempTies.add(new SingleLeggedTie(club, selectedCandidate));
                                 currentReq.get(club)[opponentPot][0]--; // club spiller hjemme mot opponentPot
                                 candidateReq[currentPot][1]--; // selectedCandidate spiller borte mot currentPot
                             } else {
-                                tempTies.add(new ClubSlot(selectedCandidate, club));
+                                tempTies.add(new SingleLeggedTie(selectedCandidate, club));
                                 currentReq.get(club)[opponentPot][1]--; // club spiller borte mot opponentPot
                                 candidateReq[currentPot][0]--; // selectedCandidate spiller hjemme mot currentPot
                             }
@@ -322,8 +325,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Overfør de trukkede oppgjørene til ties-variabelen.
         ties = tempTies;
 
-        // for (Tie tie : ties) {
-        // System.out.println(tie.getName());
-        // }
+        for (Tie tie : ties) {
+            System.out.println(tie.toCompactString());
+        }
     }
 }

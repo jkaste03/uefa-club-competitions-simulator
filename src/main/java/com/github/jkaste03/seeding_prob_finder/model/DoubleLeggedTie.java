@@ -10,11 +10,14 @@ import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
  * represents a double-legged tie between two clubs.
  * <p>
  * This class extends the abstract Tie class and implements the specific
- * behavior for a double-legged tie, including score calculation and determining
- * the winner.
+ * behavior for a double-legged tie, including playing the two legs.
  */
 public class DoubleLeggedTie extends Tie {
-    private Tournament tournament;
+    /**
+     * The tournament this tie is part of. This is needed
+     */
+    private final Tournament tournament;
+    private Boolean club1Winner;
 
     /**
      * Constructs a two‑legged tie for the given slots in the specified
@@ -30,7 +33,7 @@ public class DoubleLeggedTie extends Tie {
     }
 
     /**
-     * Constructs a two‑legged tie with preset goals (first leg).
+     * Constructs a two‑legged tie with preset goals (first leg). Order matters.
      * 
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
@@ -46,6 +49,10 @@ public class DoubleLeggedTie extends Tie {
 
     public Tournament getTournament() {
         return tournament;
+    }
+
+    public Boolean isClub1Winner() {
+        return club1Winner;
     }
 
     // Ny metode: løser opp (resolves) eventuelle underliggende Ties til konkrete
@@ -69,33 +76,22 @@ public class DoubleLeggedTie extends Tie {
     // }
 
     /**
-     * Calculates the ranking of this double-legged tie based on the provided
-     * tournament context.
-     * <p>
-     * If the winner of the tie is already determined, returns the ranking of the
-     * winning club
-     * (taking into account which club slot corresponds to the winner and the
-     * tournament comparison).
-     * If the winner is not determined, returns either the maximum or minimum
-     * ranking of the two clubs,
-     * depending on the comparison between this tie's tournament and the caller
-     * tournament.
-     * </p>
+     * Computes this tie's effective ranking relative to a caller tournament by
+     * selecting one of the two underlying club rankings. If the caller tournament
+     * is at a worse level than this tie's tournament, the worst ranking is
+     * returned; otherwise, the best ranking is returned.
      *
-     * @param callerTournament the tournament context from which the ranking is
-     *                         requested
-     * @return the ranking value
+     * @param callerTournament the tournament context requesting the ranking
+     * @return the ranking
      */
     @Override
     public float getRanking(Tournament callerTournament) {
-        boolean higher = tournament.compareTo(callerTournament) > 0;
+        float r1 = clubSlot1.getRanking(tournament), r2 = clubSlot2.getRanking(tournament);
+        return ((tournament.compareTo(callerTournament) > 0) ^ (r1 < r2)) ? r1 : r2;
         // Boolean club1Won = isClub1Winner();
         // if (club1Won != null) {
         // return ((club1Won ^ higher) ? clubSlot1 : clubSlot2).getRanking(tournament);
         // }
-        float r1 = clubSlot1.getRanking(tournament);
-        float r2 = clubSlot2.getRanking(tournament);
-        return higher ? Math.max(r1, r2) : Math.min(r1, r2);
     }
 
     /**
@@ -231,4 +227,10 @@ public class DoubleLeggedTie extends Tie {
     // System.out.printf("%s går videre: %.2f%%%n",
     // club2.getName(), pAdvance2 * 100);
     // }
+
+    @Override
+    public String toString() {
+        return "DoubleLeggedTie[" + fieldsToString() + ", tournament=" + tournament + ", club1Winner=" + club1Winner
+                + "]";
+    }
 }

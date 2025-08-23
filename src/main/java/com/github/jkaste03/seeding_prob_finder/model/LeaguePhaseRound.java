@@ -13,6 +13,7 @@ import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
  */
 public abstract class LeaguePhaseRound extends Round {
     // Replaced raw nested list with typed Pot objects
+    protected List<SingleLeggedTie> ties = new ArrayList<>();
     protected final List<Pot> pots;
 
     public static class Pot {
