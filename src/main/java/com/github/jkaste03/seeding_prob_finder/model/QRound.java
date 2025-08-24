@@ -137,15 +137,27 @@ public class QRound extends Round {
     }
 
     /**
-     * Recursively builds a legal matching between remaining seeded and unseeded.
-     * Uses MRV heuristic: pick seeded club with fewest legal opponents to reduce
-     * branching and bias. Candidate opponent order is randomized each recursion.
-     *
-     * @param remainingSeeded   remaining seeded clubs to match
-     * @param remainingUnseeded remaining unseeded clubs to match
-     * @param result            accumulator list of ties (modified in-place)
-     * @param rng               randomness source
-     * @return true if a full legal matching was found
+     * Attempts to construct a complete one-to-one matching (set of DoubleLeggedTie
+     * instances) between the supplied seeded and unseeded club slots subject to
+     * pairing constraints (as enforced by {@code isIllegalTie}). This method uses a
+     * recursive backtracking search enhanced with:
+     * <ul>
+     * <li>MRV (Minimum Remaining Values) heuristic: always expand a seeded club
+     * with the fewest legal opponents to reduce branching and detect dead-ends
+     * early.</li>
+     * <li>Randomization: shuffles candidate seeded clubs having the MRV, randomizes
+     * opponent order, and randomizes the home/away (or leg order) assignment when
+     * creating each tie, producing varied valid draws across invocations.</li>
+     * </ul>
+     * 
+     * @param remainingSeeded   the list of seeded ClubSlot instances
+     * @param remainingUnseeded the list of unseeded ClubSlot instances
+     * @param result            accumulator list to which confirmed DoubleLeggedTie
+     *                          pairings are appended in order
+     * @param rng               source of randomness for shuffling selection and tie
+     *                          orientation
+     * @return true if a complete legal matching was found; false if no completion
+     *         is possible
      */
     private boolean buildMatching(List<ClubSlot> remainingSeeded, List<ClubSlot> remainingUnseeded,
             List<DoubleLeggedTie> result, java.util.Random rng) {
@@ -153,9 +165,12 @@ public class QRound extends Round {
             return true; // all paired
         }
 
-        // Pick seeded with minimum number of legal opponents (MRV)
-        ClubSlot nextSeeded = null;
-        List<ClubSlot> legalOpponentsForNext = null;
+        // (1) Optional: shuffle seeded list to remove positional bias before computing
+        // MRV
+        Collections.shuffle(remainingSeeded, rng);
+
+        // (2) Build map of legal opponents and find MRV value
+        java.util.Map<ClubSlot, List<ClubSlot>> legalMap = new java.util.HashMap<>();
         int min = Integer.MAX_VALUE;
         for (ClubSlot s : remainingSeeded) {
             List<ClubSlot> legal = new ArrayList<>();
@@ -165,38 +180,46 @@ public class QRound extends Round {
                 }
             }
             if (legal.isEmpty()) {
-                return false; // dead end
+                return false; // dead end: impossible to match this seeded club
             }
+            legalMap.put(s, legal);
             if (legal.size() < min) {
                 min = legal.size();
-                nextSeeded = s;
-                legalOpponentsForNext = legal;
-                if (min == 1) { // can't do better
-                    break;
-                }
             }
         }
 
-        // Randomize opponent order to avoid bias
-        java.util.Collections.shuffle(legalOpponentsForNext, rng);
+        // (3) Collect all seeded clubs that have the MRV (min) and pick one at random
+        List<ClubSlot> mrvCandidates = new ArrayList<>();
+        for (ClubSlot s : remainingSeeded) {
+            if (legalMap.get(s).size() == min) {
+                mrvCandidates.add(s);
+            }
+        }
+        ClubSlot nextSeeded = mrvCandidates.get(rng.nextInt(mrvCandidates.size()));
 
-        // Try each opponent (backtracking)
+        // (4) Randomize opponents for the chosen seeded
+        List<ClubSlot> legalOpponentsForNext = new ArrayList<>(legalMap.get(nextSeeded));
+        Collections.shuffle(legalOpponentsForNext, rng);
+
+        // (5) Try opponents, but use copies for recursion to avoid mutating & changing
+        // order
         for (ClubSlot opp : legalOpponentsForNext) {
-            remainingSeeded.remove(nextSeeded);
-            remainingUnseeded.remove(opp);
-            DoubleLeggedTie tie = rng.nextBoolean() ? new DoubleLeggedTie(nextSeeded, opp, tournament)
+            List<ClubSlot> newRemainingSeeded = new ArrayList<>(remainingSeeded);
+            newRemainingSeeded.remove(nextSeeded);
+            List<ClubSlot> newRemainingUnseeded = new ArrayList<>(remainingUnseeded);
+            newRemainingUnseeded.remove(opp);
+
+            DoubleLeggedTie tie = rng.nextBoolean()
+                    ? new DoubleLeggedTie(nextSeeded, opp, tournament)
                     : new DoubleLeggedTie(opp, nextSeeded, tournament);
             result.add(tie);
 
-            if (buildMatching(remainingSeeded, remainingUnseeded, result, rng)) {
-                // Restore lists not needed because we return success
+            if (buildMatching(newRemainingSeeded, newRemainingUnseeded, result, rng)) {
                 return true;
             }
 
-            // Backtrack
+            // backtrack
             result.remove(result.size() - 1);
-            remainingUnseeded.add(opp);
-            remainingSeeded.add(nextSeeded);
         }
 
         return false;
