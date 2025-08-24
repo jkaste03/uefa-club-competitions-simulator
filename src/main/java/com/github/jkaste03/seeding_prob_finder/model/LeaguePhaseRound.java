@@ -56,14 +56,14 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Helper for subclasses when constructing pots
+     * Adds a new pot to the list of pots at the specified index with the given list
+     * of club slots.
+     *
+     * @param index the index (tier, 0-based) of the pot to be added
+     * @param clubs the list of {@link ClubSlot} objects to include in the pot
      */
     protected void addPot(int index, List<ClubSlot> clubs) {
         pots.add(new Pot(index, clubs));
-    }
-
-    protected void clearPots() {
-        pots.clear();
     }
 
     /**
@@ -72,6 +72,9 @@ public abstract class LeaguePhaseRound extends Round {
     @Override
     protected abstract void seed();
 
+    /**
+     * Draws the league phase round.
+     */
     @Override
     protected abstract void draw();
 

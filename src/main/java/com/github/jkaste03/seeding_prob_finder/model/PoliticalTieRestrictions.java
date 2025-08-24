@@ -1,7 +1,6 @@
 package com.github.jkaste03.seeding_prob_finder.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
@@ -9,48 +8,84 @@ import com.github.jkaste03.seeding_prob_finder.enums.Country;
  * Class containing all the illegal matchups based on political restrictions
  * decided by the UEFA Executive Committee.
  */
-public class PoliticalTieRestrictions {
+public final class PoliticalTieRestrictions {
     /**
-     * A set of illegal pairs of countries.
-     * <p>
-     * Each pair is represented as a set of two countries. The order of the
-     * countries in the set does not matter.
+     * Adjacency mapping: for each country, which other countries it is forbidden to
+     * face. Uses EnumMap/EnumSet for minimal overhead and O(1) lookup.
      */
-    private static final Set<Set<Country>> illegalPairs = Set.of(
-            Set.of(Country.ARM, Country.AZE),
-            Set.of(Country.GIB, Country.ESP),
-            Set.of(Country.KOS, Country.BHZ),
-            Set.of(Country.KOS, Country.SRB),
-            Set.of(Country.UKR, Country.BLR),
-            Set.of(Country.UKR, Country.RUS));
+    private static final Map<Country, Set<Country>> ILLEGAL_MAP;
 
     /**
-     * Checks if a pair of countries is politically prohibited.
-     * 
-     * @param country1 the first country
-     * @param country2 the second country
-     * @return true if the pair is prohibited, false otherwise
+     * Static initializer block to populate the illegal matchups map.
      */
-    public static boolean isProhibited(Country country1, Country country2) {
-        Set<Country> pair = new HashSet<>();
-        pair.add(country1);
-        pair.add(country2);
-        return illegalPairs.contains(pair);
+    static {
+        EnumMap<Country, Set<Country>> m = new EnumMap<>(Country.class);
+        addPair(m, Country.ARM, Country.AZE);
+        addPair(m, Country.GIB, Country.ESP);
+        addPair(m, Country.KOS, Country.BHZ);
+        addPair(m, Country.KOS, Country.SRB);
+        addPair(m, Country.UKR, Country.BLR);
+        addPair(m, Country.UKR, Country.RUS);
+        // Lock inner sets
+        m.replaceAll((k, v) -> Collections.unmodifiableSet(v));
+        ILLEGAL_MAP = Collections.unmodifiableMap(m);
     }
 
     /**
-     * Checks if a match between two club slots is politically prohibited based on
-     * the involved
-     * countries.
-     *
-     * @param club1 the first club slot
-     * @param club2 the second club slot
-     * @return {@code true} if a match between the two club slots is prohibited,
-     *         {@code false} otherwise
+     * Private constructor to prevent instantiation.
      */
-    public static boolean isProhibited(ClubSlot club1, ClubSlot club2) {
-        return club1.getCountries().stream()
-                .anyMatch(c1 -> club2.getCountries().stream()
-                        .anyMatch(c2 -> isProhibited(c1, c2)));
+    private PoliticalTieRestrictions() {
+        throw new AssertionError("No instances");
+    }
+
+    /**
+     * Adds a symmetric prohibited pairing (a,b) and (b,a) to the adjacency map.
+     * Assumes single‑threaded static init and idempotent (re‑adding is harmless).
+     * 
+     * @param m adjacency map (Country -> forbidden opponents set)
+     * @param a first country
+     * @param b second country
+     */
+    private static void addPair(Map<Country, Set<Country>> m, Country a, Country b) {
+        m.computeIfAbsent(a, k -> EnumSet.noneOf(Country.class)).add(b);
+        m.computeIfAbsent(b, k -> EnumSet.noneOf(Country.class)).add(a);
+    }
+
+    /**
+     * Determines whether a pairing between two ClubSlot instances is prohibited.
+     * A pairing is considered prohibited if:
+     * 1. The two slots share at least one common Country (clubs from the same
+     * nation cannot meet).
+     * 2. Any Country from one slot is mapped (via ILLEGAL_MAP) as incompatible with
+     * any Country in the other slot.
+     *
+     * @param clubSlot1 the first club slot
+     * @param clubSlot2 the second club slot
+     * @return true if the pairing violates nationality or political restrictions,
+     *         false otherwise
+     */
+    public static boolean isProhibited(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+        // Choose the smaller collection as outer loop for fewer lookups
+        Collection<Country> c1s = clubSlot1.getCountries();
+        Collection<Country> c2s = clubSlot2.getCountries();
+
+        // Same country? (quick check by iterating over the smaller and testing
+        // membership in the larger)
+        if (!Collections.disjoint(c1s, c2s)) {
+            return true; // same nation not allowed to meet
+        }
+
+        Collection<Country> outer = c1s.size() <= c2s.size() ? c1s : c2s;
+        Collection<Country> inner = outer == c1s ? c2s : c1s;
+        for (Country cOuter : outer) {
+            Set<Country> banned = ILLEGAL_MAP.get(cOuter);
+            if (banned == null)
+                continue;
+            for (Country cInner : inner) {
+                if (banned.contains(cInner))
+                    return true;
+            }
+        }
+        return false;
     }
 }
