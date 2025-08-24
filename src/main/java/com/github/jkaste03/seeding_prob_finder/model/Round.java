@@ -15,9 +15,10 @@ import java.util.ArrayList;
 public abstract class Round implements Serializable {
     protected Tournament tournament;
     protected RoundType roundType;
+    // References to the next rounds
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
-    // protected List<ClubSlot> ties = new ArrayList<>();
+
     protected final List<ClubSlot> clubSlots = new ArrayList<>();
 
     /**
@@ -31,6 +32,11 @@ public abstract class Round implements Serializable {
         this.roundType = roundType;
     }
 
+    /**
+     * Returns the name of the round. Is overridden by subclasses.
+     * 
+     * @return the name of the round.
+     */
     public String getName() {
         return tournament + "";
     }
@@ -74,15 +80,24 @@ public abstract class Round implements Serializable {
     }
 
     /**
-     * Checks if a tie between two club slots is illegal based on political and
-     * other restrictions.
-     * 
-     * @param clubSlot1 the first club slot.
-     * @param clubSlot2 the second club slot.
-     * @return true if the tie is illegal, false otherwise.
+     * Determines whether pairing the two specified club slots is prohibited in this
+     * round.
+     * <p>
+     * For qualification (QRound) and league phase (LeaguePhaseRound) rounds, a tie
+     * is illegal if:
+     * <ul>
+     * <li>The clubs share the same country (hasCommonCountry returns true), or</li>
+     * <li>A political restriction applies (PoliticalTieRestrictions.isProhibited
+     * returns true).</li>
+     * </ul>
+     * For all other round types, only political restrictions are considered.
+     *
+     * @param clubSlot1 the first club slot
+     * @param clubSlot2 the second club slot
+     * @return true if the pairing is not allowed; false otherwise
      */
     public boolean isIllegalTie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
-        if (this instanceof QRound /* || this instanceof LeaguePhaseRound */) {
+        if (this instanceof QRound || this instanceof LeaguePhaseRound) {
             return hasCommonCountry(clubSlot1, clubSlot2)
                     || PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2);
         }
@@ -111,7 +126,7 @@ public abstract class Round implements Serializable {
     }
 
     /**
-     * Seeds and draw the ties.
+     * Seeds and draws the ties.
      */
     public void seedDraw() {
         seed();
@@ -137,19 +152,37 @@ public abstract class Round implements Serializable {
     protected abstract void draw();
 
     /**
-     * Plays the round.
+     * Plays the round. This method is responsible for playing the round.
      */
     public abstract void play(ClubEloDataLoader clubEloDataLoader);
 
     /**
-     * Updates the club slots in all ties.
+     * Attempts to resolve every {@link ClubSlot} in this round to a concrete club
+     * (if possible).
+     *
      * <p>
-     * This method iterates through all the ties and updates the participating
-     * club slots by calling the {@link Tie#updateClubSlotsIfTie()} method on each
-     * tie. The {@code updateClubSlotsIfTie} method ensures that if a club slot
-     * is a wrapper (such as an instance of {@code DoubleLeggedTieWrapper}), it
-     * retrieves the appropriate underlying club slot (tie winner or loser) for
-     * further use.
+     * For each slot:
+     * </p>
+     * <ul>
+     * <li>If it already represents a concrete club, nothing happens.</li>
+     * <li>If it depends on the outcome of a tie (e.g. a {@code DoubleLeggedTie}),
+     * the underlying tie is inspected:
+     * <ul>
+     * <li>If the tie has a decided winner, the slot is replaced by either the
+     * winner or (when the originating
+     * tie belongs to a higher tournament level) the loser, mirroring the logic in
+     * {@link ClubSlot#resolveSlot(Tournament)}.</li>
+     * <li>If the tie is still undecided, the slot remains unresolved.</li>
+     * </ul>
+     * </li>
+     * </ul>
+     *
+     * <p>
+     * The tournament argument passed to {@code ClubSlot#resolveSlot} is this
+     * round's {@link Tournament}, allowing the
+     * slot logic to determine whether it should take the winner or loser based on
+     * tournament hierarchy.
+     * </p>
      */
     public void resolveClubSlots() {
         System.out.println("Resolving club slots... (" + getName() + ")");
@@ -160,8 +193,18 @@ public abstract class Round implements Serializable {
 
     @Override
     public String toString() {
-        return "Round [nextPrimaryRnd=" + (nextPrimaryRnd != null ? nextPrimaryRnd.getName() : "null")
+        return "Round [name=" + getName() + ", " + fieldsToString() + "]";
+    }
+
+    /**
+     * Returns a concise, comma-separated textual representation of this Round's key
+     * fields. Used by all Round subclasses in their toString implementations.
+     *
+     * @return a human-readable summary of this Round's state
+     */
+    protected String fieldsToString() {
+        return "nextPrimaryRnd=" + (nextPrimaryRnd != null ? nextPrimaryRnd.getName() : "null")
                 + ", nextSecondaryRnd=" + (nextSecondaryRnd != null ? nextSecondaryRnd.getName() : "null")
-                + ", clubSlots=" + clubSlots + "]";
+                + ", clubSlots=" + clubSlots;
     }
 }

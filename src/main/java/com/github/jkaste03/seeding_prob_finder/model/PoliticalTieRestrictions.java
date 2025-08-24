@@ -52,29 +52,18 @@ public final class PoliticalTieRestrictions {
     }
 
     /**
-     * Determines whether a pairing between two ClubSlot instances is prohibited.
-     * A pairing is considered prohibited if:
-     * 1. The two slots share at least one common Country (clubs from the same
-     * nation cannot meet).
-     * 2. Any Country from one slot is mapped (via ILLEGAL_MAP) as incompatible with
-     * any Country in the other slot.
+     * Determines whether a pairing between two ClubSlot instances is prohibited. A
+     * pairing is considered prohibited if any Country from one slot is mapped (via
+     * ILLEGAL_MAP) as incompatible with any Country in the other slot.
      *
      * @param clubSlot1 the first club slot
      * @param clubSlot2 the second club slot
-     * @return true if the pairing violates nationality or political restrictions,
-     *         false otherwise
+     * @return true if the pairing violates political restrictions, false otherwise
      */
     public static boolean isProhibited(ClubSlot clubSlot1, ClubSlot clubSlot2) {
         // Choose the smaller collection as outer loop for fewer lookups
         Collection<Country> c1s = clubSlot1.getCountries();
         Collection<Country> c2s = clubSlot2.getCountries();
-
-        // Same country? (quick check by iterating over the smaller and testing
-        // membership in the larger)
-        if (!Collections.disjoint(c1s, c2s)) {
-            return true; // same nation not allowed to meet
-        }
-
         Collection<Country> outer = c1s.size() <= c2s.size() ? c1s : c2s;
         Collection<Country> inner = outer == c1s ? c2s : c1s;
         for (Country cOuter : outer) {
