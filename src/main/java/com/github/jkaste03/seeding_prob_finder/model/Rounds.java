@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.EnumMap;
 
 import com.github.jkaste03.seeding_prob_finder.enums.PathType;
 import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
@@ -12,11 +13,9 @@ import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
 import com.github.jkaste03.seeding_prob_finder.service.JsonDataLoader;
 
 /**
- * The Rounds class is responsible for initializing, linking, and executing all
- * rounds for UEFA competitions. It sets up the rounds, linking each round to
- * define the progression sequence. This detailed simulation ensures that
- * seeding, draws, tie registrations, and match play are executed in an
- * organized manner.
+ * Central orchestrator for all UEFA competition rounds (Champions League,
+ * Europa League, Conference League) from the first qualifying round to the
+ * final.
  */
 public class Rounds implements Serializable {
 
@@ -26,6 +25,8 @@ public class Rounds implements Serializable {
     private final QRound ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
     private final LeaguePhaseRound uclLP, uelLP, ueclLP;
     private final List<Round> rounds;
+    // Index for fast lookup of rounds by RoundType (avoids repeated full scans)
+    private final EnumMap<RoundType, List<Round>> roundsByType = new EnumMap<>(RoundType.class);
 
     // ClubEloDataLoader instance is created here; init() is explicitly called in
     // the Rounds constructor.
@@ -44,6 +45,7 @@ public class Rounds implements Serializable {
      * <li>Initializes club Elo rating data used for probability calculations.</li>
      * <li>Links the rounds to define progression flow between successive
      * stages.</li>
+     * <li>Builds an index for quick lookup of rounds by type.</li>
      * </ul>
      */
     public Rounds() {
@@ -75,11 +77,14 @@ public class Rounds implements Serializable {
         ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         ueclLP = new UclUelLeaguePhaseRound(Tournament.CONFERENCE_LEAGUE);
 
-        // Aggregate all rounds into a list for streamlined processing.
-        rounds = new ArrayList<>(
-                Arrays.asList(uclQ1CP, uelQ1MP, ueclQ1MP, uclQ2CP, uclQ2LP, uelQ2MP, ueclQ2MP, ueclQ2CP, uclQ3CP,
-                        uclQ3LP, uelQ3MP, uelQ3CP, ueclQ3MP, ueclQ3CP, uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP,
-                        uclLP, uelLP, ueclLP));
+        // Aggregate all rounds into a list for streamlined processing (order is
+        // chronological).
+        rounds = new ArrayList<>(Arrays.asList(
+                uclQ1CP, uelQ1MP, ueclQ1MP,
+                uclQ2CP, uclQ2LP, uelQ2MP, ueclQ2MP, ueclQ2CP,
+                uclQ3CP, uclQ3LP, uelQ3MP, uelQ3CP, ueclQ3MP, ueclQ3CP,
+                uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP,
+                uclLP, uelLP, ueclLP));
 
         // Initialize data for each round.
         JsonDataLoader.loadDataForRounds(rounds);
@@ -89,10 +94,33 @@ public class Rounds implements Serializable {
 
         // Link rounds to define the progression flow.
         linkRounds();
+
+        // Build index for quick RoundType -> List<Round> lookup.
+        indexRoundsByType();
     }
 
     public List<Round> getRounds() {
         return rounds;
+    }
+
+    /**
+     * Builds the internal index mapping each {@link RoundType} to an immutable list
+     * of its rounds. Keeps insertion / chronological order.
+     */
+    private void indexRoundsByType() {
+        roundsByType.clear();
+        for (Round r : rounds) {
+            List<Round> list = roundsByType.get(r.getRoundType());
+            if (list == null) {
+                list = new ArrayList<>();
+                roundsByType.put(r.getRoundType(), list);
+            }
+            list.add(r);
+        }
+        // Freeze lists (defensive copy) to prevent external mutation.
+        for (RoundType rt : roundsByType.keySet()) {
+            roundsByType.put(rt, List.copyOf(roundsByType.get(rt)));
+        }
     }
 
     /**
@@ -133,7 +161,7 @@ public class Rounds implements Serializable {
 
     /**
      * Initiates the simulation by executing all rounds in their respective order.
-     * This method drives the simulation from qualifiers through league matches.
+     * This method drives the simulation from qualifiers through leagues.
      */
     public void run(String threadName) {
         // Start by processing the qualifying rounds.
@@ -143,60 +171,73 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Processes each qualifying round by iterating over all round types,
-     * performing seeding, tie registration, and match play. The progression
-     * for each round type is handled sequentially.
+     * Executes the full qualification pipeline (Q1, Q2, etc.), performing (in a
+     * tightly controlled order) seeding, drawing, slot resolution, tie registration
+     * for subsequent rounds, match simulation, and final slot resolution for the
+     * league phase.
      */
     private void runQRounds() {
         // Retrieve all defined round types
-        RoundType[] roundTypes = RoundType.values();
+        final RoundType[] roundTypes = RoundType.values();
         List<Round> roundsOfType = null;
         // Execute seeding and draws for Q1 round type.
         seedDrawQRounds(getRoundsOfType(RoundType.Q1));
         for (int i = 0; roundTypes[i] != RoundType.LEAGUE_PHASE; i++) {
             // Filter rounds by the current round type.
             roundsOfType = getRoundsOfType(roundTypes[i]);
-            // Resolve club slots for the current round type.
+            // Resolve club slots for the current round type: convert any pending tie-based
+            // club slots (e.g. Winner of Tie X / Loser of Tie Y) into concrete club entries
             resolveClubSlots(roundsOfType);
             // Register ties for the next round type.
-            regTiesForNextQRounds(roundsOfType);
+            regTiesForNextRounds(roundsOfType);
             // Execute seeding and draws for next round type.
             seedDrawQRounds(getRoundsOfType(roundTypes[i + 1]));
             // Play the matches of the round type.
             playRounds(roundsOfType);
         }
-        // Resolve club slots for the league phase after qualifiers complete.
+        // Finalize League Phase participants: convert any pending tie-based club slots
+        // (e.g. Winner of Tie X / Loser of Tie Y) into concrete club entries for all
+        // League Phase rounds.
         resolveClubSlots(getRoundsOfType(RoundType.LEAGUE_PHASE));
     }
 
     /**
-     * Filters and retrieves rounds that match the specified round type.
+     * Retrieves all rounds of the specified type.
      *
-     * @param roundType the type of round to filter by
-     * @return a list of rounds matching the round type
+     * @param roundType the type of rounds to retrieve
+     * @return a non-null list containing all rounds of the requested type
      */
-    @SafeVarargs
-    public final List<Round> getRoundsOfType(RoundType... roundTypes) {
-        final List<RoundType> roundTypeList = Arrays.asList(roundTypes);
-        return rounds.stream()
-                .filter(round -> roundTypeList.contains(round.getRoundType()))
-                .toList();
+    private List<Round> getRoundsOfType(RoundType roundType) {
+        return roundsByType.getOrDefault(roundType, List.of());
     }
 
     /**
-     * Performs a seeding and draws for all QRounds in the list.
-     *
-     * @param roundsOfType list of rounds
+     * Seeds and draws the given rounds if applicable.
+     * 
+     * @param roundsOfType a list of rounds (only processed if they are qualifying
+     *                     rounds)
      */
     private void seedDrawQRounds(List<Round> roundsOfType) {
         if (roundsOfType.get(0) instanceof QRound) {
-            roundsOfType.forEach(round -> {
-                round.seedDraw();
-            });
+            seedDrawRounds(roundsOfType);
         }
     }
 
-    /** Updates club slots in ties for all rounds in the list. */
+    /**
+     * Seeds and draws a collection of rounds.
+     */
+    private void seedDrawRounds(List<Round> roundsOfType) {
+        roundsOfType.forEach(round -> {
+            round.seedDraw();
+        });
+    }
+
+    /**
+     * Attempts to resolve every {@link ClubSlot} in these rounds to a concrete club
+     * (if possible).
+     * 
+     * @param roundsOfType list of rounds
+     */
     private void resolveClubSlots(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
             round.resolveClubSlots();
@@ -204,24 +245,21 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Registers ties for the next rounds if the current rounds are QRounds.
+     * Registers ties for the next round type if the current rounds are QRounds.
      * This ensures that winners are correctly aligned for their subsequent matches.
      *
-     * @param roundsOfType list of rounds participating in the current qualifier
-     *                     stage
+     * @param roundsOfType list of rounds
      */
-    private void regTiesForNextQRounds(List<Round> roundsOfType) {
+    private void regTiesForNextRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
             ((QRound) round).regTiesForNextRounds();
         });
     }
 
     /**
-     * Executes the match play sequence for each round twice. The first execution
-     * simulates the initial contest and the second ensures proper tie-break
-     * registration.
-     *
-     * @param roundsOfType list of rounds to simulate matches on
+     * Executes the scheduled matches for the supplied collection of rounds.
+     * 
+     * @param roundsOfType the list of rounds to be simulated
      */
     private void playRounds(List<Round> roundsOfType) {
         // First legs of play
@@ -230,19 +268,14 @@ public class Rounds implements Serializable {
         // roundsOfType.forEach(r -> r.play(clubEloDataLoader));
     }
 
+    /**
+     * Executes the workflow for league phase rounds.
+     */
     private void runLeagueRounds() {
         // Execute seeding and draws for league phase rounds.
-        seedDrawLeagueRounds();
+        seedDrawRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
         // Play the league phase rounds.
         // playRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
-    }
-
-    private void seedDrawLeagueRounds() {
-        // Extract all league phase rounds
-        final List<Round> roundsOfType = getRoundsOfType(RoundType.LEAGUE_PHASE);
-        roundsOfType.forEach(round -> {
-            round.seedDraw();
-        });
     }
 
     /**
