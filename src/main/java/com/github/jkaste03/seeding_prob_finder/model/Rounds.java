@@ -27,13 +27,24 @@ public class Rounds implements Serializable {
     private final LeaguePhaseRound uclLP, uelLP, ueclLP;
     private final List<Round> rounds;
 
-    // Initialize the ClubEloDataLoader to fetch club elo ratings.
+    // ClubEloDataLoader instance is created here; init() is explicitly called in
+    // the Rounds constructor.
     private final ClubEloDataLoader clubEloDataLoader = new ClubEloDataLoader();
 
     /**
-     * Constructs all rounds for UEFA competitions, initializes club Elo API,
-     * and sets up the interlink between rounds. This constructor prepares the
-     * simulation by creating each qualifying and league phase round instance.
+     * Initializes the collection of UEFA competition rounds (Champions League,
+     * Europa League, and Conference League).
+     * <p>
+     * Responsibilities performed during construction:
+     * <ul>
+     * <li>Instantiates rounds for each tournament.</li>
+     * <li>Aggregates every round instance into a unified list to enable uniform
+     * downstream processing.</li>
+     * <li>Loads structural data for all rounds via {@code JsonDataLoader}.</li>
+     * <li>Initializes club Elo rating data used for probability calculations.</li>
+     * <li>Links the rounds to define progression flow between successive
+     * stages.</li>
+     * </ul>
      */
     public Rounds() {
         // Create instances for Champions League qualifier rounds.
@@ -132,31 +143,6 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Initiates the simulation by executing all rounds in their respective order.
-     * This method drives the simulation from qualifiers through league matches.
-     */
-    // public void run(String threadName) {
-    // // Play the Q2 matches
-    // uclQ2.play(clubEloDataLoader);
-    // uelQ2.play(clubEloDataLoader);
-    // ueclQ2.play(clubEloDataLoader);
-
-    // // Add ties to UECL playoff
-    // ArrayList<ClubSlot> combinedTies = new ArrayList<>(uelQ3.getTies());
-    // combinedTies.addAll(ueclQ3.getTies());
-    // ueclPO.addClubSlots(combinedTies);
-
-    // // Seed the UECL playoff
-    // ueclPO.seed();
-
-    // // Increment seeding counters for all clubs in UECL playoff
-    // ueclPO.getSeeded().forEach(clubSlot ->
-    // clubSlot.incrementSeedingCounter(true));
-    // ueclPO.getUnseeded().forEach(clubSlot ->
-    // clubSlot.incrementSeedingCounter(false));
-    // }
-
-    /**
      * Processes each qualifying round by iterating over all round types,
      * performing seeding, tie registration, and match play. The progression
      * for each round type is handled sequentially.
@@ -170,7 +156,7 @@ public class Rounds implements Serializable {
         for (int i = 0; roundTypes[i] != RoundType.LEAGUE_PHASE; i++) {
             // Filter rounds by the current round type.
             roundsOfType = getRoundsOfType(roundTypes[i]);
-            // Update club slots in ties for the current round type.
+            // Resolve club slots for the current round type.
             resolveClubSlots(roundsOfType);
             // Register ties for the next round type.
             regTiesForNextQRounds(roundsOfType);
@@ -179,8 +165,7 @@ public class Rounds implements Serializable {
             // Play the matches of the round type.
             playRounds(roundsOfType);
         }
-        // Register clubs for league phase after qualifiers complete.
-        // registerClubsForLeagues(roundsOfType);
+        // Resolve club slots for the league phase after qualifiers complete.
         resolveClubSlots(getRoundsOfType(RoundType.LEAGUE_PHASE));
     }
 

@@ -13,8 +13,8 @@ import java.util.ArrayList;
  * Abstract class representing a round in the UEFA competitions.
  */
 public abstract class Round implements Serializable {
-    protected Tournament tournament;
-    protected RoundType roundType;
+    protected final Tournament tournament;
+    protected final RoundType roundType;
     // References to the next rounds
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;

@@ -19,7 +19,7 @@ public class QRound extends Round {
      * the number of ties is less than 16, losers of ties need to jump to the UECL
      * Q3 CP round.
      */
-    private final static int UCL_Q1_CP_TIES_WITHOUT_REBALANCING = 16;
+    private static final int UCL_Q1_CP_TIES_WITHOUT_REBALANCING = 16;
     /**
      * Max number of full draw construction attempts before giving up (should be
      * plenty).
