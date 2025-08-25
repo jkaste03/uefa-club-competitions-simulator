@@ -9,32 +9,49 @@ import java.util.*;
 import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
 
 /**
- * ClubEloService provides functionality to retrieve and manage Elo ratings for
- * football clubs.
+ * Primary purpose: maintain a lookup map ({@code Map<Integer, Double>}) from
+ * internal club id to the current day's Elo rating (field {@link #eloMap}).
+ * The class is centered around initializing and providing fast, read access to
+ * this mapping.
+ *
  * <p>
- * This service acts as a centralized utility to obtain Elo ratings, which are
- * used to gauge
- * the strength of clubs in simulations and competitions. The ratings may be
- * fetched from external
- * data sources or local caches depending on the implementation.
- * <p>
- * Usage example for retrieving the Elo rating of the club with id 32:
- * 
- * <pre>
- * double eloRating = ClubEloService.getEloRating(32);
- * </pre>
- * <p>
- * If a club's Elo rating is not found, the service returns 0.0 by default.
+ * Secondary responsibilities:
+ * <ul>
+ * <li>Download (once per JVM run / per calendar day) the CSV for today from the
+ * public ClubElo API (endpoint pattern:
+ * {@code http://api.clubelo.com/yyyy-MM-dd}).</li>
+ * <li>Persist the raw CSV under a deterministic, date‑stamped filename.</li>
+ * <li>Parse the CSV, resolve each club name to an internal id via
+ * {@code ClubRepository}, and populate {@link #eloMap}.</li>
+ * </ul>
  */
 public class ClubEloDataLoader implements Serializable {
+    // URL for the club elo ratings API
     private static final String BASE_URL = "http://api.clubelo.com/";
+    // Folder for storing downloaded data
     private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/seeding_prob_finder/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
+    /**
+     * Map for storing Elo ratings by club ID.
+     */
     private final Map<Integer, Double> eloMap = new HashMap<>();
 
     /**
-     * Initializes the Elo ratings by downloading the latest data if not already
-     * present.
+     * Initializes the elo data environment.
+     * <p>
+     * Workflow:
+     * <ol>
+     * <li>If the expected elo ratings CSV does not exist:
+     * <ul>
+     * <li>Deletes any pre-existing CSV files (cleanup of stale data).</li>
+     * <li>Downloads the latest elo dataset using the current system date.</li>
+     * </ul>
+     * </li>
+     * <li>Loads elo ratings from the CSV file into the {@link #eloMap}.</li>
+     * <li>Validates that every required club has an associated elo rating,
+     * enforcing data completeness.</li>
+     * </ol>
+     * </p>
      */
     public void init() {
         // Download file if it does not exist
@@ -43,6 +60,7 @@ public class ClubEloDataLoader implements Serializable {
             downloadCSV(LocalDate.now());
         }
         loadEloRatings();
+        validateAllClubsHaveElo();
     }
 
     /**
@@ -76,7 +94,22 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Loads Elo ratings from the CSV file into memory.
+     * Loads Elo rating values from the CSV file referenced by {@code filePath} into
+     * the internal {@code eloMap}.
+     *
+     * The method:
+     * <ul>
+     * <li>Opens the file located at {@code filePath} using a
+     * {@link BufferedReader}.</li>
+     * <li>Skips the first line (assumed to be a header).</li>
+     * <li>Parses subsequent lines by splitting on commas.</li>
+     * <li>Ignores any line with fewer than 5 columns.</li>
+     * <li>Uses the 2nd column (index 1) as the club's name to resolve a club id via
+     * {@link ClubRepository#getIdByName(String)}.</li>
+     * <li>Parses the 5th column (index 4) as a {@code double} Elo rating.</li>
+     * <li>Stores the Elo rating in {@code eloMap} keyed by the resolved club id
+     * (even if the id may be -1 if not found).</li>
+     * </ul>
      */
     private void loadEloRatings() {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
@@ -89,10 +122,6 @@ public class ClubEloDataLoader implements Serializable {
                 int clubid = ClubRepository.getIdByName(clubName);
                 double elo = Double.parseDouble(values[4].trim());
                 eloMap.put(clubid, elo);
-                // if (ClubRepository.getIdByName(clubName) == -1) {
-                // System.out.println("Loaded Elo for " + clubName + " (id " + clubid + "): " +
-                // elo);
-                // }
             }
         } catch (IOException e) {
             System.err.println("Could not read API data: " + e.getMessage());
@@ -106,7 +135,7 @@ public class ClubEloDataLoader implements Serializable {
      * @return the Elo rating for the club if available, or 0.0 if not found
      */
     public double getEloRating(int clubId) {
-        return eloMap.getOrDefault(clubId, 0.0);
+        return eloMap.get(clubId);
     }
 
     /**
@@ -117,5 +146,31 @@ public class ClubEloDataLoader implements Serializable {
      */
     public void setEloRating(int clubId, double elo) {
         eloMap.put(clubId, elo);
+    }
+
+    /**
+     * Verifies that all clubs in {@link ClubRepository} have a loaded Elo value.
+     * Throws an IllegalStateException if one or more are missing.
+     *
+     * @throws IllegalStateException if any club is missing an elo rating
+     */
+    private void validateAllClubsHaveElo() {
+        List<String> missing = new ArrayList<>();
+        ClubRepository.getAllClubs().forEach(club -> {
+            int id = club.getId();
+            if (!eloMap.containsKey(id)) {
+                missing.add(club.getName() + " (id=" + id + ")");
+            }
+        });
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException(
+                    "Missing Elo rating for " + missing.size() + " club(s). "
+                            + "Unmatched clubs: " + String.join(", ", missing) + ". "
+                            + "Update the local data.json so each club name matches the ClubElo API name (see "
+                            + LocalDate.now() + ".csv). Do NOT edit the downloaded CSV; only adjust data.json.");
+
+            // TODO
+            // No elo for Beitar currently. Using Hapoel H. for now. Need to fix soon.
+        }
     }
 }
