@@ -10,7 +10,6 @@ import java.util.Random;
 import java.util.Set;
 
 import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
 import com.github.jkaste03.seeding_prob_finder.enums.Country;
 
 /**
@@ -20,14 +19,17 @@ import com.github.jkaste03.seeding_prob_finder.enums.Country;
  */
 public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     // Constant for clubs skipping a round (e.g., UCL Q3 LP to UEL LP)
-    private final static String ROUND_CLUBS_SKIP_TO = Tournament.EUROPA_LEAGUE + " "
-            + RoundType.LEAGUE_PHASE;
-    private final static int POT_COUNT = 4;
-
-    private final static int MAX_RESTART_ATTEMPTS = 100000;
+    // private final static String ROUND_CLUBS_SKIP_TO = Tournament.EUROPA_LEAGUE +
+    // " "
+    // + RoundType.LEAGUE_PHASE;
 
     /**
-     * Constructs a ConferenceLeaguePhaseRound with the specified tournament.
+     * The number of pots used for seeding clubs in the league phase.
+     */
+    private final static int POT_COUNT = 4;
+
+    /**
+     * Constructs a Champions/Europa LeaguePhaseRound.
      *
      * @param tournament the tournament for which this league phase round is
      *                   initialized.
@@ -45,9 +47,6 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
      * <ol>
      * <li>Ensures the number of club slots is divisible by {@code POT_COUNT}. If
      * not, throws an {@link IllegalStateException}.</li>
-     * <li>If the current round is the one that clubs have skipped to, fixes the
-     * club slot for those clubs to prevent them from being wrapped in
-     * {@code DoubleLeggedTieWrapper}.</li>
      * <li>Sorts the club slots.</li>
      * <li>Divides the club slots into pots for the league phase and prints each
      * pot.</li>
@@ -64,13 +63,6 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         if (clubSlots == null || clubSlots.size() % POT_COUNT != 0) {
             throw new IllegalStateException("ClubSlot count must be divisible by " + POT_COUNT + " to seed properly.");
         }
-
-        // If round that clubs has skipped QRound to, fix club slot for those clubs.
-        // This applies to Europa League as clubs skip from UCL Q3 LP to UEL LP.
-        // if (getName().equals(ROUND_CLUBS_SKIP_TO)) {
-        // updateClubSlotsIfClubHasSkipped(false); // Prevent skipped clubs from being
-        // DoubleLeggedTieWrapper
-        // }
 
         sortClubSlots();
 

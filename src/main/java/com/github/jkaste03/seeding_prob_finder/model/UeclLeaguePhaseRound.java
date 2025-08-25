@@ -8,13 +8,14 @@ import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
  * format specific to the Conference League.
  */
 public class UeclLeaguePhaseRound extends LeaguePhaseRound {
+
+    /**
+     * The number of pots used for seeding clubs in the league phase.
+     */
     private final static int POT_COUNT = 6;
 
     /**
-     * Constructs a ConferenceLeaguePhaseRound with the specified tournament.
-     *
-     * @param tournament the tournament for which this league phase round is
-     *                   initialized.
+     * Constructs a ConferenceLeaguePhaseRound.
      */
     public UeclLeaguePhaseRound() {
         super(Tournament.CONFERENCE_LEAGUE);
@@ -22,17 +23,20 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
 
     /**
      * Seeds the club slots into pots for the league phase.
+     * 
      * <p>
-     * This method ensures that the number of club slots is divisible by the
-     * constant POT_COUNT.
-     * If the club slots are null or their size is not divisible by POT_COUNT, an
-     * IllegalStateException is thrown.
-     * The club slots are then sorted based on their ranking and divided into pots.
-     * Each pot is printed to the console.
+     * This method performs the following steps:
      * </p>
-     *
-     * @throws IllegalStateException if the number of club slots is null or not
-     *                               divisible by POT_COUNT.
+     * <ol>
+     * <li>Ensures the number of club slots is divisible by {@code POT_COUNT}. If
+     * not, throws an {@link IllegalStateException}.</li>
+     * <li>Sorts the club slots.</li>
+     * <li>Divides the club slots into pots for the league phase and prints each
+     * pot.</li>
+     * </ol>
+     * 
+     * @throws IllegalStateException if the number of club slots is not divisible
+     *                               by {@code POT_COUNT}.
      */
     @Override
     protected void seed() {
