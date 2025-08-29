@@ -1,12 +1,12 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 
 /**
  * Represents a slot in a tournament bracket, which can either be a specific

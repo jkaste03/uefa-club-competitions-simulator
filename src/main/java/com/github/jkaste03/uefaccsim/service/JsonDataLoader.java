@@ -1,14 +1,14 @@
-package com.github.jkaste03.seeding_prob_finder.service;
+package com.github.jkaste03.uefaccsim.service;
 
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 
-import com.github.jkaste03.seeding_prob_finder.model.Club;
-import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
-import com.github.jkaste03.seeding_prob_finder.model.ClubSlot;
-import com.github.jkaste03.seeding_prob_finder.model.Round;
+import com.github.jkaste03.uefaccsim.model.Club;
+import com.github.jkaste03.uefaccsim.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.model.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.Round;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

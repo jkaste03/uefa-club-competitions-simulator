@@ -1,4 +1,4 @@
-package com.github.jkaste03.seeding_prob_finder;
+package com.github.jkaste03.uefaccsim;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,8 +8,8 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.stream.IntStream;
 
-import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
-import com.github.jkaste03.seeding_prob_finder.model.Rounds;
+import com.github.jkaste03.uefaccsim.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.model.Rounds;
 
 public class UefaCCSim {
     private static final int SIMS = 1;

@@ -1,16 +1,17 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.EnumMap;
 
-import com.github.jkaste03.seeding_prob_finder.enums.PathType;
-import com.github.jkaste03.seeding_prob_finder.enums.RoundType;
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
-import com.github.jkaste03.seeding_prob_finder.service.JsonDataLoader;
+import com.github.jkaste03.uefaccsim.enums.PathType;
+import com.github.jkaste03.uefaccsim.enums.RoundType;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.service.JsonDataLoader;
+
+import java.util.EnumMap;
 
 /**
  * Central orchestrator for all UEFA competition rounds (Champions League,

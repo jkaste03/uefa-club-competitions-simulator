@@ -1,4 +1,4 @@
-package com.github.jkaste03.seeding_prob_finder.service;
+package com.github.jkaste03.uefaccsim.service;
 
 import java.io.*;
 import java.net.URI;
@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.*;
 
-import com.github.jkaste03.seeding_prob_finder.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.model.ClubRepository;
 
 /**
  * Primary purpose: maintain a lookup map ({@code Map<Integer, Double>}) from

@@ -1,9 +1,9 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.function.Function;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
  * DoubleLeggedTie is a specialized implementation of the Tie class that

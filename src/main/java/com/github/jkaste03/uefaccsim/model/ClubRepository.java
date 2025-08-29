@@ -1,4 +1,4 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;

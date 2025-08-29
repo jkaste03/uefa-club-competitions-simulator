@@ -1,6 +1,6 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 
 /**
  * Class representing the league phase in the UEFA Conference League.

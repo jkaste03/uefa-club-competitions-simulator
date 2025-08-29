@@ -1,8 +1,8 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.*;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * Class containing all the illegal matchups based on political restrictions

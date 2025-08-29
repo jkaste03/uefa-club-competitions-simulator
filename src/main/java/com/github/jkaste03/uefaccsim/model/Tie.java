@@ -1,10 +1,10 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 import java.util.Random;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
  * Abstract base for a tie between two club slots. May hold goals.

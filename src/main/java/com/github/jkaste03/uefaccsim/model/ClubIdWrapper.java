@@ -1,8 +1,8 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 
-import com.github.jkaste03.seeding_prob_finder.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
  * Immutable wrapper around a club identifier that provides convenient,

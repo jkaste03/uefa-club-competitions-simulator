@@ -1,4 +1,4 @@
-package com.github.jkaste03.seeding_prob_finder.enums;
+package com.github.jkaste03.uefaccsim.enums;
 
 /**
  * Enum representing different round types in UEFA competitions.

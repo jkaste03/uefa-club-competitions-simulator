@@ -1,7 +1,8 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import com.github.jkaste03.seeding_prob_finder.enums.Country;
+
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * Represents a football club with a name, country, and UEFA ranking.

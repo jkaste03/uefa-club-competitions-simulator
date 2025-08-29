@@ -1,4 +1,4 @@
-package com.github.jkaste03.seeding_prob_finder.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.github.jkaste03.seeding_prob_finder.enums.Tournament;
-import com.github.jkaste03.seeding_prob_finder.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 
 /**
  * Class representing the league phase in the Champions League and Europa
