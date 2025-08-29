@@ -29,7 +29,7 @@ public class ClubEloDataLoader implements Serializable {
     // URL for the club elo ratings API
     private static final String BASE_URL = "http://api.clubelo.com/";
     // Folder for storing downloaded data
-    private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/seeding_prob_finder/data/";
+    private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefaccsim/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
     /**
      * Map for storing Elo ratings by club ID.
