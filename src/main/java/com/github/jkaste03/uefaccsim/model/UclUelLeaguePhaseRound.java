@@ -57,7 +57,6 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
      */
     @Override
     protected void seed() {
-        System.out.println(clubSlots);
 
         // Ensure the number of clubSlots is divisible by POT_COUNT.
         if (clubSlots == null || clubSlots.size() % POT_COUNT != 0) {
@@ -71,7 +70,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Divide the club slots into pots for the league phase.
         for (int i = 0; i < POT_COUNT; i++) {
             addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-            System.out.print(pots.get(i).clubs());
+            System.out.print(pots.get(i));
             printClubSlotList(pots.get(i).clubs());
         }
     }
