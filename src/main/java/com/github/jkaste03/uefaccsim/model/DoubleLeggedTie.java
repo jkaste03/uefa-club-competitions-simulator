@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.Random;
 

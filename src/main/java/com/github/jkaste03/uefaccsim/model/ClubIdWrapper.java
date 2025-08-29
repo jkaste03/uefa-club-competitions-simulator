@@ -1,8 +1,9 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 import java.util.List;
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * ClubIdWrapper is a specialized implementation of ClubSlot that encapsulates a

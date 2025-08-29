@@ -1,9 +1,9 @@
-package com.github.jkaste03.uefa_cc_sim.threads;
-
-import com.github.jkaste03.uefa_cc_sim.UefaCCSim;
-import com.github.jkaste03.uefa_cc_sim.model.Rounds;
+package com.github.jkaste03.uefaccsim.threads;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.github.jkaste03.uefaccsim.UefaCCSim;
+import com.github.jkaste03.uefaccsim.model.Rounds;
 
 /**
  * The SimulationThread class extends the Thread class to run a simulation

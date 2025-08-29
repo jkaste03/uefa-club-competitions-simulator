@@ -1,18 +1,18 @@
-package com.github.jkaste03.uefa_cc_sim.test;
-
-import com.github.jkaste03.uefa_cc_sim.threads.SimulationThread;
-import com.github.jkaste03.uefa_cc_sim.UefaCCSim;
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData.RoundType;
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
-import com.github.jkaste03.uefa_cc_sim.model.ClubSlot;
-import com.github.jkaste03.uefa_cc_sim.model.LeaguePhaseRound;
-import com.github.jkaste03.uefa_cc_sim.model.QRound;
-import com.github.jkaste03.uefa_cc_sim.model.Round;
-import com.github.jkaste03.uefa_cc_sim.model.Rounds;
-import com.github.jkaste03.uefa_cc_sim.model.Tie;
-import com.github.jkaste03.uefa_cc_sim.model.UeclLeaguePhaseRound;
+package com.github.jkaste03.uefaccsim.test;
 
 import org.junit.jupiter.api.Test;
+
+import com.github.jkaste03.uefaccsim.UefaCCSim;
+import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.CompetitionData.RoundType;
+import com.github.jkaste03.uefaccsim.model.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
+import com.github.jkaste03.uefaccsim.model.QRound;
+import com.github.jkaste03.uefaccsim.model.Round;
+import com.github.jkaste03.uefaccsim.model.Rounds;
+import com.github.jkaste03.uefaccsim.model.Tie;
+import com.github.jkaste03.uefaccsim.model.UeclLeaguePhaseRound;
+import com.github.jkaste03.uefaccsim.threads.SimulationThread;
 
 import java.util.List;
 import java.util.Map;

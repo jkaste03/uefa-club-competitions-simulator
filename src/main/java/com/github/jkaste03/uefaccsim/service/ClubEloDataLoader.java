@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefa_cc_sim.service;
+package com.github.jkaste03.uefaccsim.service;
 
 import java.io.*;
 import java.net.URI;
@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.*;
 
-import com.github.jkaste03.uefa_cc_sim.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.model.ClubRepository;
 
 /**
  * ClubEloService provides functionality to retrieve and manage Elo ratings for
@@ -28,7 +28,7 @@ import com.github.jkaste03.uefa_cc_sim.model.ClubRepository;
  */
 public class ClubEloDataLoader implements Serializable {
     private static final String BASE_URL = "http://api.clubelo.com/";
-    private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefa_cc_sim/data/";
+    private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefaccsim/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
     private final Map<Integer, Double> eloMap = new HashMap<>();
 

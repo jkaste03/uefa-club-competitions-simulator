@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefa_cc_sim.enums;
+package com.github.jkaste03.uefaccsim.enums;
 
 /**
  * Final class containing enums for various competition data used in UEFA

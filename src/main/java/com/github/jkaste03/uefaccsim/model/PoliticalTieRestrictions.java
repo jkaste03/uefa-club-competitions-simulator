@@ -1,9 +1,9 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * Class containing all the illegal matchups based on political restrictions

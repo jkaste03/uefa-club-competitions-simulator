@@ -1,10 +1,10 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.List;
 import java.util.Optional;
 
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData;
-import com.github.jkaste03.uefa_cc_sim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.enums.CompetitionData;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 import java.io.Serializable;
 import java.util.ArrayList;

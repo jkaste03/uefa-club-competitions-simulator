@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefa_cc_sim.enums;
+package com.github.jkaste03.uefaccsim.enums;
 
 /**
  * Enum representing various countries participating in UEFA competitions.

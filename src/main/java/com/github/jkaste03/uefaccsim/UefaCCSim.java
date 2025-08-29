@@ -1,8 +1,9 @@
-package com.github.jkaste03.uefa_cc_sim;
+package com.github.jkaste03.uefaccsim;
 
-import com.github.jkaste03.uefa_cc_sim.model.Rounds;
-import com.github.jkaste03.uefa_cc_sim.threads.SimulationThread;
 import java.io.*;
+
+import com.github.jkaste03.uefaccsim.model.Rounds;
+import com.github.jkaste03.uefaccsim.threads.SimulationThread;
 
 public class UefaCCSim {
 

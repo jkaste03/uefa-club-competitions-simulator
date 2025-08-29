@@ -1,7 +1,7 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData.Tournament;
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.CompetitionData.Tournament;
 
 /**
  * Class representing the league phase in the UEFA Conference League.

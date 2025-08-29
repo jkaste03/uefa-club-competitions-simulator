@@ -1,14 +1,14 @@
-package com.github.jkaste03.uefa_cc_sim.service;
+package com.github.jkaste03.uefaccsim.service;
 
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
 
-import com.github.jkaste03.uefa_cc_sim.model.Club;
-import com.github.jkaste03.uefa_cc_sim.model.ClubRepository;
-import com.github.jkaste03.uefa_cc_sim.model.ClubIdWrapper;
-import com.github.jkaste03.uefa_cc_sim.model.Round;
+import com.github.jkaste03.uefaccsim.model.Club;
+import com.github.jkaste03.uefaccsim.model.ClubIdWrapper;
+import com.github.jkaste03.uefaccsim.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.model.Round;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -31,7 +31,7 @@ public class JsonDataLoader {
     /**
      * The path to the JSON data file.
      */
-    private static final String DATA_FILE = "src/main/java/com/github/jkaste03/uefa_cc_sim/data/data.json";
+    private static final String DATA_FILE = "src/main/java/com/github/jkaste03/uefaccsim/data/data.json";
 
     /**
      * Loads club data from the JSON file and assigns clubs to corresponding rounds.

@@ -1,10 +1,10 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * Abstract representation of a tie between two clubs.

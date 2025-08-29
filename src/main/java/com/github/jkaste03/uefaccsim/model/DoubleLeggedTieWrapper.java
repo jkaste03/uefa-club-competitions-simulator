@@ -1,8 +1,8 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.List;
 
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * DoubleLeggedTieWrapper is a specialized implementation of ClubSlot that

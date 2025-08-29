@@ -1,9 +1,10 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData;
-import com.github.jkaste03.uefa_cc_sim.service.ClubEloDataLoader;
+
+import com.github.jkaste03.uefaccsim.enums.CompetitionData;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
  * Class representing a league phase in the UEFA competitions.

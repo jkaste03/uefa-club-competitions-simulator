@@ -1,8 +1,8 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.util.Objects;
 
-import com.github.jkaste03.uefa_cc_sim.enums.Country;
+import com.github.jkaste03.uefaccsim.enums.Country;
 
 /**
  * Class representing a club in the UEFA competitions.

@@ -1,14 +1,15 @@
-package com.github.jkaste03.uefa_cc_sim.model;
+package com.github.jkaste03.uefaccsim.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData.PathType;
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData.RoundType;
-import com.github.jkaste03.uefa_cc_sim.enums.CompetitionData.Tournament;
-import com.github.jkaste03.uefa_cc_sim.service.ClubEloDataLoader;
-import com.github.jkaste03.uefa_cc_sim.service.JsonDataLoader;
+
+import com.github.jkaste03.uefaccsim.enums.CompetitionData.PathType;
+import com.github.jkaste03.uefaccsim.enums.CompetitionData.RoundType;
+import com.github.jkaste03.uefaccsim.enums.CompetitionData.Tournament;
+import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.service.JsonDataLoader;
 
 /**
  * The Rounds class is responsible for initializing, linking, and executing all
