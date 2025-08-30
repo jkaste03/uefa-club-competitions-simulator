@@ -143,7 +143,6 @@ public class ClubSlot implements Serializable {
      *                   resolved
      */
     public void resolveSlot(Tournament tournament) {
-        // System.out.println("1: " + toCompactString());
         if (isClub())
             return;
         DoubleLeggedTie t = (DoubleLeggedTie) getTie();

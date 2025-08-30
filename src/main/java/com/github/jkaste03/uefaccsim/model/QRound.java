@@ -128,7 +128,6 @@ public class QRound extends Round {
                 unseededCopy = new ArrayList<>(unseeded);
             }
             success = buildMatching(seededCopy, unseededCopy, ties, rng);
-            System.out.println("Attempt " + attempt + ": " + (success ? "Success" : "Failure"));
         }
 
         if (!success) {
@@ -165,7 +164,6 @@ public class QRound extends Round {
         if (remainingSeeded.isEmpty()) {
             return true; // all paired
         }
-        System.out.println("OK");
 
         // (1) Optional: shuffle seeded list to remove positional bias before computing
         // MRV

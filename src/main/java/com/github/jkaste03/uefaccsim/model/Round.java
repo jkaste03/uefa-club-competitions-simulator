@@ -185,7 +185,6 @@ public abstract class Round implements Serializable {
      * </p>
      */
     public void resolveClubSlots() {
-        System.out.println("Resolving club slots... (" + getName() + ")");
         for (ClubSlot clubSlot : clubSlots) {
             clubSlot.resolveSlot(tournament);
         }

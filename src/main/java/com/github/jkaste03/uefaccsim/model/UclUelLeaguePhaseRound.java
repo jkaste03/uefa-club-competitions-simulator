@@ -70,7 +70,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Divide the club slots into pots for the league phase.
         for (int i = 0; i < POT_COUNT; i++) {
             addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-            System.out.print(pots.get(i));
+            // System.out.print(pots.get(i));
             printClubSlotList(pots.get(i).clubs());
         }
     }

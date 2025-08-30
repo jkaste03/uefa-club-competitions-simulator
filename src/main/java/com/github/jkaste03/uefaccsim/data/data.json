@@ -135,6 +135,21 @@
             {"name": "Aberdeen", "ranking": 161.0, "country": "SCO"},
             {"name": "Genk", "ranking": 142.0, "country": "BEL"}
         ],
+        "EUROPA_LEAGUE LEAGUE_PHASE": [
+            {"name": "Roma", "ranking": 9.0, "country": "ITA"},
+            {"name": "Porto", "ranking": 18.0, "country": "POR"},
+            {"name": "Lille", "ranking": 31.0, "country": "FRA"},
+            {"name": "Dinamo Zagreb", "ranking": 38.0, "country": "CRO"},
+            {"name": "Betis", "ranking": 40.0, "country": "ESP"},
+            {"name": "Aston Villa", "ranking": 46.0, "country": "ENG"},
+            {"name": "Lyon", "ranking": 51.0, "country": "FRA"},
+            {"name": "Freiburg", "ranking": 74.0, "country": "GER"},
+            {"name": "Forest", "ranking": 80.1, "country": "ENG"},
+            {"name": "Bologna", "ranking": 89.0, "country": "ITA"},
+            {"name": "Celta", "ranking": 96.1, "country": "ESP"},
+            {"name": "Stuttgart", "ranking": 102.0, "country": "GER"},
+            {"name": "Go Ahead Eagles", "ranking": 123.0, "country": "NED"}
+        ],
         "CONFERENCE_LEAGUE Q1 MAIN_PATH": [
             {"name": "Runavik", "ranking": 389.0, "country": "FAR"},
             {"name": "HJK Helsinki", "ranking": 128.0, "country": "FIN"},
@@ -245,8 +260,8 @@
         ],
         "CONFERENCE_LEAGUE PLAYOFF MAIN_PATH": [
             {"name": "Fiorentina", "ranking": 33.0, "country": "ITA"},
-            {"name": "Crystal Palace", "ranking": 80.1, "country": "ENG"},
-            {"name": "Rayo Vallecano", "ranking": 96.1, "country": "ESP"},
+            {"name": "Crystal Palace", "ranking": 80.2, "country": "ENG"},
+            {"name": "Rayo Vallecano", "ranking": 96.2, "country": "ESP"},
             {"name": "Mainz", "ranking": 106.1, "country": "GER"},
             {"name": "Strasbourg", "ranking": 117.1, "country": "FRA"}
         ]
