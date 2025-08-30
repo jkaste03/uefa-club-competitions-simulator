@@ -22,6 +22,9 @@ import com.github.jkaste03.uefaccsim.model.Tie;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,26 +66,50 @@ public class UefaCCSimTest {
         for (Round r : sim.getRoundsOfType(RoundType.LEAGUE_PHASE)) {
             LeaguePhaseRound lp = (LeaguePhaseRound) r;
             if (lp.getTournament() == Tournament.CONFERENCE_LEAGUE) {
-                continue; // Skip per original logic
+                continue; // Skip per original logic (you handle UECL separately later)
             }
             List<LeaguePhaseRound.Pot> pots = lp.getPots();
             List<SingleLeggedTie> ties = lp.getTies();
             List<ClubSlot> clubSlots = lp.getClubSlots();
+
+            // existing checks
             checkOpponentPotHomeAway(pots, clubSlots, ties);
             checkNoIllegalTies(lp, ties);
             checkNoClubMeetsCountryMoreThanTwice(clubSlots, ties);
+
+            // NEW: additional consistency checks
+            checkEachClubHasExpectedUniqueOpponents(lp, ties);
+            checkNoDuplicateTies(ties);
+            checkTotalMatchCount(lp, ties);
         }
     }
 
     @Test
     void deepCopyIsolation() {
-        // Snapshot a property from baseline (size of first round's clubSlots)
-        int originalSize = baseline.getRounds().get(0).getClubSlots().size();
+        // Stronger deep copy isolation test:
+        // take a deep copy, mutate the copy, ensure baseline remains unchanged.
         Rounds copy = UefaCCSim.deepCopy(baseline);
-        copy.run("isolation");
-        // Baseline must remain unchanged in its first round clubSlots size
-        assertEquals(originalSize, baseline.getRounds().get(0).getClubSlots().size(),
-                "Deep copy simulation mutated baseline state");
+
+        // snapshot baseline sizes (defensive - could be empty)
+        int baselineRounds = baseline.getRounds().size();
+        Integer baselineFirstRoundClubSlotsSize = null;
+        if (baselineRounds > 0 && !baseline.getRounds().get(0).getClubSlots().isEmpty()) {
+            baselineFirstRoundClubSlotsSize = baseline.getRounds().get(0).getClubSlots().size();
+        }
+
+        // Mutate copy if possible (best-effort; if underlying lists are unmodifiable
+        // this will throw)
+        if (copy.getRounds().size() > 0 && !copy.getRounds().get(0).getClubSlots().isEmpty()) {
+            copy.getRounds().get(0).getClubSlots().remove(0);
+        }
+
+        // Baseline must remain unchanged
+        assertEquals(baselineRounds, baseline.getRounds().size(), "Baseline rounds count mutated");
+        if (baselineFirstRoundClubSlotsSize != null) {
+            assertEquals(baselineFirstRoundClubSlotsSize.intValue(),
+                    baseline.getRounds().get(0).getClubSlots().size(),
+                    "Deep copy mutation affected baseline clubSlots");
+        }
     }
 
     /**
@@ -107,6 +134,7 @@ public class UefaCCSimTest {
             int[] homeCounts = new int[potCount + 1]; // 1-based
             int[] awayCounts = new int[potCount + 1];
             for (SingleLeggedTie tie : ties) {
+                // ClubSlot1 is always officially home
                 if (tie.getClubSlot1().equals(clubSlot)) {
                     int oppPot = potIndex.get(tie.getClubSlot2());
                     homeCounts[oppPot]++;
@@ -227,4 +255,53 @@ public class UefaCCSimTest {
             }
         }
     }
+
+    // ---------------------- NEW helper checks ----------------------
+
+    /**
+     * Ensures each club has the expected number of unique opponents (8 for 4-pot,
+     * 6 for 6-pot).
+     */
+    private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<SingleLeggedTie> ties) {
+        int potsCount = lp.getPots().size();
+        int expectedOpponents = (potsCount == 6) ? 6 : 2 * potsCount; // 6-pot special case, otherwise 2 per pot
+        for (ClubSlot club : lp.getClubSlots()) {
+            Set<ClubSlot> opponents = ties.stream()
+                    .filter(t -> t.getClubSlot1().equals(club) || t.getClubSlot2().equals(club))
+                    .map(t -> t.getClubSlot1().equals(club) ? t.getClubSlot2() : t.getClubSlot1())
+                    .collect(Collectors.toSet());
+            assertEquals(expectedOpponents, opponents.size(),
+                    "Club " + club + " should have " + expectedOpponents + " unique opponents, got "
+                            + opponents.size());
+        }
+    }
+
+    /**
+     * Verifies there are no duplicate ties (A-B and B-A counted separately).
+     */
+    private void checkNoDuplicateTies(List<SingleLeggedTie> ties) {
+        Set<Set<ClubSlot>> seenPairs = new HashSet<>();
+        for (SingleLeggedTie t : ties) {
+            ClubSlot a = t.getClubSlot1();
+            ClubSlot b = t.getClubSlot2();
+            Set<ClubSlot> pair = new HashSet<>(Arrays.asList(a, b)); // unordered pair
+            assertFalse(seenPairs.contains(pair), "Duplicate tie found for pair: " + pair);
+            seenPairs.add(pair);
+        }
+    }
+
+    /**
+     * Checks the total number of ties matches expectation (clubs * matchesPerClub /
+     * 2).
+     */
+    private void checkTotalMatchCount(LeaguePhaseRound lp, List<SingleLeggedTie> ties) {
+        int clubs = lp.getClubSlots().size();
+        int potsCount = lp.getPots().size();
+        int matchesPerClub = (potsCount == 6) ? 6 : 2 * potsCount;
+        int expectedTies = clubs * matchesPerClub / 2;
+        assertEquals(expectedTies, ties.size(),
+                "Unexpected total number of ties: expected " + expectedTies + " but got " + ties.size());
+    }
+
+    // -----------------------------------------------------------------
 }
