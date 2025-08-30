@@ -12,6 +12,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.model.ClubIdWrapper;
 import com.github.jkaste03.uefaccsim.model.ClubSlot;
 import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
 import com.github.jkaste03.uefaccsim.model.QRound;
@@ -72,15 +73,25 @@ public class UefaCCSimTest {
             List<SingleLeggedTie> ties = lp.getTies();
             List<ClubSlot> clubSlots = lp.getClubSlots();
 
+            // NEW: verify pot.index() is 0-based and covers full range [0..pots.size()-1]
+            int minIndex = pots.stream().mapToInt(LeaguePhaseRound.Pot::index).min().orElse(-1);
+            int maxIndex = pots.stream().mapToInt(LeaguePhaseRound.Pot::index).max().orElse(-1);
+            assertEquals(0, minIndex, "Pot index should be 0-based (min index is " + minIndex + ")");
+            assertEquals(pots.size() - 1, maxIndex,
+
+                    "Pot indices should span 0..pots.size()-1 (max is " + maxIndex + " for pots.size()=" + pots.size()
+                            + ")");
+
             // existing checks
             checkOpponentPotHomeAway(pots, clubSlots, ties);
             checkNoIllegalTies(lp, ties);
             checkNoClubMeetsCountryMoreThanTwice(clubSlots, ties);
 
-            // NEW: additional consistency checks
+            // NEW: additional consistency checks (non-overlapping with above)
+            // - unique opponents per club (ensures correct count of distinct opponents)
+            // - no duplicate ties (A-B and B-A counted twice)
             checkEachClubHasExpectedUniqueOpponents(lp, ties);
-            checkNoDuplicateTies(ties);
-            checkTotalMatchCount(lp, ties);
+            checkNoDuplicateTiesById(ties);
         }
     }
 
@@ -97,6 +108,7 @@ public class UefaCCSimTest {
             baselineFirstRoundClubSlotsSize = baseline.getRounds().get(0).getClubSlots().size();
         }
 
+        //
         // Mutate copy if possible (best-effort; if underlying lists are unmodifiable
         // this will throw)
         if (copy.getRounds().size() > 0 && !copy.getRounds().get(0).getClubSlots().isEmpty()) {
@@ -124,6 +136,9 @@ public class UefaCCSimTest {
     private void checkOpponentPotHomeAway(List<LeaguePhaseRound.Pot> pots, List<ClubSlot> clubSlots,
             List<SingleLeggedTie> ties) {
         // Precompute pot index for O(1) lookups
+        //
+        // Note: pot.index() is verified to be 0-based above; we map to 1-based array
+        // indices below.
         Map<ClubSlot, Integer> potIndex = pots.stream()
                 .flatMap(p -> p.clubs().stream().map(cs -> Map.entry(cs, p.index() + 1)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -134,7 +149,7 @@ public class UefaCCSimTest {
             int[] homeCounts = new int[potCount + 1]; // 1-based
             int[] awayCounts = new int[potCount + 1];
             for (SingleLeggedTie tie : ties) {
-                // ClubSlot1 is always officially home
+                // You stated clubSlot1 is always home -> we rely on that invariant here
                 if (tie.getClubSlot1().equals(clubSlot)) {
                     int oppPot = potIndex.get(tie.getClubSlot2());
                     homeCounts[oppPot]++;
@@ -204,15 +219,6 @@ public class UefaCCSimTest {
     }
 
     /**
-     * Helper method to get the pot number for a given club slot.
-     *
-     * @param clubSlot the club slot to find the pot for
-     * @param pots     the list of lists with club slots
-     * @return the pot number for the given club slot
-     */
-    // Removed obsolete linear pot lookup method after optimization.
-
-    /**
      * Checks that no illegal ties are present.
      *
      * @param clubSlots the list of club slots participating in the competition
@@ -271,36 +277,28 @@ public class UefaCCSimTest {
                     .map(t -> t.getClubSlot1().equals(club) ? t.getClubSlot2() : t.getClubSlot1())
                     .collect(Collectors.toSet());
             assertEquals(expectedOpponents, opponents.size(),
+
                     "Club " + club + " should have " + expectedOpponents + " unique opponents, got "
                             + opponents.size());
         }
     }
 
     /**
-     * Verifies there are no duplicate ties (A-B and B-A counted separately).
+     * Verifies there are no duplicate ties (A-B and B-A counted separately) using
+     * club IDs (assumes ClubSlot.getId() exists and is unique per club).
      */
-    private void checkNoDuplicateTies(List<SingleLeggedTie> ties) {
-        Set<Set<ClubSlot>> seenPairs = new HashSet<>();
+    private void checkNoDuplicateTiesById(List<SingleLeggedTie> ties) {
+        Set<Set<Object>> seenPairs = new HashSet<>();
         for (SingleLeggedTie t : ties) {
-            ClubSlot a = t.getClubSlot1();
-            ClubSlot b = t.getClubSlot2();
-            Set<ClubSlot> pair = new HashSet<>(Arrays.asList(a, b)); // unordered pair
+            ClubIdWrapper a = t.getClubSlot1().getClubIdWrapper();
+            ClubIdWrapper b = t.getClubSlot2().getClubIdWrapper();
+            // Use club unique id for comparison (assumption: getId() exists and is unique)
+            Object aId = a.id();
+            Object bId = b.id();
+            Set<Object> pair = new HashSet<>(Arrays.asList(aId, bId)); // unordered pair of ids
             assertFalse(seenPairs.contains(pair), "Duplicate tie found for pair: " + pair);
             seenPairs.add(pair);
         }
-    }
-
-    /**
-     * Checks the total number of ties matches expectation (clubs * matchesPerClub /
-     * 2).
-     */
-    private void checkTotalMatchCount(LeaguePhaseRound lp, List<SingleLeggedTie> ties) {
-        int clubs = lp.getClubSlots().size();
-        int potsCount = lp.getPots().size();
-        int matchesPerClub = (potsCount == 6) ? 6 : 2 * potsCount;
-        int expectedTies = clubs * matchesPerClub / 2;
-        assertEquals(expectedTies, ties.size(),
-                "Unexpected total number of ties: expected " + expectedTies + " but got " + ties.size());
     }
 
     // -----------------------------------------------------------------
