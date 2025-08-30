@@ -12,7 +12,7 @@ import com.github.jkaste03.uefaccsim.model.ClubRepository;
 import com.github.jkaste03.uefaccsim.model.Rounds;
 
 public class UefaCCSim {
-    private static final int SIMS = 1;
+    private static final int SIMS = 10;
 
     public static void main(String[] args) {
         // Create a new instance of Rounds
@@ -37,7 +37,7 @@ public class UefaCCSim {
         long endTime = System.currentTimeMillis();
         System.out.println("Total time: " + (endTime - startTime) + " ms");
 
-        printClubSeedingStats();
+        // printClubSeedingStats();
     }
 
     private static void printClubSeedingStats() {

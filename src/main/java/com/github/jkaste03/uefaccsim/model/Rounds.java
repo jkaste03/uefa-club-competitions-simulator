@@ -76,7 +76,7 @@ public class Rounds implements Serializable {
         ueclQ3CP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
         ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
-        ueclLP = new UclUelLeaguePhaseRound(Tournament.CONFERENCE_LEAGUE);
+        ueclLP = new UeclLeaguePhaseRound();
 
         // Aggregate all rounds into a list for streamlined processing (order is
         // chronological).
@@ -229,7 +229,15 @@ public class Rounds implements Serializable {
      */
     private void seedDrawRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
-            round.seedDraw();
+            if (round instanceof LeaguePhaseRound) {
+                long start = System.nanoTime();
+                round.seedDraw();
+                long elapsedNs = System.nanoTime() - start;
+                System.out.printf("Seed/Draw for league phase round %s took %.2f ms%n",
+                        round.getName(), elapsedNs / 1_000_000.0);
+            } else {
+                round.seedDraw();
+            }
         });
     }
 

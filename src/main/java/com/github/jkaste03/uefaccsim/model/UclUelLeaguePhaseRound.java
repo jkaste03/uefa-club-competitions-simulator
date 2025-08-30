@@ -71,7 +71,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         for (int i = 0; i < POT_COUNT; i++) {
             addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
             // System.out.print(pots.get(i));
-            printClubSlotList(pots.get(i).clubs());
+            // printClubSlotList(pots.get(i).clubs());
         }
     }
 
@@ -316,8 +316,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         // Overfør de trukkede oppgjørene til ties-variabelen.
         ties = tempTies;
 
-        for (Tie tie : ties) {
-            System.out.println(tie.toCompactString());
-        }
+        // for (Tie tie : ties) {
+        // System.out.println(tie.toCompactString());
+        // }
     }
 }
