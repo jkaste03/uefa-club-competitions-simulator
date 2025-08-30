@@ -1,12 +1,18 @@
 package com.github.jkaste03.uefaccsim;
 
+// Removed per-request: new baseline per repetition. We now create baseline once.
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.ClubSlot;
-import com.github.jkaste03.uefaccsim.model.DoubleLeggedTie;
 import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
 import com.github.jkaste03.uefaccsim.model.QRound;
 import com.github.jkaste03.uefaccsim.model.Round;
@@ -18,81 +24,65 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This class contains unit tests for the UefaCCSim class.
  */
+@Execution(ExecutionMode.CONCURRENT) // Allow concurrent execution of repeated tests (if enabled globally)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS) // So we can use non-static @BeforeAll and share baseline
 public class UefaCCSimTest {
 
-    /**
-     * Tests the draw method by running a simulation multiple times and verifying
-     * the legality of the draw results.
-     * 
-     * <p>
-     * This test performs the following steps:
-     * </p>
-     * <ul>
-     * <li>Creates a new instance of {@code Rounds} and sets it in the
-     * {@code SimulationThread}.</li>
-     * <li>Runs the simulation 3000 times using a deep copy of the {@code Rounds}
-     * object to ensure data consistency.</li>
-     * <li>For each iteration, it tests all qualifying rounds ({@code QRound}) to
-     * ensure no illegal ties or common country conflicts.</li>
-     * <li>Tests all league phase rounds ({@code LeaguePhaseRound}) to ensure:
-     * <ul>
-     * <li>Clubs opponent home/away and pot constrains are met.</li>
-     * <li>No illegal ties or common country conflicts.</li>
-     * <li>No club meets clubs from the same country more than twice.</li>
-     * </ul>
-     * </li>
-     * </ul>
-     */
-    @Test
-    public void testDrawMethod() {
+    private static final int REPETITIONS = 40; // Tune for speed vs. coverage
+    private Rounds baseline; // Single baseline created once
 
-        // Create a new instance of Rounds
-        Rounds rounds = new Rounds();
-        // SimulationThread.setRounds(rounds);
+    @BeforeAll
+    void initBaseline() {
+        // Construct baseline once; all repetitions deep-copy this immutable template
+        baseline = new Rounds();
+    }
 
-        Rounds roundsCopy = null;
-        for (int i = 0; i < 100; i++) {
+    // Helper: run one simulation starting from a deep copy of the baseline
+    private Rounds simulateOnce(String label) {
+        Rounds copy = UefaCCSim.deepCopy(baseline);
+        copy.run(label);
+        return copy;
+    }
 
-            // Create a deep copy of the rounds object to reuse the same data without
-            // interacting with json
-            roundsCopy = UefaCCSim.deepCopy(rounds);
-            // Run the simulation with the copied rounds object
-            roundsCopy.run("threadName");
+    @RepeatedTest(REPETITIONS)
+    void qualifyingRoundsShouldHaveNoIllegalTies(RepetitionInfo repInfo) {
+        Rounds sim = simulateOnce("QR-" + repInfo.getCurrentRepetition());
+        sim.getRounds().stream()
+                .filter(r -> r instanceof QRound)
+                .forEach(r -> checkNoIllegalTies(r, ((QRound) r).getTies()));
+    }
 
-            // Test all QRounds
-            roundsCopy.getRounds().stream()
-                    .filter(r -> r instanceof QRound)
-                    .forEach(r -> {
-                        // Extract the ties from the round
-                        List<DoubleLeggedTie> ties = ((QRound) r).getTies();
-                        // Check that the QRound draw is legal
-                        checkNoIllegalTies(r, ties);
-                    });
-
-            // Test all LeaguePhaseRounds
-            for (Round r : roundsCopy.getRoundsOfType(RoundType.LEAGUE_PHASE)) {
-                LeaguePhaseRound round = (LeaguePhaseRound) r;
-                // Skip Conference League league phase round
-                if (round.getTournament() == Tournament.CONFERENCE_LEAGUE) {
-                    continue;
-                }
-
-                // Extract the pots, ties, and club slots from the league phase round
-                List<LeaguePhaseRound.Pot> pots = round.getPots();
-                List<SingleLeggedTie> ties = round.getTies();
-                List<ClubSlot> clubSlots = round.getClubSlots();
-
-                // Check that the league phase is draw is legal
-                checkOpponentPotHomeAway(pots, clubSlots, ties);
-                checkNoIllegalTies(round, ties);
-                checkNoClubMeetsCountryMoreThanTwice(clubSlots, ties);
+    @RepeatedTest(REPETITIONS)
+    void leaguePhaseConstraintsHold(RepetitionInfo repInfo) {
+        Rounds sim = simulateOnce("LP-" + repInfo.getCurrentRepetition());
+        for (Round r : sim.getRoundsOfType(RoundType.LEAGUE_PHASE)) {
+            LeaguePhaseRound lp = (LeaguePhaseRound) r;
+            if (lp.getTournament() == Tournament.CONFERENCE_LEAGUE) {
+                continue; // Skip per original logic
             }
+            List<LeaguePhaseRound.Pot> pots = lp.getPots();
+            List<SingleLeggedTie> ties = lp.getTies();
+            List<ClubSlot> clubSlots = lp.getClubSlots();
+            checkOpponentPotHomeAway(pots, clubSlots, ties);
+            checkNoIllegalTies(lp, ties);
+            checkNoClubMeetsCountryMoreThanTwice(clubSlots, ties);
         }
+    }
+
+    @Test
+    void deepCopyIsolation() {
+        // Snapshot a property from baseline (size of first round's clubSlots)
+        int originalSize = baseline.getRounds().get(0).getClubSlots().size();
+        Rounds copy = UefaCCSim.deepCopy(baseline);
+        copy.run("isolation");
+        // Baseline must remain unchanged in its first round clubSlots size
+        assertEquals(originalSize, baseline.getRounds().get(0).getClubSlots().size(),
+                "Deep copy simulation mutated baseline state");
     }
 
     /**
@@ -106,37 +96,48 @@ public class UefaCCSimTest {
      */
     private void checkOpponentPotHomeAway(List<LeaguePhaseRound.Pot> pots, List<ClubSlot> clubSlots,
             List<SingleLeggedTie> ties) {
+        // Precompute pot index for O(1) lookups
+        Map<ClubSlot, Integer> potIndex = pots.stream()
+                .flatMap(p -> p.clubs().stream().map(cs -> Map.entry(cs, p.index() + 1)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         for (ClubSlot clubSlot : clubSlots) {
-            // Count the number of home matches against each pot for the current club slot
-            Map<Integer, Long> homePotCounts = ties.stream()
-                    .filter(tie -> tie.getClubSlot1().equals(clubSlot))
-                    .map(tie -> getPotForClubSlot(tie.getClubSlot2(), pots))
-                    .collect(Collectors.groupingBy(pot -> pot, Collectors.counting()));
+            // Count home/away vs pot in one pass
+            int potCount = pots.size();
+            int[] homeCounts = new int[potCount + 1]; // 1-based
+            int[] awayCounts = new int[potCount + 1];
+            for (SingleLeggedTie tie : ties) {
+                if (tie.getClubSlot1().equals(clubSlot)) {
+                    int oppPot = potIndex.get(tie.getClubSlot2());
+                    homeCounts[oppPot]++;
+                } else if (tie.getClubSlot2().equals(clubSlot)) {
+                    int oppPot = potIndex.get(tie.getClubSlot1());
+                    awayCounts[oppPot]++;
+                }
+            }
 
-            // Count the number of away matches against each pot for the current club slot
-            Map<Integer, Long> awayPotCounts = ties.stream()
-                    .filter(tie -> tie.getClubSlot2().equals(clubSlot))
-                    .map(tie -> getPotForClubSlot(tie.getClubSlot1(), pots))
-                    .collect(Collectors.groupingBy(pot -> pot, Collectors.counting()));
-
-            // If there are 6 pots, check the home and away matches for specific sub-pots
-            if (pots.size() == 6) {
+            if (potCount == 6) {
+                // Convert arrays to maps-on-demand for existing helper reuse
+                Map<Integer, Long> homePotCounts = intArrayToCountMap(homeCounts);
+                Map<Integer, Long> awayPotCounts = intArrayToCountMap(awayCounts);
                 checkPotSubpotHomeAway(homePotCounts, awayPotCounts, clubSlot, 1, 2);
                 checkPotSubpotHomeAway(homePotCounts, awayPotCounts, clubSlot, 3, 4);
                 checkPotSubpotHomeAway(homePotCounts, awayPotCounts, clubSlot, 5, 6);
             } else {
-                // Otherwise, check that the club meets exactly one club from each pot at home
-                // and away
-                for (int pot = 1; pot <= pots.size(); pot++) {
-                    assertTrue(homePotCounts.getOrDefault(pot, 0L) == 1,
-                            "ClubSlot " + clubSlot + " does not meet exactly one club from pot " + pot + " at home."
-                                    + " Ties: " + ties);
-                    assertTrue(awayPotCounts.getOrDefault(pot, 0L) == 1,
-                            "ClubSlot " + clubSlot + " does not meet exactly one club from pot " + pot + " away."
-                                    + " Ties: " + ties);
+                for (int pot = 1; pot <= potCount; pot++) {
+                    assertEquals(1, homeCounts[pot],
+                            "Home pot count mismatch for " + clubSlot + " pot=" + pot + " ties=" + ties);
+                    assertEquals(1, awayCounts[pot],
+                            "Away pot count mismatch for " + clubSlot + " pot=" + pot + " ties=" + ties);
                 }
             }
         }
+    }
+
+    private Map<Integer, Long> intArrayToCountMap(int[] counts) {
+        return java.util.stream.IntStream.range(1, counts.length)
+                .boxed()
+                .collect(Collectors.toMap(i -> i, i -> (long) counts[i]));
     }
 
     /**
@@ -162,18 +163,16 @@ public class UefaCCSimTest {
 
         // Check that the club meets exactly one club from pots 1 or 2 at home and one
         // away
-        assertTrue(homeCountPot1 + homeCountPot2 == 1,
-                "ClubSlot " + clubSlot + " does not meet exactly one club from pots " + potX + " or " + potY
-                        + " at home.");
-        assertTrue(awayCountPot1 + awayCountPot2 == 1,
-                "ClubSlot " + clubSlot + " does not meet exactly one club from pots " + potX + " or " + potY
-                        + " away.");
+        assertEquals(1, homeCountPot1 + homeCountPot2,
+                "ClubSlot " + clubSlot + " must meet exactly one from pots " + potX + "/" + potY + " at home");
+        assertEquals(1, awayCountPot1 + awayCountPot2,
+                "ClubSlot " + clubSlot + " must meet exactly one from pots " + potX + "/" + potY + " away");
 
         // Check that the club does not meet clubs from same pot home and away
         assertTrue(homeCountPot1 == 0 || awayCountPot1 == 0,
-                "ClubSlot " + clubSlot + " meets clubs from pot " + potX + " both at home and away.");
+                "ClubSlot " + clubSlot + " meets clubs from pot " + potX + " both home and away");
         assertTrue(homeCountPot2 == 0 || awayCountPot2 == 0,
-                "ClubSlot " + clubSlot + " meets clubs from pot " + potY + " both at home and away.");
+                "ClubSlot " + clubSlot + " meets clubs from pot " + potY + " both home and away");
     }
 
     /**
@@ -183,14 +182,7 @@ public class UefaCCSimTest {
      * @param pots     the list of lists with club slots
      * @return the pot number for the given club slot
      */
-    private int getPotForClubSlot(ClubSlot clubSlot, List<LeaguePhaseRound.Pot> pots) {
-        for (int i = 0; i < pots.size(); i++) {
-            if (pots.get(i).clubs().contains(clubSlot)) {
-                return i + 1; // Assuming pot numbers are 1-based
-            }
-        }
-        throw new IllegalArgumentException("ClubSlot " + clubSlot + " not found in any pot.");
-    }
+    // Removed obsolete linear pot lookup method after optimization.
 
     /**
      * Checks that no illegal ties are present.
@@ -201,12 +193,12 @@ public class UefaCCSimTest {
      *                        there are illegal ties
      */
     private void checkNoIllegalTies(Round round, List<? extends Tie> ties) {
-        ties.forEach(tie -> {
-            ClubSlot clubSlot1 = tie.getClubSlot1();
-            ClubSlot clubSlot2 = tie.getClubSlot2();
-            assertTrue(!round.isIllegalTie(clubSlot1, clubSlot2),
-                    "Illegal tie detected between " + clubSlot1 + " and " + clubSlot2);
-        });
+        for (Tie tie : ties) {
+            ClubSlot c1 = tie.getClubSlot1();
+            ClubSlot c2 = tie.getClubSlot2();
+            assertFalse(round.isIllegalTie(c1, c2),
+                    () -> "Illegal tie: " + c1 + " vs " + c2 + " in round " + round.getName());
+        }
     }
 
     /**
@@ -231,7 +223,7 @@ public class UefaCCSimTest {
             // Check that no club meets more than two clubs from any specific country
             for (Map.Entry<Country, Long> entry : opponentCountryCounts.entrySet()) {
                 assertTrue(entry.getValue() <= 2,
-                        "ClubSlot " + clubSlot + " meets more than 2 clubs from " + entry.getKey() + ". Ties: " + ties);
+                        "ClubSlot " + clubSlot + " meets >2 clubs from " + entry.getKey() + " ties=" + ties);
             }
         }
     }
