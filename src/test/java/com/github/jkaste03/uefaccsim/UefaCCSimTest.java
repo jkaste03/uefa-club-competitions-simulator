@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS) // So we can use non-static @BeforeAll and share baseline
 public class UefaCCSimTest {
 
-    private static final int REPETITIONS = 40; // Tune for speed vs. coverage
+    private static final int REPETITIONS = 100; // Tune for speed vs. coverage
     private Rounds baseline; // Single baseline created once
 
     @BeforeAll
@@ -288,16 +287,13 @@ public class UefaCCSimTest {
      * club IDs (assumes ClubSlot.getId() exists and is unique per club).
      */
     private void checkNoDuplicateTiesById(List<SingleLeggedTie> ties) {
-        Set<Set<Object>> seenPairs = new HashSet<>();
+        // Unordered pairs based on ClubIdWrapper equality (identity = club id)
+        Set<Set<ClubIdWrapper>> seenPairs = new HashSet<>();
         for (SingleLeggedTie t : ties) {
             ClubIdWrapper a = t.getClubSlot1().getClubIdWrapper();
             ClubIdWrapper b = t.getClubSlot2().getClubIdWrapper();
-            // Use club unique id for comparison (assumption: getId() exists and is unique)
-            Object aId = a.id();
-            Object bId = b.id();
-            Set<Object> pair = new HashSet<>(Arrays.asList(aId, bId)); // unordered pair of ids
-            assertFalse(seenPairs.contains(pair), "Duplicate tie found for pair: " + pair);
-            seenPairs.add(pair);
+            Set<ClubIdWrapper> pair = Set.of(a, b); // record equality ensures id-based comparison
+            assertTrue(seenPairs.add(pair), "Duplicate tie found for pair: " + pair);
         }
     }
 

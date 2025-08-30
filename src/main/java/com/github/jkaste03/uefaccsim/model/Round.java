@@ -98,6 +98,11 @@ public abstract class Round implements Serializable {
      */
     public boolean isIllegalTie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
         if (this instanceof QRound || this instanceof LeaguePhaseRound) {
+            // if (PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2)) {
+            // System.out.println("Political restriction between " +
+            // clubSlot1.toCompactString() + " and "
+            // + clubSlot2.toCompactString());
+            // }
             return hasCommonCountry(clubSlot1, clubSlot2)
                     || PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2);
         }
