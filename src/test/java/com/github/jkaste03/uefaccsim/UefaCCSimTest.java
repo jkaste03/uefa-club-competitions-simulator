@@ -30,28 +30,61 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * This class contains unit tests for the UefaCCSim class.
+ * Probabilistic and structural tests for {@link UefaCCSim} focusing on:
+ * <ul>
+ * <li>Qualifying rounds: no illegal (country / political) pairings.</li>
+ * <li>League phase: pot indexing integrity, opponent distribution home/away,
+ * country limits, uniqueness of opponents and absence of duplicate ties.</li>
+ * <li>Deep copy behavior: simulation copies must not mutate the shared
+ * baseline.</li>
+ * </ul>
+ * The tests are deliberately repeated ({@value #REPETITIONS} times) to increase
+ * the
+ * chance of detecting stochastic assignment bugs in draw logic.
  */
 @Execution(ExecutionMode.CONCURRENT) // Allow concurrent execution of repeated tests (if enabled globally)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS) // So we can use non-static @BeforeAll and share baseline
 public class UefaCCSimTest {
 
-    private static final int REPETITIONS = 100; // Tune for speed vs. coverage
-    private Rounds baseline; // Single baseline created once
+    /**
+     * Number of repetitions for stochastic validation (tune for speed vs.
+     * coverage).
+     */
+    private static final int REPETITIONS = 100;
 
+    /**
+     * Immutable (conceptually) baseline used only as a template for deep copies.
+     */
+    private Rounds baseline;
+
+    /**
+     * Builds a single baseline graph of rounds once. Each test iteration then
+     * works on a deep copy to ensure isolation and determinism of starting state.
+     */
     @BeforeAll
     void initBaseline() {
-        // Construct baseline once; all repetitions deep-copy this immutable template
+        // Construct baseline once; all repetitions deep-copy this template.
         baseline = new Rounds();
     }
 
-    // Helper: run one simulation starting from a deep copy of the baseline
+    /**
+     * Performs a complete simulation run on a freshly deep-copied baseline.
+     *
+     * @param label tag forwarded to the simulation for traceability/logging
+     * @return the mutated {@link Rounds} instance that resulted from the run
+     */
     private Rounds simulateOnce(String label) {
         Rounds copy = UefaCCSim.deepCopy(baseline);
         copy.run(label);
         return copy;
     }
 
+    /**
+     * Ensures every qualifying round instance contains only legal ties across
+     * repeated probabilistic draws.
+     *
+     * @param repInfo repetition metadata injected by JUnit
+     */
     @RepeatedTest(REPETITIONS)
     void qualifyingRoundsShouldHaveNoIllegalTies(RepetitionInfo repInfo) {
         Rounds sim = simulateOnce("QR-" + repInfo.getCurrentRepetition());
@@ -60,6 +93,18 @@ public class UefaCCSimTest {
                 .forEach(r -> checkNoIllegalTies(r, ((QRound) r).getTies()));
     }
 
+    /**
+     * Validates several invariants for every league phase simulation run:
+     * <ol>
+     * <li>Pots are consecutively 0-indexed.</li>
+     * <li>Opponent distribution per pot (home/away) matches competition
+     * format.</li>
+     * <li>No illegal ties.</li>
+     * <li>No club faces more than two opponents from the same country.</li>
+     * <li>Unique opponents is satisfied.</li>
+     * <li>No duplicate unordered pairs of clubs.</li>
+     * </ol>
+     */
     @RepeatedTest(REPETITIONS)
     void leaguePhaseConstraintsHold(RepetitionInfo repInfo) {
         Rounds sim = simulateOnce("LP-" + repInfo.getCurrentRepetition());
@@ -94,27 +139,28 @@ public class UefaCCSimTest {
         }
     }
 
+    /**
+     * Verifies that {@link UefaCCSim#deepCopy(Object)} produces a structure whose
+     * mutation does not propagate back to the original baseline object graph.
+     */
     @Test
     void deepCopyIsolation() {
-        // Stronger deep copy isolation test:
-        // take a deep copy, mutate the copy, ensure baseline remains unchanged.
-        Rounds copy = UefaCCSim.deepCopy(baseline);
+        Rounds copy = UefaCCSim.deepCopy(baseline); // create isolated copy
 
-        // snapshot baseline sizes (defensive - could be empty)
+        // Snapshot original sizes for later comparison (defensive against empties)
         int baselineRounds = baseline.getRounds().size();
         Integer baselineFirstRoundClubSlotsSize = null;
         if (baselineRounds > 0 && !baseline.getRounds().get(0).getClubSlots().isEmpty()) {
             baselineFirstRoundClubSlotsSize = baseline.getRounds().get(0).getClubSlots().size();
         }
 
-        //
-        // Mutate copy if possible (best-effort; if underlying lists are unmodifiable
-        // this will throw)
+        // Try mutating copy (if lists are unmodifiable this will raise and fail the
+        // test — acceptable)
         if (copy.getRounds().size() > 0 && !copy.getRounds().get(0).getClubSlots().isEmpty()) {
             copy.getRounds().get(0).getClubSlots().remove(0);
         }
 
-        // Baseline must remain unchanged
+        // Assert isolation
         assertEquals(baselineRounds, baseline.getRounds().size(), "Baseline rounds count mutated");
         if (baselineFirstRoundClubSlotsSize != null) {
             assertEquals(baselineFirstRoundClubSlotsSize.intValue(),
@@ -127,8 +173,9 @@ public class UefaCCSimTest {
      * Checks that each club meets exactly one club from each pot at home and one
      * away, with specific rules for 6 pots.
      *
-     * @param clubSlots the list of club slots participating in the competition
-     * @param ties      the list of ties between the clubs
+     * @param pots      ordered list of league phase pots
+     * @param clubSlots participating club slots
+     * @param ties      scheduled single-legged ties
      * @throws AssertionError if a club does not meet exactly one club from each pot
      *                        at home and one away
      */
@@ -148,7 +195,7 @@ public class UefaCCSimTest {
             int[] homeCounts = new int[potCount + 1]; // 1-based
             int[] awayCounts = new int[potCount + 1];
             for (SingleLeggedTie tie : ties) {
-                // You stated clubSlot1 is always home -> we rely on that invariant here
+                // ClubSlot1 is always home
                 if (tie.getClubSlot1().equals(clubSlot)) {
                     int oppPot = potIndex.get(tie.getClubSlot2());
                     homeCounts[oppPot]++;
@@ -157,7 +204,7 @@ public class UefaCCSimTest {
                     awayCounts[oppPot]++;
                 }
             }
-
+            // If Conference League
             if (potCount == 6) {
                 // Convert arrays to maps-on-demand for existing helper reuse
                 Map<Integer, Long> homePotCounts = intArrayToCountMap(homeCounts);
@@ -176,6 +223,13 @@ public class UefaCCSimTest {
         }
     }
 
+    /**
+     * Converts a 1-based counting array to a map view (index -> count).
+     * Index 0 is ignored intentionally.
+     *
+     * @param counts counting array where position i stores occurrences for i
+     * @return map of index to count
+     */
     private Map<Integer, Long> intArrayToCountMap(int[] counts) {
         return java.util.stream.IntStream.range(1, counts.length)
                 .boxed()
@@ -218,10 +272,11 @@ public class UefaCCSimTest {
     }
 
     /**
-     * Checks that no illegal ties are present.
+     * Asserts every tie in the specified round satisfies the round's legality
+     * predicate.
      *
-     * @param clubSlots the list of club slots participating in the competition
-     * @param ties      the list of ties between the clubs
+     * @param round round providing legality rules
+     * @param ties  ties to validate
      * @throws AssertionError if a club meets a club from its own country or if
      *                        there are illegal ties
      */
@@ -235,10 +290,11 @@ public class UefaCCSimTest {
     }
 
     /**
-     * Checks that no club meets more than two clubs from any specific country.
+     * Ensures that no club exceeds facing more than two opponents from the same
+     * country within the supplied tie set.
      *
-     * @param clubSlots the list of club slots participating in the competition
-     * @param ties      the list of ties between the clubs
+     * @param clubSlots participants
+     * @param ties      ties to inspect
      * @throws AssertionError if a club meets more than two clubs from the same
      *                        country
      */
@@ -261,11 +317,12 @@ public class UefaCCSimTest {
         }
     }
 
-    // ---------------------- NEW helper checks ----------------------
-
     /**
-     * Ensures each club has the expected number of unique opponents (8 for 4-pot,
-     * 6 for 6-pot).
+     * Ensures each club faces the expected number of distinct opponents dictated
+     * by format: 6 for 6-pot (paired) format, else exactly two per pot.
+     *
+     * @param lp   the league phase round under test
+     * @param ties all ties in that round
      */
     private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<SingleLeggedTie> ties) {
         int potsCount = lp.getPots().size();
@@ -283,8 +340,9 @@ public class UefaCCSimTest {
     }
 
     /**
-     * Verifies there are no duplicate ties (A-B and B-A counted separately) using
-     * club IDs (assumes ClubSlot.getId() exists and is unique per club).
+     * Verifies that each unordered club pairing appears at most once.
+     *
+     * @param ties ties to scan for duplicate unordered pairs
      */
     private void checkNoDuplicateTiesById(List<SingleLeggedTie> ties) {
         // Unordered pairs based on ClubIdWrapper equality (identity = club id)
@@ -296,6 +354,4 @@ public class UefaCCSimTest {
             assertTrue(seenPairs.add(pair), "Duplicate tie found for pair: " + pair);
         }
     }
-
-    // -----------------------------------------------------------------
 }
