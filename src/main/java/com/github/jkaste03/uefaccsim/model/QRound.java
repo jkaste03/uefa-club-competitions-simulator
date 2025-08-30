@@ -58,6 +58,10 @@ public class QRound extends Round {
         return super.getName() + " " + roundType + " " + pathType;
     }
 
+    public List<DoubleLeggedTie> getTies() {
+        return ties;
+    }
+
     /**
      * {@inheritDoc}
      * <p>

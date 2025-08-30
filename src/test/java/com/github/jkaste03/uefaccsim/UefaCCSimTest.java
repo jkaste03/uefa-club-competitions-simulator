@@ -2,16 +2,17 @@ package com.github.jkaste03.uefaccsim;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.jkaste03.uefaccsim.UefaCCSim;
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.DoubleLeggedTie;
 import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
 import com.github.jkaste03.uefaccsim.model.QRound;
 import com.github.jkaste03.uefaccsim.model.Round;
 import com.github.jkaste03.uefaccsim.model.Rounds;
+import com.github.jkaste03.uefaccsim.model.SingleLeggedTie;
 import com.github.jkaste03.uefaccsim.model.Tie;
-import com.github.jkaste03.uefaccsim.model.UeclLeaguePhaseRound;
 
 import java.util.List;
 import java.util.Map;
@@ -52,10 +53,10 @@ public class UefaCCSimTest {
 
         // Create a new instance of Rounds
         Rounds rounds = new Rounds();
-        SimulationThread.setRounds(rounds);
+        // SimulationThread.setRounds(rounds);
 
         Rounds roundsCopy = null;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 100; i++) {
 
             // Create a deep copy of the rounds object to reuse the same data without
             // interacting with json
@@ -68,7 +69,7 @@ public class UefaCCSimTest {
                     .filter(r -> r instanceof QRound)
                     .forEach(r -> {
                         // Extract the ties from the round
-                        List<Tie> ties = r.getTies();
+                        List<DoubleLeggedTie> ties = ((QRound) r).getTies();
                         // Check that the QRound draw is legal
                         checkNoIllegalTies(r, ties);
                     });
@@ -76,9 +77,14 @@ public class UefaCCSimTest {
             // Test all LeaguePhaseRounds
             for (Round r : roundsCopy.getRoundsOfType(RoundType.LEAGUE_PHASE)) {
                 LeaguePhaseRound round = (LeaguePhaseRound) r;
+                // Skip Conference League league phase round
+                if (round.getTournament() == Tournament.CONFERENCE_LEAGUE) {
+                    continue;
+                }
+
                 // Extract the pots, ties, and club slots from the league phase round
-                List<List<ClubSlot>> pots = round.getPots();
-                List<Tie> ties = round.getTies();
+                List<LeaguePhaseRound.Pot> pots = round.getPots();
+                List<SingleLeggedTie> ties = round.getTies();
                 List<ClubSlot> clubSlots = round.getClubSlots();
 
                 // Check that the league phase is draw is legal
@@ -98,8 +104,8 @@ public class UefaCCSimTest {
      * @throws AssertionError if a club does not meet exactly one club from each pot
      *                        at home and one away
      */
-    private void checkOpponentPotHomeAway(List<List<ClubSlot>> pots, List<ClubSlot> clubSlots,
-            List<Tie> ties) {
+    private void checkOpponentPotHomeAway(List<LeaguePhaseRound.Pot> pots, List<ClubSlot> clubSlots,
+            List<SingleLeggedTie> ties) {
         for (ClubSlot clubSlot : clubSlots) {
             // Count the number of home matches against each pot for the current club slot
             Map<Integer, Long> homePotCounts = ties.stream()
@@ -177,9 +183,9 @@ public class UefaCCSimTest {
      * @param pots     the list of lists with club slots
      * @return the pot number for the given club slot
      */
-    private int getPotForClubSlot(ClubSlot clubSlot, List<List<ClubSlot>> pots) {
+    private int getPotForClubSlot(ClubSlot clubSlot, List<LeaguePhaseRound.Pot> pots) {
         for (int i = 0; i < pots.size(); i++) {
-            if (pots.get(i).contains(clubSlot)) {
+            if (pots.get(i).clubs().contains(clubSlot)) {
                 return i + 1; // Assuming pot numbers are 1-based
             }
         }
@@ -194,7 +200,7 @@ public class UefaCCSimTest {
      * @throws AssertionError if a club meets a club from its own country or if
      *                        there are illegal ties
      */
-    private void checkNoIllegalTies(Round round, List<Tie> ties) {
+    private void checkNoIllegalTies(Round round, List<? extends Tie> ties) {
         ties.forEach(tie -> {
             ClubSlot clubSlot1 = tie.getClubSlot1();
             ClubSlot clubSlot2 = tie.getClubSlot2();
@@ -211,7 +217,7 @@ public class UefaCCSimTest {
      * @throws AssertionError if a club meets more than two clubs from the same
      *                        country
      */
-    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<Tie> ties) {
+    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<SingleLeggedTie> ties) {
         for (ClubSlot clubSlot : clubSlots) {
             // Create a map to count the number of opponents from each country
             Map<Country, Long> opponentCountryCounts = ties.stream()

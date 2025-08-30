@@ -208,7 +208,7 @@ public class Rounds implements Serializable {
      * @param roundType the type of rounds to retrieve
      * @return a non-null list containing all rounds of the requested type
      */
-    private List<Round> getRoundsOfType(RoundType roundType) {
+    public List<Round> getRoundsOfType(RoundType roundType) {
         return roundsByType.getOrDefault(roundType, List.of());
     }
 

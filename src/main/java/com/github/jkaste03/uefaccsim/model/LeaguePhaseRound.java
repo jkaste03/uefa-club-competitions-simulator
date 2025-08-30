@@ -52,6 +52,10 @@ public abstract class LeaguePhaseRound extends Round {
         return super.getName() + " " + RoundType.LEAGUE_PHASE;
     }
 
+    public List<SingleLeggedTie> getTies() {
+        return ties;
+    }
+
     public List<Pot> getPots() {
         return pots;
     }
