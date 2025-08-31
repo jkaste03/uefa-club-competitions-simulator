@@ -19,6 +19,30 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
  */
 public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     private final static int POT_COUNT = 4;
+    private static final int MAX_RECURSIVE_CALLS = 300;
+    private static final int MAX_RESTARTS = 20;
+
+    // Statistikk for siste draw()
+    public static final class DrawStats {
+        public long recursiveCalls;
+        public long assignmentAttempts;
+        public long backtracks;
+        public long forwardPrunes;
+
+        @Override
+        public String toString() {
+            return "DrawStats{recursiveCalls=" + recursiveCalls +
+                    ", assignmentAttempts=" + assignmentAttempts +
+                    ", backtracks=" + backtracks +
+                    ", forwardPrunes=" + forwardPrunes + "}";
+        }
+    }
+
+    private DrawStats lastDrawStats;
+
+    public DrawStats getLastDrawStats() {
+        return lastDrawStats;
+    }
 
     public UclUelLeaguePhaseRound(Tournament tournament) {
         super(tournament);
@@ -65,6 +89,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
      */
     @Override
     protected void draw() {
+        lastDrawStats = new DrawStats();
         // Build list of all clubs and mapping from club to its pot index.
         final List<ClubSlot> allClubs = new ArrayList<>();
         Map<ClubSlot, Integer> clubToPot = new HashMap<>();
@@ -141,9 +166,9 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 this.ownerHome = ownerHome;
             }
 
-            int complementIndex() {
-                return ownerHome ? 1 : 0;
-            }
+            // int complementIndex() {
+            // return ownerHome ? 1 : 0;
+            // }
         }
 
         // Prepare slots and quick access structures
@@ -178,45 +203,49 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         }
 
         // A small helper to compute candidates for a given slot.
-        java.util.function.Function<Slot, List<ClubSlot>> computeCandidates = (slot) -> {
-            List<ClubSlot> candidates = new ArrayList<>();
-            List<ClubSlot> pool = potLists.get(slot.targetPot);
-            for (ClubSlot candidate : pool) {
-                if (candidate.equals(slot.owner))
-                    continue;
-                if (assignedOpp.get(slot.owner).contains(candidate))
-                    continue; // already paired with them
-                // candidate must have a complementary unfilled slot against owner's pot
-                int ownersPot = clubToPot.get(slot.owner);
-                Slot comp = slotsByClub.get(candidate)[ownersPot][slot.complementIndex()];
-                if (comp.filled)
-                    continue;
-                // Check that candidate still needs a slot vs this owner's pot (it will: comp
-                // exists and not filled)
-                // Check legality
-                if (isIllegalTie(slot.owner, candidate))
-                    continue;
-                if (isIllegalTie(candidate, slot.owner))
-                    continue;
-                // country constraints both ways
-                // (we will consult a temporary CountryHelper when used; here only structural
-                // checks)
-                candidates.add(candidate);
-            }
-            // shuffle to give randomness for tie-breaks
-            Collections.shuffle(candidates, random);
-            return candidates;
-        };
+        // java.util.function.Function<Slot, List<ClubSlot>> computeCandidates = (slot)
+        // -> {
+        // List<ClubSlot> candidates = new ArrayList<>();
+        // List<ClubSlot> pool = potLists.get(slot.targetPot);
+        // for (ClubSlot candidate : pool) {
+        // if (candidate.equals(slot.owner))
+        // continue;
+        // if (assignedOpp.get(slot.owner).contains(candidate))
+        // continue; // already paired with them
+        // // candidate must have a complementary unfilled slot against owner's pot
+        // int ownersPot = clubToPot.get(slot.owner);
+        // Slot comp = slotsByClub.get(candidate)[ownersPot][slot.complementIndex()];
+        // if (comp.filled)
+        // continue;
+        // // Check that candidate still needs a slot vs this owner's pot (it will: comp
+        // // exists and not filled)
+        // // Check legality
+        // if (isIllegalTie(slot.owner, candidate))
+        // continue;
+        // if (isIllegalTie(candidate, slot.owner))
+        // continue;
+        // // country constraints both ways
+        // // (we will consult a temporary CountryHelper when used; here only structural
+        // // checks)
+        // candidates.add(candidate);
+        // }
+        // // shuffle to give randomness for tie-breaks
+        // Collections.shuffle(candidates, random);
+        // return candidates;
+        // };
 
         // small convenience on Slot to compute complementary index quickly (home->away
         // and vice versa)
         // Java doesn't allow adding method to local class after creation, so add it
         // here as lambda alternative:
-        java.util.function.BiFunction<Slot, Boolean, Integer> complementIndex = (s, dummy) -> s.ownerHome ? 1 : 0;
+        // java.util.function.BiFunction<Slot, Boolean, Integer> complementIndex = (s,
+        // dummy) -> s.ownerHome ? 1 : 0;
 
-        // But to avoid clumsiness, create a method-like lambda to return complementary
-        // index:
-        java.util.function.Function<Slot, Integer> compIndex = (s) -> s.ownerHome ? 1 : 0;
+        // // But to avoid clumsiness, create a method-like lambda to return
+        // complementary
+        // // index:
+        // java.util.function.Function<Slot, Integer> compIndex = (s) -> s.ownerHome ? 1
+        // : 0;
 
         // Small accessor to slot's complementary index on opponent side:
         // (ownerHome=true => opponent's ownerHome must be false (index 1), and vice
@@ -325,12 +354,19 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
 
         // Main recursive solver
         final boolean[] solved = { false };
+        final boolean[] restartRequested = { false };
 
         // To speed up, we can cache candidate lists per call — but since constraints
         // change, we must recompute.
         class Solver {
             void solve(int filledCount) {
-                if (solved[0])
+                lastDrawStats.recursiveCalls++;
+                if (lastDrawStats.recursiveCalls > MAX_RECURSIVE_CALLS) {
+                    // be om en restart — vi _kaller ikke_ draw() her
+                    restartRequested[0] = true;
+                    return;
+                }
+                if (solved[0] || restartRequested[0])
                     return; // early exit if found
                 if (filledCount == totalSlots) {
                     solved[0] = true;
@@ -358,6 +394,9 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 int ownersPot = ownersPotCache.get(slot);
 
                 for (ClubSlot cand : candidates) {
+                    if (restartRequested[0])
+                        return; // stopp tidlig hvis restart bedt om
+                    lastDrawStats.assignmentAttempts++;
                     // check complementary slot again and assign
                     Slot comp = slotsByClub.get(cand)[ownersPot][slotHelpers.compIndexOf(slot)];
                     if (comp.filled)
@@ -408,8 +447,10 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
 
                     if (!forwardFail) {
                         solve(filledCount + 2); // two slots filled together
-                        if (solved[0])
+                        if (solved[0] || restartRequested[0])
                             return;
+                    } else {
+                        lastDrawStats.forwardPrunes++;
                     }
 
                     // undo assignment (backtrack)
@@ -421,52 +462,98 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                     assignedOpp.get(cand).remove(slot.owner);
                     countryHelper.removeOpponent(slot.owner, cand);
                     countryHelper.removeOpponent(cand, slot.owner);
+                    lastDrawStats.backtracks++;
                 }
             }
         }
 
-        // Utility for Slot to compute complementary index (we add method outside of
-        // local class by using this utility)
-        // But earlier we used slotHelpers.compIndexOf(slot) when needed.
+        // Nå: iterativ restart-løkke i stedet for å rekursivt kalle draw()
+        boolean overallSolved = false;
+        int attempt;
+        for (attempt = 0; attempt < MAX_RESTARTS && !overallSolved; attempt++) {
+            // Nullstill nødvendige tilstander for nytt forsøk
+            lastDrawStats.recursiveCalls = 0;
+            lastDrawStats.assignmentAttempts = 0;
+            lastDrawStats.backtracks = 0;
+            lastDrawStats.forwardPrunes = 0;
+            restartRequested[0] = false;
+            solved[0] = false;
 
-        // Fill: count currently filled = 0
-        Solver solver = new Solver();
-
-        // Because official draw procedure draws pot-by-pot, we want to avoid bias:
-        // shuffle initial pot order and potLists contents already shuffled above.
-        // However solver will fill slots in MRV order (which is correct and unbiased
-        // with randomized tie-breaks).
-
-        solver.solve(0);
-
-        if (!solved[0]) {
-            // If solver fails (extremely unlikely), fallback to previous stochastic trial
-            // approach but with fewer attempts and informative exception if still fails.
-            // We'll try a few times with different random seeds and pot shuffles before
-            // failing.
-            final int FALLBACK_ATTEMPTS = 10;
-            boolean fallbackSuccess = false;
-            for (int fb = 0; fb < FALLBACK_ATTEMPTS && !fallbackSuccess; fb++) {
-                // reset slots and state
-                for (Slot s : slotList) {
-                    s.filled = false;
-                    s.opponent = null;
-                }
-                for (ClubSlot c : allClubs)
-                    assignedOpp.put(c, new HashSet<>());
-                countryHelper.clear();
-                // re-shuffle pot lists to attempt different randomization
-                for (int p = 0; p < POT_COUNT; p++) {
-                    Collections.shuffle(potLists.get(p), random);
-                }
-                solver.solve(0);
-                if (solved[0])
-                    fallbackSuccess = true;
+            // Reset slots
+            for (Slot s : slotList) {
+                s.filled = false;
+                s.opponent = null;
             }
-            if (!fallbackSuccess) {
-                throw new RuntimeException("Kunne ikke fullføre trekningen: backtracking mislyktes.");
+            // Reset assignedOpp
+            assignedOpp.clear();
+            for (ClubSlot c : allClubs)
+                assignedOpp.put(c, new HashSet<>());
+            // Reset country counts
+            countryHelper.clear();
+            // reshuffle pots to vary randomness
+            for (int p = 0; p < POT_COUNT; p++) {
+                Collections.shuffle(potLists.get(p), random);
             }
+
+            // Utility for Slot to compute complementary index (we add method outside of
+            // local class by using this utility)
+            // But earlier we used slotHelpers.compIndexOf(slot) when needed.
+
+            // Fill: count currently filled = 0
+            Solver solver = new Solver();
+
+            // Because official draw procedure draws pot-by-pot, we want to avoid bias:
+            // shuffle initial pot order and potLists contents already shuffled above.
+            // However solver will fill slots in MRV order (which is correct and unbiased
+            // with randomized tie-breaks).
+
+            solver.solve(0);
+
+            if (solved[0]) {
+                overallSolved = true;
+                break;
+            }
+            // if restartRequested was set, loop will try again
         }
+
+        if (!overallSolved) {
+            throw new RuntimeException("Kunne ikke fullføre trekningen: backtracking mislyktes.");
+        }
+
+        // Etter løkka: håndter resultat
+        // if (!overallSolved) {
+        // // prøv fallback som tidligere (f.eks. deterministic stochastic attempts)
+        // final int FALLBACK_ATTEMPTS = 10;
+        // boolean fallbackSuccess = false;
+        // for (int fb = 0; fb < FALLBACK_ATTEMPTS && !fallbackSuccess; fb++) {
+        // // reset slots and state
+        // for (Slot s : slotList) {
+        // s.filled = false;
+        // s.opponent = null;
+        // }
+        // assignedOpp.clear();
+        // for (ClubSlot c : allClubs)
+        // assignedOpp.put(c, new HashSet<>());
+        // countryHelper.clear();
+        // // re-shuffle pot lists to attempt different randomization
+        // for (int p = 0; p < POT_COUNT; p++) {
+        // Collections.shuffle(potLists.get(p), random);
+        // }
+        // Solver fbSolver = new Solver();
+        // fbSolver.solve(0);
+        // if (solved[0]) {
+        // fallbackSuccess = true;
+        // overallSolved = true;
+        // break;
+        // }
+        // }
+        // if (!overallSolved) {
+        // throw new RuntimeException("Kunne ikke fullføre trekningen: backtracking
+        // mislyktes.");
+        // }
+        // }
+
+        System.out.println("[LeaguePhase draw stats][" + Thread.currentThread().getName() + "] " + lastDrawStats);
 
         // Build ties list from filled slots (each pair will appear twice as two
         // complementary slots; we only add one per pair)

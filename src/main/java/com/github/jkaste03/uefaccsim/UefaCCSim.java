@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import com.github.jkaste03.uefaccsim.model.Rounds;
@@ -32,7 +33,7 @@ import com.github.jkaste03.uefaccsim.model.Rounds;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 2;
+    private static final int SIMS = 1000;
 
     /**
      * Application entry point that performs a configurable number of independent
@@ -64,14 +65,11 @@ public class UefaCCSim {
 
         long startTime = System.currentTimeMillis();
 
-        // Parallel loop: each iteration runs in the Fork/Join pool threads
         IntStream.range(0, SIMS)
-                .parallel() // make the stream parallel
+                .parallel()
                 .forEach(i -> {
                     String taskName = "Sim-" + (i + 1);
-                    // Create a copy per task
                     Rounds copiedRounds = deepCopy(rounds);
-
                     copiedRounds.run(taskName);
                 });
 
