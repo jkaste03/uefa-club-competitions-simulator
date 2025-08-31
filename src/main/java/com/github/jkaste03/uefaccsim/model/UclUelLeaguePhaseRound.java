@@ -15,7 +15,7 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 /**
  * Class representing the league phase in the Champions League and Europa
  * League. This class handles the league phase rounds where clubs compete in a
- * league format specific to those competitions..
+ * league format specific to those competitions.
  */
 public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     private final static int POT_COUNT = 4;
