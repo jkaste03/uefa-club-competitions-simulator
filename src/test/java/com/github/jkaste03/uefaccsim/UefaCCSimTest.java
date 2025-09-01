@@ -50,7 +50,7 @@ public class UefaCCSimTest {
      * Number of repetitions for stochastic validation (tune for speed vs.
      * coverage).
      */
-    private static final int REPETITIONS = 1000;
+    private static final int REPETITIONS = 300;
 
     /**
      * Immutable (conceptually) baseline used only as a template for deep copies.

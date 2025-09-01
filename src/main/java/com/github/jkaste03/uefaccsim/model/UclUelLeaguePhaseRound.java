@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
@@ -67,7 +68,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         final boolean[] isUclWinnerHere = { false };
         if (tournament == Tournament.CHAMPIONS_LEAGUE) {
             clubSlots.stream()
-                    .filter(c -> c.toCompactString().equals(ClubRepository.getLastUclWinnerId()))
+                    .filter(c -> c.getClubIdWrapper().id() == ClubRepository.getLastUclWinnerId())
                     .findFirst()
                     .ifPresent(c -> {
                         Collections.swap(clubSlots, 0, clubSlots.indexOf(c));
@@ -202,56 +203,6 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             potLists.add(potCopy);
         }
 
-        // A small helper to compute candidates for a given slot.
-        // java.util.function.Function<Slot, List<ClubSlot>> computeCandidates = (slot)
-        // -> {
-        // List<ClubSlot> candidates = new ArrayList<>();
-        // List<ClubSlot> pool = potLists.get(slot.targetPot);
-        // for (ClubSlot candidate : pool) {
-        // if (candidate.equals(slot.owner))
-        // continue;
-        // if (assignedOpp.get(slot.owner).contains(candidate))
-        // continue; // already paired with them
-        // // candidate must have a complementary unfilled slot against owner's pot
-        // int ownersPot = clubToPot.get(slot.owner);
-        // Slot comp = slotsByClub.get(candidate)[ownersPot][slot.complementIndex()];
-        // if (comp.filled)
-        // continue;
-        // // Check that candidate still needs a slot vs this owner's pot (it will: comp
-        // // exists and not filled)
-        // // Check legality
-        // if (isIllegalTie(slot.owner, candidate))
-        // continue;
-        // if (isIllegalTie(candidate, slot.owner))
-        // continue;
-        // // country constraints both ways
-        // // (we will consult a temporary CountryHelper when used; here only structural
-        // // checks)
-        // candidates.add(candidate);
-        // }
-        // // shuffle to give randomness for tie-breaks
-        // Collections.shuffle(candidates, random);
-        // return candidates;
-        // };
-
-        // small convenience on Slot to compute complementary index quickly (home->away
-        // and vice versa)
-        // Java doesn't allow adding method to local class after creation, so add it
-        // here as lambda alternative:
-        // java.util.function.BiFunction<Slot, Boolean, Integer> complementIndex = (s,
-        // dummy) -> s.ownerHome ? 1 : 0;
-
-        // // But to avoid clumsiness, create a method-like lambda to return
-        // complementary
-        // // index:
-        // java.util.function.Function<Slot, Integer> compIndex = (s) -> s.ownerHome ? 1
-        // : 0;
-
-        // Small accessor to slot's complementary index on opponent side:
-        // (ownerHome=true => opponent's ownerHome must be false (index 1), and vice
-        // versa)
-        // We'll use compIndex.apply(slot) to get the index for the candidate's slot.
-
         // However lambdas above are a bit clumsy; we'll create a small static-like
         // helper function using an inner class:
         class SlotHelpers {
@@ -304,7 +255,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         List<Slot> slotList = new ArrayList<>(allSlots);
 
         // MRV selection: pick an unfilled slot with the fewest legal candidates
-        java.util.function.Supplier<Slot> selectNextSlot = () -> {
+        Supplier<Slot> selectNextSlot = () -> {
             Slot best = null;
             int bestCount = Integer.MAX_VALUE;
             for (Slot s : slotList) {
@@ -520,64 +471,16 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             throw new RuntimeException("Kunne ikke fullføre trekningen: backtracking mislyktes.");
         }
 
-        // Etter løkka: håndter resultat
-        // if (!overallSolved) {
-        // // prøv fallback som tidligere (f.eks. deterministic stochastic attempts)
-        // final int FALLBACK_ATTEMPTS = 10;
-        // boolean fallbackSuccess = false;
-        // for (int fb = 0; fb < FALLBACK_ATTEMPTS && !fallbackSuccess; fb++) {
-        // // reset slots and state
-        // for (Slot s : slotList) {
-        // s.filled = false;
-        // s.opponent = null;
-        // }
-        // assignedOpp.clear();
-        // for (ClubSlot c : allClubs)
-        // assignedOpp.put(c, new HashSet<>());
-        // countryHelper.clear();
-        // // re-shuffle pot lists to attempt different randomization
-        // for (int p = 0; p < POT_COUNT; p++) {
-        // Collections.shuffle(potLists.get(p), random);
-        // }
-        // Solver fbSolver = new Solver();
-        // fbSolver.solve(0);
-        // if (solved[0]) {
-        // fallbackSuccess = true;
-        // overallSolved = true;
-        // break;
-        // }
-        // }
-        // if (!overallSolved) {
-        // throw new RuntimeException("Kunne ikke fullføre trekningen: backtracking
-        // mislyktes.");
-        // }
-        // }
-
-        System.out.println("[LeaguePhase draw stats][" + Thread.currentThread().getName() + "] " + lastDrawStats);
+        // System.out.println("[LeaguePhase draw stats][" +
+        // Thread.currentThread().getName() + "] " + lastDrawStats);
 
         // Build ties list from filled slots (each pair will appear twice as two
         // complementary slots; we only add one per pair)
         List<SingleLeggedTie> results = new ArrayList<>();
-        Set<String> seenPairs = new HashSet<>();
         for (Slot s : slotList) {
-            if (!s.filled)
-                continue;
-            ClubSlot a = s.owner;
-            ClubSlot b = s.opponent;
-            // create an unordered key
-            String key = a.toCompactString() + "-" + b.toCompactString();
-            String revKey = b.toCompactString() + "-" + a.toCompactString();
-            if (seenPairs.contains(key) || seenPairs.contains(revKey))
-                continue;
-            // Determine home/away as stored in s.ownerHome: if s.ownerHome==true then owner
-            // at home
-            if (s.ownerHome) {
-                results.add(new SingleLeggedTie(a, b));
-            } else {
-                results.add(new SingleLeggedTie(b, a));
-            }
-            seenPairs.add(key);
-            seenPairs.add(revKey);
+            if (!s.filled || !s.ownerHome)
+                continue; // legg kun til én gang pr oppgjør
+            results.add(new SingleLeggedTie(s.owner, s.opponent));
         }
 
         // Assign to ties field
