@@ -110,9 +110,9 @@ public class UefaCCSimTest {
         Rounds sim = simulateOnce("LP-" + repInfo.getCurrentRepetition());
         for (Round r : sim.getRoundsOfType(RoundType.LEAGUE_PHASE)) {
             LeaguePhaseRound lp = (LeaguePhaseRound) r;
-            if (lp.getTournament() == Tournament.CONFERENCE_LEAGUE) {
-                continue; // Skip per original logic (you handle UECL separately later)
-            }
+            // if (lp.getTournament() == Tournament.CONFERENCE_LEAGUE) {
+            // continue; // Skip per original logic (you handle UECL separately later)
+            // }
             List<LeaguePhaseRound.Pot> pots = lp.getPots();
             List<SingleLeggedTie> ties = lp.getTies();
             List<ClubSlot> clubSlots = lp.getClubSlots();

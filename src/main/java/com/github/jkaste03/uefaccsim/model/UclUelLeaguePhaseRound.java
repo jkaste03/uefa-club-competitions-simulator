@@ -158,18 +158,20 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             final ClubSlot owner;
             final int targetPot;
             final boolean ownerHome;
+            final int ownersPot; // cached pot index of owner to avoid map lookups
             boolean filled = false;
             ClubSlot opponent = null;
 
-            Slot(ClubSlot owner, int targetPot, boolean ownerHome) {
+            Slot(ClubSlot owner, int targetPot, boolean ownerHome, int ownersPot) {
                 this.owner = owner;
                 this.targetPot = targetPot;
                 this.ownerHome = ownerHome;
+                this.ownersPot = ownersPot;
             }
 
-            // int complementIndex() {
-            // return ownerHome ? 1 : 0;
-            // }
+            int complementIndex() { // replaces SlotHelpers.compIndexOf
+                return ownerHome ? 1 : 0;
+            }
         }
 
         // Prepare slots and quick access structures
@@ -177,10 +179,11 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         List<Slot> allSlots = new ArrayList<>(allClubs.size() * POT_COUNT * 2);
 
         for (ClubSlot club : allClubs) {
+            int ownersPot = clubToPot.get(club);
             Slot[][] arr = new Slot[POT_COUNT][2];
             for (int p = 0; p < POT_COUNT; p++) {
-                arr[p][0] = new Slot(club, p, true); // owner plays home vs pot p
-                arr[p][1] = new Slot(club, p, false); // owner plays away vs pot p
+                arr[p][0] = new Slot(club, p, true, ownersPot); // owner plays home vs pot p
+                arr[p][1] = new Slot(club, p, false, ownersPot); // owner plays away vs pot p
                 allSlots.add(arr[p][0]);
                 allSlots.add(arr[p][1]);
             }
@@ -203,18 +206,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             potLists.add(potCopy);
         }
 
-        // However lambdas above are a bit clumsy; we'll create a small static-like
-        // helper function using an inner class:
-        class SlotHelpers {
-            int compIndexOf(Slot s) {
-                return s.ownerHome ? 1 : 0;
-            }
-        }
-        SlotHelpers slotHelpers = new SlotHelpers();
-
-        // To let Slot access the complement index quickly, add a tiny method via
-        // reflection-like approach:
-        // instead use slotHelpers.compIndexOf(slot) where needed.
+        // Removed SlotHelpers indirection; Slot now exposes complementIndex().
 
         // Now implement backtracking solver with MRV and forward checking.
         CountryHelper countryHelper = new CountryHelper();
@@ -225,8 +217,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             if (assignedOpp.get(slot.owner).contains(candidate))
                 return false;
             // candidate complementary slot must be free
-            int ownersPot = clubToPot.get(slot.owner);
-            Slot candidateComp = slotsByClub.get(candidate)[ownersPot][slotHelpers.compIndexOf(slot)];
+            int ownersPot = slot.ownersPot;
+            Slot candidateComp = slotsByClub.get(candidate)[ownersPot][slot.complementIndex()];
             if (candidateComp.filled)
                 return false;
             // illegal tie checks
@@ -242,11 +234,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             return true;
         };
 
-        // Pre-calc owners pot for each slot to avoid repeated map lookups
-        Map<Slot, Integer> ownersPotCache = new HashMap<>();
-        for (Slot s : allSlots) {
-            ownersPotCache.put(s, clubToPot.get(s.owner));
-        }
+        // ownersPot cached inside Slot; ownersPotCache Map removed.
 
         // Helper: count unfilled slots
         final int totalSlots = allSlots.size();
@@ -264,7 +252,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 // quick heuristic: if the owner already has many assigned opponents, it's more
                 // constrained
                 // But we compute exact candidate count:
-                int ownersPot = ownersPotCache.get(s);
+                int ownersPot = s.ownersPot;
                 List<ClubSlot> pool = potLists.get(s.targetPot);
                 int cnt = 0;
                 for (ClubSlot cand : pool) {
@@ -272,7 +260,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                         continue;
                     if (assignedOpp.get(s.owner).contains(cand))
                         continue;
-                    Slot comp = slotsByClub.get(cand)[ownersPot][slotHelpers.compIndexOf(s)];
+                    Slot comp = slotsByClub.get(cand)[ownersPot][s.complementIndex()];
                     if (comp.filled)
                         continue;
                     if (isIllegalTie(s.owner, cand))
@@ -329,8 +317,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                     return; // no slot found — dead end
 
                 // generate candidates in randomized order (but deterministic per Random)
-                List<ClubSlot> candidates = new ArrayList<>();
                 List<ClubSlot> pool = potLists.get(slot.targetPot);
+                List<ClubSlot> candidates = new ArrayList<>(pool.size()); // preallocate
                 for (ClubSlot cand : pool) {
                     if (!slotCandidateLegal.test(slot, cand))
                         continue;
@@ -342,14 +330,14 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
 
                 Collections.shuffle(candidates, random); // random tie-break
 
-                int ownersPot = ownersPotCache.get(slot);
+                int ownersPot = slot.ownersPot;
 
                 for (ClubSlot cand : candidates) {
                     if (restartRequested[0])
                         return; // stopp tidlig hvis restart bedt om
                     lastDrawStats.assignmentAttempts++;
                     // check complementary slot again and assign
-                    Slot comp = slotsByClub.get(cand)[ownersPot][slotHelpers.compIndexOf(slot)];
+                    Slot comp = slotsByClub.get(cand)[ownersPot][slot.complementIndex()];
                     if (comp.filled)
                         continue; // double-check race condition
 
@@ -370,13 +358,13 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                             continue;
                         boolean has = false;
                         List<ClubSlot> pool2 = potLists.get(s2.targetPot);
-                        int ownersPot2 = ownersPotCache.get(s2);
+                        int ownersPot2 = s2.ownersPot;
                         for (ClubSlot cand2 : pool2) {
                             if (cand2.equals(s2.owner))
                                 continue;
                             if (assignedOpp.get(s2.owner).contains(cand2))
                                 continue;
-                            Slot comp2 = slotsByClub.get(cand2)[ownersPot2][slotHelpers.compIndexOf(s2)];
+                            Slot comp2 = slotsByClub.get(cand2)[ownersPot2][s2.complementIndex()];
                             if (comp2.filled)
                                 continue;
                             if (isIllegalTie(s2.owner, cand2))

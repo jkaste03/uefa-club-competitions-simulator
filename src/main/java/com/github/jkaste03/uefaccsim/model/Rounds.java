@@ -229,7 +229,8 @@ public class Rounds implements Serializable {
      */
     private void seedDrawRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
-            // if (round.getName().equals("CHAMPIONS_LEAGUE LEAGUE_PHASE")) {
+            // if (round.getTournament() == Tournament.CONFERENCE_LEAGUE
+            // && round.getRoundType() == RoundType.LEAGUE_PHASE) {
             // long start = System.nanoTime();
             // round.seedDraw();
             // long elapsedNs = System.nanoTime() - start;
