@@ -229,17 +229,17 @@ public class Rounds implements Serializable {
      */
     private void seedDrawRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
-            // if (round.getTournament() == Tournament.CONFERENCE_LEAGUE
-            // && round.getRoundType() == RoundType.LEAGUE_PHASE) {
-            // long start = System.nanoTime();
+            if (round.getTournament() == Tournament.CONFERENCE_LEAGUE
+                    && round.getRoundType() == RoundType.LEAGUE_PHASE) {
+                long start = System.nanoTime();
+                round.seedDraw();
+                long elapsedNs = System.nanoTime() - start;
+                System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
+                        Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
+            } else {
+                round.seedDraw();
+            }
             // round.seedDraw();
-            // long elapsedNs = System.nanoTime() - start;
-            // System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
-            // Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
-            // } else {
-            // round.seedDraw();
-            // }
-            round.seedDraw();
         });
     }
 
