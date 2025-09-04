@@ -29,6 +29,11 @@ public abstract class LeaguePhaseRound extends Round {
         public String toString() {
             return "Pot " + (index + 1) + " " + clubs;
         }
+
+        public String toCompactString() {
+            return "Pot " + (index + 1) + " "
+                    + clubs.stream().map(ClubSlot::toCompactString).collect(java.util.stream.Collectors.joining(", "));
+        }
     }
 
     /**

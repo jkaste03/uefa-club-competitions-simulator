@@ -139,13 +139,20 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
             for (int j = i; j < POT_COUNT; ++j)
                 unorderedPairs.add(new int[] { i, j });
 
-        // cached intra matchinger per pot (pruned for isIllegalTie)
+        // cached intra matchinger per pot (pruned for political forbids,
+        // and constrained to minimal necessary same-country edges)
         List<List<int[]>> intraCache = new ArrayList<>();
         for (int p = 0; p < POT_COUNT; ++p) {
             List<int[]> list = new ArrayList<>();
             List<Integer> members = potIndices[p];
             boolean[] used = new boolean[6];
             int[] cur = new int[6];
+
+            // Temporary store of all non-political perfect pairings and counts of
+            // same-country edges
+            List<int[]> allPairings = new ArrayList<>();
+            List<Integer> sameCounts = new ArrayList<>();
+
             class Gen {
                 void dfs(int pos) {
                     int i = 0;
@@ -155,17 +162,28 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                         int[] pairFlat = new int[6];
                         for (int k = 0; k < 6; ++k)
                             pairFlat[k] = members.get(cur[k]);
+                        // check for political forbids and count same-country edges
                         boolean ok = true;
+                        int same = 0;
                         for (int k = 0; k < 6; k += 2) {
                             ClubSlot a = idxToClub[pairFlat[k]];
                             ClubSlot b = idxToClub[pairFlat[k + 1]];
-                            if (isIllegalTie(a, b)) {
+                            Country ca = a.getCountries().get(0);
+                            Country cb = b.getCountries().get(0);
+                            boolean sameCountry = (ca == cb);
+                            boolean illegal = isIllegalTie(a, b);
+                            boolean political = illegal && !sameCountry;
+                            if (political) {
                                 ok = false;
                                 break;
                             }
+                            if (sameCountry)
+                                same++;
                         }
-                        if (ok)
-                            list.add(pairFlat);
+                        if (ok) {
+                            allPairings.add(pairFlat);
+                            sameCounts.add(same);
+                        }
                         return;
                     }
                     used[i] = true;
@@ -181,6 +199,23 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                 }
             }
             new Gen().dfs(0);
+
+            if (allPairings.isEmpty()) {
+                // ingen mulig pairing uten å bryte politiske forbud -> umulig
+                throw new IllegalStateException("No valid (non-political) intra-pot pairing for pot " + p);
+            }
+
+            // Finn minste antall same-country edges blant gyldige pairinger
+            int minSame = Integer.MAX_VALUE;
+            for (int v : sameCounts)
+                minSame = Math.min(minSame, v);
+
+            // Behold kun pairinger som har akkurat minSame same-country edges
+            for (int i = 0; i < allPairings.size(); ++i) {
+                if (sameCounts.get(i) == minSame)
+                    list.add(allPairings.get(i));
+            }
+
             intraCache.add(list);
         }
 
@@ -304,8 +339,10 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
 
         Solver s = new Solver();
         boolean solved = s.solve(0);
-        if (!solved)
+        if (!solved) {
+            pots.forEach(p -> System.out.println(p.toCompactString()));
             throw new RuntimeException("Conference League draw failed: no valid configuration found");
+        }
 
         // --- samle alle edges (108) ---
         List<int[]> allEdges = new ArrayList<>();
