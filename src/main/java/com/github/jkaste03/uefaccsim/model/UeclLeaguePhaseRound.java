@@ -85,10 +85,10 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         }
 
         // pot -> liste av indekser (0..35)
-        List<Integer>[] potIndices = new ArrayList[POT_COUNT];
+        List<List<Integer>> potIndices = new ArrayList<>(POT_COUNT);
         for (int p = 0; p < POT_COUNT; ++p) {
-            potIndices[p] = pots.get(p).clubs().stream().map(idxOf::get)
-                    .collect(Collectors.toCollection(ArrayList::new));
+            potIndices.add(pots.get(p).clubs().stream().map(idxOf::get)
+                    .collect(Collectors.toCollection(ArrayList::new)));
         }
 
         // country counters (foreign only)
@@ -144,7 +144,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         List<List<int[]>> intraCache = new ArrayList<>();
         for (int p = 0; p < POT_COUNT; ++p) {
             List<int[]> list = new ArrayList<>();
-            List<Integer> members = potIndices[p];
+            List<Integer> members = potIndices.get(p);
             boolean[] used = new boolean[6];
             int[] cur = new int[6];
 
@@ -267,8 +267,8 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                     }
                     return false;
                 } else {
-                    List<Integer> A = potIndices[pa];
-                    List<Integer> B = potIndices[pb];
+                    List<Integer> A = potIndices.get(pa);
+                    List<Integer> B = potIndices.get(pb);
                     int n = A.size();
                     boolean[][] allowed = new boolean[n][n];
                     for (int i = 0; i < n; ++i)
@@ -360,7 +360,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         // precompute potOfIndex for quick lookup
         int[] potOf = new int[idxToClub.length];
         for (int p = 0; p < POT_COUNT; ++p)
-            for (int id : potIndices[p])
+            for (int id : potIndices.get(p))
                 potOf[id] = p;
 
         // adjacency from node -> list of edge indices
@@ -520,7 +520,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
 
         ties = resultTies;
 
-        ties.forEach(t -> System.out.println(t.toCompactString()));
+        // ties.forEach(t -> System.out.println(t.toCompactString()));
     }
 
     // --- Gaussian elim over GF(2) helper ---
