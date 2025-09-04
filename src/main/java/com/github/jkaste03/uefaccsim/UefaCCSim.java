@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import com.github.jkaste03.uefaccsim.model.Rounds;
@@ -33,7 +32,7 @@ import com.github.jkaste03.uefaccsim.model.Rounds;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 1;
+    private static final int SIMS = 1000;
 
     /**
      * Application entry point that performs a configurable number of independent

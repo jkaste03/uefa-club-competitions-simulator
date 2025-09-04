@@ -11,7 +11,6 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
-import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.ClubIdWrapper;
 import com.github.jkaste03.uefaccsim.model.ClubSlot;
 import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;

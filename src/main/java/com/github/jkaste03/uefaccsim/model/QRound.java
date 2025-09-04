@@ -25,10 +25,9 @@ public class QRound extends Round {
      * plenty).
      */
     private static final int MAX_DRAW_ATTEMPTS = 500;
-    // private final static String ROUND_CLUBS_SKIP_TO =
-    // Tournament.CONFERENCE_LEAGUE + " " + CompetitionData.RoundType.Q3
-    // + " " + CompetitionData.PathType.CHAMPIONS_PATH;
 
+    // TODO: Consider moving ties to new abstract class above QRound and
+    // KnockOutRound
     private final List<DoubleLeggedTie> ties = new ArrayList<>();
     private final PathType pathType;
     private final List<ClubSlot> seeded = new ArrayList<>();
@@ -290,7 +289,8 @@ public class QRound extends Round {
     }
 
     /**
-     * Plays the ties in the qualifying round.
+     * Plays the ties in the qualifying round. TODO: Consider moving to new
+     * abstract class above QRound and KnockOutRound, or to Round
      */
     public void play(ClubEloDataLoader clubEloDataLoader) {
         for (DoubleLeggedTie tie : ties) {

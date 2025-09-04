@@ -34,42 +34,16 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
     }
 
     /**
-     * Seeds the club slots into pots for the league phase.
-     * 
-     * <p>
-     * This method performs the following steps:
-     * </p>
-     * <ol>
-     * <li>Ensures the number of club slots is divisible by {@code POT_COUNT}. If
-     * not, throws an {@link IllegalStateException}.</li>
-     * <li>Sorts the club slots.</li>
-     * <li>Divides the club slots into pots for the league phase and prints each
-     * pot.</li>
-     * </ol>
-     * 
-     * @throws IllegalStateException if the number of club slots is not divisible
-     *                               by {@code POT_COUNT}.
+     * Returns the number of pots used in the league phase round.
+     *
+     * @return the pot count as an integer
      */
     @Override
-    protected void seed() {
-        // Ensure the number of clubSlots is divisible by POT_COUNT.
-        if (clubSlots == null || clubSlots.size() % POT_COUNT != 0) {
-            throw new IllegalStateException("ClubSlot count must be divisible by " + POT_COUNT + " to seed properly.");
-        }
-
-        // Sort the club slots based on their ranking.
-        clubSlots.sort((c1, c2) -> Float.compare(c1.getRanking(tournament), c2.getRanking(tournament)));
-
-        int potSize = clubSlots.size() / POT_COUNT;
-
-        // Divide the club slots into pots for the league phase.
-        for (int i = 0; i < POT_COUNT; i++) {
-            // Defensive copy to decouple from backing list
-            addPot(i, new java.util.ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-            // printClubSlotList(pots.get(i).clubs());
-        }
+    protected int getPotCount() {
+        return POT_COUNT;
     }
 
+    // TODO: Missing javadoc
     @Override
     protected void draw() {
         if (pots.size() != POT_COUNT)

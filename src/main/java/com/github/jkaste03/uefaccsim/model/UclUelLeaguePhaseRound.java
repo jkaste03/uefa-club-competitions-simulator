@@ -19,11 +19,14 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
  * league format specific to those competitions.
  */
 public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
+    /**
+     * The number of pots used for seeding clubs in the league phase.
+     */
     private final static int POT_COUNT = 4;
     private static final int MAX_RECURSIVE_CALLS = 300;
     private static final int MAX_RESTARTS = 20;
 
-    // Statistikk for siste draw()
+    // Statistikk for siste draw() TODO: Clean mess
     public static final class DrawStats {
         public long recursiveCalls;
         public long assignmentAttempts;
@@ -45,39 +48,24 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         return lastDrawStats;
     }
 
+    /**
+     * Constructs a Champions/Europa LeaguePhaseRound.
+     *
+     * @param tournament the tournament for which this league phase round is
+     *                   initialized.
+     */
     public UclUelLeaguePhaseRound(Tournament tournament) {
         super(tournament);
     }
 
+    /**
+     * Returns the number of pots used in the league phase round.
+     *
+     * @return the pot count as an integer
+     */
     @Override
-    protected void seed() {
-        if (clubSlots == null || clubSlots.size() % POT_COUNT != 0) {
-            throw new IllegalStateException("ClubSlot count must be divisible by " + POT_COUNT + " to seed properly.");
-        }
-
-        sortClubSlots();
-
-        int potSize = clubSlots.size() / POT_COUNT;
-
-        for (int i = 0; i < POT_COUNT; i++) {
-            addPot(i, new ArrayList<>(clubSlots.subList(i * potSize, (i + 1) * potSize)));
-        }
-    }
-
-    private void sortClubSlots() {
-        final boolean[] isUclWinnerHere = { false };
-        if (tournament == Tournament.CHAMPIONS_LEAGUE) {
-            clubSlots.stream()
-                    .filter(c -> c.getClubIdWrapper().id() == ClubRepository.getLastUclWinnerId())
-                    .findFirst()
-                    .ifPresent(c -> {
-                        Collections.swap(clubSlots, 0, clubSlots.indexOf(c));
-                        isUclWinnerHere[0] = true;
-                    });
-        }
-
-        clubSlots.subList(isUclWinnerHere[0] ? 1 : 0, clubSlots.size())
-                .sort((c1, c2) -> Float.compare(c1.getRanking(tournament), c2.getRanking(tournament)));
+    protected int getPotCount() {
+        return POT_COUNT;
     }
 
     /**
