@@ -26,9 +26,6 @@ public class QRound extends Round {
      */
     private static final int MAX_DRAW_ATTEMPTS = 500;
 
-    // TODO: Consider moving ties to new abstract class above QRound and
-    // KnockOutRound
-    private final List<DoubleLeggedTie> ties = new ArrayList<>();
     private final PathType pathType;
     private final List<ClubSlot> seeded = new ArrayList<>();
     private final List<ClubSlot> unseeded = new ArrayList<>();
@@ -57,8 +54,17 @@ public class QRound extends Round {
         return super.getName() + " " + roundType + " " + pathType;
     }
 
-    public List<DoubleLeggedTie> getTies() {
-        return ties;
+    /**
+     * Creates a new double-legged tie between two club slots for the current
+     * tournament round. Order of clubs matters.
+     *
+     * @param club1 the first club slot participating in the tie
+     * @param club2 the second club slot participating in the tie
+     * @return a new {@link DoubleLeggedTie} instance involving the specified clubs
+     *         and tournament
+     */
+    protected Tie newTie(ClubSlot club1, ClubSlot club2) {
+        return new DoubleLeggedTie(club1, club2, tournament);
     }
 
     /**
@@ -140,9 +146,9 @@ public class QRound extends Round {
     }
 
     /**
-     * Attempts to construct a complete one-to-one matching (set of DoubleLeggedTie
-     * instances) between the supplied seeded and unseeded club slots subject to
-     * pairing constraints (as enforced by {@code isIllegalTie}). This method uses a
+     * Attempts to construct a complete one-to-one matching (set of Tie instances)
+     * between the supplied seeded and unseeded club slots subject to pairing
+     * constraints (as enforced by {@code isIllegalTie}). This method uses a
      * recursive backtracking search enhanced with:
      * <ul>
      * <li>MRV (Minimum Remaining Values) heuristic: always expand a seeded club
@@ -155,7 +161,7 @@ public class QRound extends Round {
      * 
      * @param remainingSeeded   the list of seeded ClubSlot instances
      * @param remainingUnseeded the list of unseeded ClubSlot instances
-     * @param result            accumulator list to which confirmed DoubleLeggedTie
+     * @param result            accumulator list to which confirmed Tie
      *                          pairings are appended in order
      * @param rng               source of randomness for shuffling selection and tie
      *                          orientation
@@ -163,7 +169,7 @@ public class QRound extends Round {
      *         is possible
      */
     private boolean buildMatching(List<ClubSlot> remainingSeeded, List<ClubSlot> remainingUnseeded,
-            List<DoubleLeggedTie> result, java.util.Random rng) {
+            List<Tie> result, java.util.Random rng) {
         if (remainingSeeded.isEmpty()) {
             return true; // all paired
         }
@@ -212,9 +218,9 @@ public class QRound extends Round {
             List<ClubSlot> newRemainingUnseeded = new ArrayList<>(remainingUnseeded);
             newRemainingUnseeded.remove(opp);
 
-            DoubleLeggedTie tie = rng.nextBoolean()
-                    ? new DoubleLeggedTie(nextSeeded, opp, tournament)
-                    : new DoubleLeggedTie(opp, nextSeeded, tournament);
+            Tie tie = rng.nextBoolean()
+                    ? (Tie) newTie(nextSeeded, opp)
+                    : (Tie) newTie(opp, nextSeeded);
             result.add(tie);
 
             if (buildMatching(newRemainingSeeded, newRemainingUnseeded, result, rng)) {
@@ -293,7 +299,7 @@ public class QRound extends Round {
      * abstract class above QRound and KnockOutRound, or to Round
      */
     public void play(ClubEloDataLoader clubEloDataLoader) {
-        for (DoubleLeggedTie tie : ties) {
+        for (Tie tie : ties) {
             tie.play(clubEloDataLoader);
         }
         // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches

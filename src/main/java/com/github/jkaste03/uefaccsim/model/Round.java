@@ -13,6 +13,7 @@ import java.util.ArrayList;
  * Abstract class representing a round in the UEFA competitions.
  */
 public abstract class Round implements Serializable {
+    protected List<Tie> ties = new ArrayList<>();
     protected final Tournament tournament;
     protected final RoundType roundType;
     // References to the next rounds
@@ -39,6 +40,10 @@ public abstract class Round implements Serializable {
      */
     public String getName() {
         return tournament + "";
+    }
+
+    public List<Tie> getTies() {
+        return ties;
     }
 
     public Tournament getTournament() {

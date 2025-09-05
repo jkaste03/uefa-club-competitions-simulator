@@ -14,7 +14,6 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
  * format.
  */
 public abstract class LeaguePhaseRound extends Round {
-    protected List<SingleLeggedTie> ties;
     protected final List<Pot> pots = new ArrayList<>();
 
     /**
@@ -56,10 +55,6 @@ public abstract class LeaguePhaseRound extends Round {
     @Override
     public String getName() {
         return super.getName() + " " + RoundType.LEAGUE_PHASE;
-    }
-
-    public List<SingleLeggedTie> getTies() {
-        return ties;
     }
 
     public List<Pot> getPots() {

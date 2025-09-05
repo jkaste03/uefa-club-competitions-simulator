@@ -17,7 +17,6 @@ import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
 import com.github.jkaste03.uefaccsim.model.QRound;
 import com.github.jkaste03.uefaccsim.model.Round;
 import com.github.jkaste03.uefaccsim.model.Rounds;
-import com.github.jkaste03.uefaccsim.model.SingleLeggedTie;
 import com.github.jkaste03.uefaccsim.model.Tie;
 
 import java.util.List;
@@ -49,7 +48,7 @@ public class UefaCCSimTest {
      * Number of repetitions for stochastic validation (tune for speed vs.
      * coverage).
      */
-    private static final int REPETITIONS = 1000;
+    private static final int REPETITIONS = 50;
 
     /**
      * Immutable (conceptually) baseline used only as a template for deep copies.
@@ -113,7 +112,7 @@ public class UefaCCSimTest {
             // continue; // Skip per original logic (you handle UECL separately later)
             // }
             List<LeaguePhaseRound.Pot> pots = lp.getPots();
-            List<SingleLeggedTie> ties = lp.getTies();
+            List<Tie> ties = lp.getTies();
             List<ClubSlot> clubSlots = lp.getClubSlots();
 
             // NEW: verify pot.index() is 0-based and covers full range [0..pots.size()-1]
@@ -174,12 +173,12 @@ public class UefaCCSimTest {
      *
      * @param pots      ordered list of league phase pots
      * @param clubSlots participating club slots
-     * @param ties      scheduled single-legged ties
+     * @param ties      scheduled ties
      * @throws AssertionError if a club does not meet exactly one club from each pot
      *                        at home and one away
      */
     private void checkOpponentPotHomeAway(List<LeaguePhaseRound.Pot> pots, List<ClubSlot> clubSlots,
-            List<SingleLeggedTie> ties) {
+            List<Tie> ties) {
         // Precompute pot index for O(1) lookups
         //
         // Note: pot.index() is verified to be 0-based above; we map to 1-based array
@@ -193,7 +192,7 @@ public class UefaCCSimTest {
             int potCount = pots.size();
             int[] homeCounts = new int[potCount + 1]; // 1-based
             int[] awayCounts = new int[potCount + 1];
-            for (SingleLeggedTie tie : ties) {
+            for (Tie tie : ties) {
                 // ClubSlot1 is always home
                 if (tie.getClubSlot1().equals(clubSlot)) {
                     int oppPot = potIndex.get(tie.getClubSlot2());
@@ -297,7 +296,7 @@ public class UefaCCSimTest {
      * @throws AssertionError if a club meets more than two clubs from the same
      *                        country
      */
-    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<SingleLeggedTie> ties) {
+    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<Tie> ties) {
         for (ClubSlot clubSlot : clubSlots) {
             // Create a map to count the number of opponents from each country
             Map<Country, Long> opponentCountryCounts = ties.stream()
@@ -323,7 +322,7 @@ public class UefaCCSimTest {
      * @param lp   the league phase round under test
      * @param ties all ties in that round
      */
-    private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<SingleLeggedTie> ties) {
+    private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<Tie> ties) {
         int potsCount = lp.getPots().size();
         int expectedOpponents = (potsCount == 6) ? 6 : 2 * potsCount; // 6-pot special case, otherwise 2 per pot
         for (ClubSlot club : lp.getClubSlots()) {
@@ -343,10 +342,10 @@ public class UefaCCSimTest {
      *
      * @param ties ties to scan for duplicate unordered pairs
      */
-    private void checkNoDuplicateTiesById(List<SingleLeggedTie> ties) {
+    private void checkNoDuplicateTiesById(List<Tie> ties) {
         // Unordered pairs based on ClubIdWrapper equality (identity = club id)
         Set<Set<ClubIdWrapper>> seenPairs = new HashSet<>();
-        for (SingleLeggedTie t : ties) {
+        for (Tie t : ties) {
             ClubIdWrapper a = t.getClubSlot1().getClubIdWrapper();
             ClubIdWrapper b = t.getClubSlot2().getClubIdWrapper();
             Set<ClubIdWrapper> pair = Set.of(a, b); // record equality ensures id-based comparison

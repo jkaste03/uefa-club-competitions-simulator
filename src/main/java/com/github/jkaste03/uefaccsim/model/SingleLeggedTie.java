@@ -13,22 +13,16 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 public class SingleLeggedTie extends Tie {
 
     /*
-     * Constructs a new single-legged tie with the specified club slots.
+     * Constructs a new single-legged tie with the specified club slots. Order
+     * matters.
      */
-    public SingleLeggedTie(ClubSlot club1, ClubSlot club2) {
-        super(club1, club2);
-        // TODO Auto-generated constructor stub
+    public SingleLeggedTie(ClubSlot club1, ClubSlot club2, Tournament tournament) {
+        super(club1, club2, tournament);
     }
 
     @Override
     public void play(ClubEloDataLoader clubEloDataLoader) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'play'");
-    }
-
-    @Override
-    public float getRanking(Tournament callerTournament) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getRanking'");
     }
 }

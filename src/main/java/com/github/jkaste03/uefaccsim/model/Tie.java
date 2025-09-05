@@ -14,6 +14,11 @@ public abstract class Tie implements Serializable {
     protected final ClubSlot clubSlot2;
     protected Integer club1Goals;
     protected Integer club2Goals;
+    protected Boolean club1Winner;
+    /**
+     * The tournament this tie is part of. This is needed
+     */
+    protected final Tournament tournament;
 
     protected static final int SIMS = 10_000; // kun én simulering
     protected static final double HFA = 50; // hjemmebanefordel
@@ -21,31 +26,35 @@ public abstract class Tie implements Serializable {
     protected static final Random rnd = new Random();
 
     /**
-     * Constructs a new Tie representing a pairing between two club slots. Order
-     * matters
+     * Constructs a new Tie representing a pairing between two club slots for a
+     * specific tournament. Order matters
      *
-     * @param clubSlot1 home participant first leg
-     * @param clubSlot2 away participant first leg
+     * @param clubSlot1  home participant first leg
+     * @param clubSlot2  away participant first leg
+     * @param tournament tournament
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
+        this.tournament = tournament;
     }
 
     /**
      * Constructs a new Tie representing a pairing between two club slots with
-     * preset goals. Order matters.
+     * preset goals for a specific tournament. Order matters.
      *
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
      * @param club1Goals goals for club 1
      * @param club2Goals goals for club 2
+     * @param tournament tournament
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals, Integer club2Goals) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals, Integer club2Goals, Tournament tournament) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
         this.club1Goals = club1Goals;
         this.club2Goals = club2Goals;
+        this.tournament = tournament;
     }
 
     public ClubSlot getClubSlot1() {
@@ -64,15 +73,32 @@ public abstract class Tie implements Serializable {
         return club2Goals;
     }
 
+    public Boolean isClub1Winner() {
+        return club1Winner;
+    }
+
+    public Tournament getTournament() {
+        return tournament;
+    }
+
+    /**
+     * Computes this tie's effective ranking relative to a caller tournament by
+     * selecting one of the two underlying club rankings. If the caller tournament
+     * is at a worse level than this tie's tournament, the worst ranking is
+     * returned; otherwise, the best ranking is returned.
+     *
+     * @param callerTournament the tournament context requesting the ranking
+     * @return the ranking
+     */
+    public float getRanking(Tournament callerTournament) {
+        float r1 = clubSlot1.getRanking(tournament), r2 = clubSlot2.getRanking(tournament);
+        return ((tournament.compareTo(callerTournament) > 0) ^ (r1 < r2)) ? r1 : r2;
+    }
+
     public void incrementSeedingCounter(boolean isSeeded) {
         clubSlot1.incrementSeedingCounter(isSeeded);
         clubSlot2.incrementSeedingCounter(isSeeded);
     }
-
-    /**
-     * Get the ranking of the tie given the caller's tournament context.
-     */
-    public abstract float getRanking(Tournament callerTournament);
 
     /**
      * Simulates the tie.

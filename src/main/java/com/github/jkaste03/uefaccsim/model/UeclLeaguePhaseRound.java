@@ -480,16 +480,16 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
             throw new RuntimeException("Failed to compute home/away orientation after restarts");
 
         // Build final ties from orientation (x_e solution)
-        List<SingleLeggedTie> resultTies = new ArrayList<>();
+        List<Tie> resultTies = new ArrayList<>();
         for (int ei = 0; ei < allEdges.size(); ++ei) {
             int u = allEdges.get(ei)[0], v = allEdges.get(ei)[1];
             // convention: if x_e == 0 -> keep stored order u home, v away; if x_e==1 ->
             // reversed
             int x = sol[ei];
             if (x == 0)
-                resultTies.add(new SingleLeggedTie(idxToClub[u], idxToClub[v]));
+                resultTies.add(new SingleLeggedTie(idxToClub[u], idxToClub[v], tournament));
             else
-                resultTies.add(new SingleLeggedTie(idxToClub[v], idxToClub[u]));
+                resultTies.add(new SingleLeggedTie(idxToClub[v], idxToClub[u], tournament));
         }
 
         ties = resultTies;

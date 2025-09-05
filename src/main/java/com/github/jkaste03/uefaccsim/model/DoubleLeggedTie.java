@@ -13,11 +13,6 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
  * behavior for a double-legged tie, including playing the two legs.
  */
 public class DoubleLeggedTie extends Tie {
-    /**
-     * The tournament this tie is part of. This is needed
-     */
-    private final Tournament tournament;
-    private Boolean club1Winner;
 
     /**
      * Constructs a two‑legged tie for the given slots in the specified
@@ -28,8 +23,7 @@ public class DoubleLeggedTie extends Tie {
      * @param tournament tournament
      */
     public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
-        super(clubSlot1, clubSlot2);
-        this.tournament = tournament;
+        super(clubSlot1, clubSlot2, tournament);
     }
 
     /**
@@ -37,61 +31,13 @@ public class DoubleLeggedTie extends Tie {
      * 
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
-     * @param tournament tournament
      * @param club1Goals goals for club 1
      * @param club2Goals goals for club 2
+     * @param tournament tournament
      */
-    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
-            Integer club2Goals) {
-        super(clubSlot1, clubSlot2, club1Goals, club2Goals);
-        this.tournament = tournament;
-    }
-
-    public Tournament getTournament() {
-        return tournament;
-    }
-
-    public Boolean isClub1Winner() {
-        return club1Winner;
-    }
-
-    // Ny metode: løser opp (resolves) eventuelle underliggende Ties til konkrete
-    // ClubSlots
-    // public void resolveSlots() {
-    // clubSlot1 = resolveSlot(clubSlot1);
-    // clubSlot2 = resolveSlot(clubSlot2);
-    // }
-
-    // // Kompakt versjon
-    // private ClubSlot resolveSlot(ClubSlot slot) {
-    // if (!slot.isTie())
-    // return slot;
-    // DoubleLeggedTie t = (DoubleLeggedTie) slot.getTie();
-    // Boolean club1Won = t.isClub1Winner();
-    // if (club1Won == null)
-    // return slot; // Vinner ikke avklart
-    // boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie på
-    // høyere nivå => ta taper
-    // return (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
-    // }
-
-    /**
-     * Computes this tie's effective ranking relative to a caller tournament by
-     * selecting one of the two underlying club rankings. If the caller tournament
-     * is at a worse level than this tie's tournament, the worst ranking is
-     * returned; otherwise, the best ranking is returned.
-     *
-     * @param callerTournament the tournament context requesting the ranking
-     * @return the ranking
-     */
-    @Override
-    public float getRanking(Tournament callerTournament) {
-        float r1 = clubSlot1.getRanking(tournament), r2 = clubSlot2.getRanking(tournament);
-        return ((tournament.compareTo(callerTournament) > 0) ^ (r1 < r2)) ? r1 : r2;
-        // Boolean club1Won = isClub1Winner();
-        // if (club1Won != null) {
-        // return ((club1Won ^ higher) ? clubSlot1 : clubSlot2).getRanking(tournament);
-        // }
+    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals,
+            Integer club2Goals, Tournament tournament) {
+        super(clubSlot1, clubSlot2, club1Goals, club2Goals, tournament);
     }
 
     /**

@@ -452,11 +452,11 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
 
         // Build ties list from filled slots (each pair will appear twice as two
         // complementary slots; we only add one per pair)
-        List<SingleLeggedTie> results = new ArrayList<>();
+        List<Tie> results = new ArrayList<>();
         for (Slot s : slotList) {
             if (!s.filled || !s.ownerHome)
                 continue; // legg kun til én gang pr oppgjør
-            results.add(new SingleLeggedTie(s.owner, s.opponent));
+            results.add(new SingleLeggedTie(s.owner, s.opponent, tournament));
         }
 
         // Assign to ties field

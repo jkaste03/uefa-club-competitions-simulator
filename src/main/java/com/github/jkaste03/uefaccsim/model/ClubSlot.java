@@ -27,21 +27,14 @@ public class ClubSlot implements Serializable {
      * @param clubSlot1 home participant
      * @param clubSlot2 away participant
      */
-    public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2) {
-        this.tie = new SingleLeggedTie(clubSlot1, clubSlot2);
-    }
-
-    /**
-     * Constructs a two‑legged tie for the given child slots in the specified
-     * tournament. Order matters.
-     * 
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
-     * @param tournament tournament
-     */
-    public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
-        this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
-    }
+    // public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, boolean singleLegged,
+    // Tournament tournament) {
+    // if (singleLegged) {
+    // this.tie = new SingleLeggedTie(clubSlot1, clubSlot2, tournament);
+    // } else {
+    // this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
+    // }
+    // }
 
     /**
      * Constructs a two‑legged tie with preset goals (first leg). Order matters.
@@ -52,10 +45,12 @@ public class ClubSlot implements Serializable {
      * @param club1Goals goals for club 1
      * @param club2Goals goals for club 2
      */
-    public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, Integer club1Goals,
-            Integer club2Goals) {
-        this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals, club2Goals);
-    }
+    // public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament
+    // tournament, Integer club1Goals,
+    // Integer club2Goals) {
+    // this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals,
+    // club2Goals);
+    // }
 
     /**
      * Creates a ClubSlot representing a specific club.
@@ -145,7 +140,7 @@ public class ClubSlot implements Serializable {
     public void resolveSlot(Tournament tournament) {
         if (isClub())
             return;
-        DoubleLeggedTie t = (DoubleLeggedTie) getTie();
+        Tie t = getTie();
         Boolean club1Won = t.isClub1Winner();
         if (club1Won == null)
             return; // Vinner ikke avklart
