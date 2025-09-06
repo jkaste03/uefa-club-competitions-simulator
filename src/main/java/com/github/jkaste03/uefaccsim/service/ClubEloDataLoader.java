@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.StreamSupport;
 
 import com.github.jkaste03.uefaccsim.model.ClubRepository;
 
@@ -32,10 +33,40 @@ public class ClubEloDataLoader implements Serializable {
     // Folder for storing downloaded data
     private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefaccsim/data/";
     private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
+    private static String formerFilePath;
     /**
      * Map for storing Elo ratings by club ID.
      */
     private final Map<Integer, Double> eloMap = new HashMap<>();
+
+    public ClubEloDataLoader() {
+        formerFilePath = getLatestCsvFilePath();
+    }
+
+    /**
+     * Retrieves the file path of the latest CSV file in the data folder.
+     * The method searches for files matching the pattern "yyyy-MM-dd.csv" and
+     * returns the one
+     * with the highest (latest) name according to natural order
+     * (lexicographically).
+     *
+     * @return the file path of the latest CSV file, or {@code null} if no matching
+     *         file is found or an error occurs.
+     */
+    private static String getLatestCsvFilePath() {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Path.of(DATA_FOLDER), "*.csv")) {
+            return StreamSupport.stream(stream.spliterator(), false)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .filter(name -> name.matches("\\d{4}-\\d{2}-\\d{2}\\.csv"))
+                    .max(Comparator.naturalOrder())
+                    .map(name -> DATA_FOLDER + name)
+                    .orElse(null);
+        } catch (IOException e) {
+            // System.err.println("Could not list CSV files: " + e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * Initializes the elo data environment.
@@ -78,12 +109,25 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Downloads the CSV file for the given date from the API.
+     * Downloads a CSV file from a remote API for the specified date.
+     * <p>
+     * The method constructs the API URL using the provided date, creates the
+     * necessary data folder,
+     * and attempts to download the CSV file. If the download is successful, it
+     * deletes any existing CSV files
+     * and saves the new file. If a timeout or other error occurs, it falls back to
+     * a previous CSV file if available.
+     * If no previous file is available and the download fails, an
+     * {@link IllegalStateException} is thrown.
+     * </p>
      *
-     * @param date the date for which to download the CSV file.
+     * @param date the {@link LocalDate} for which to download the CSV data
+     * @throws IllegalStateException if the download fails and no previous CSV file
+     *                               is available
      */
     private static void downloadAndReplaceCSV(LocalDate date) {
         String urlString = BASE_URL + date;
+        boolean success = false;
         try {
             Files.createDirectories(Path.of(DATA_FOLDER));
             URI uri = new URI(urlString);
@@ -93,8 +137,9 @@ public class ClubEloDataLoader implements Serializable {
             conn.setReadTimeout(10000); // 10 sekunder
             try (InputStream in = conn.getInputStream()) {
                 deleteExistingCSVFiles();
-                Files.copy(in, Path.of(filePath), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(in, Path.of(filePath));
                 System.out.println("Downloaded API data for " + date);
+                success = true;
             }
         } catch (java.net.SocketTimeoutException e) {
             System.err.println("Timeout while downloading API data from " + urlString + ": " + e.getMessage());
@@ -102,6 +147,12 @@ public class ClubEloDataLoader implements Serializable {
             System.err.println("Invalid URI syntax for API URL: " + urlString + ". " + e.getMessage());
         } catch (IOException e) {
             System.err.println("I/O error while downloading API data from " + urlString + ": " + e.getMessage());
+        }
+        if (!success && formerFilePath != null) {
+            System.err.println("Falling back to previous CSV file: " + formerFilePath);
+            filePath = formerFilePath;
+        } else if (!success) {
+            throw new IllegalStateException("Failed to download API data and no previous CSV file available.");
         }
     }
 
