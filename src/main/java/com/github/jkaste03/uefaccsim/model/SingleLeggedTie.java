@@ -14,10 +14,18 @@ public class SingleLeggedTie extends Tie {
 
     /*
      * Constructs a new single-legged tie with the specified club slots. Order
-     * matters.
+     * matters. Tournament is important in QRounds.
      */
     public SingleLeggedTie(ClubSlot club1, ClubSlot club2, Tournament tournament) {
         super(club1, club2, tournament);
+    }
+
+    /*
+     * Constructs a new single-legged tie with the specified club slots. Order
+     * matters.
+     */
+    public SingleLeggedTie(ClubSlot club1, ClubSlot club2) {
+        super(club1, club2);
     }
 
     @Override

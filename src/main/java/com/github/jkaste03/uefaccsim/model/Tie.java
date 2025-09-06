@@ -26,8 +26,21 @@ public abstract class Tie implements Serializable {
     protected static final Random rnd = new Random();
 
     /**
-     * Constructs a new Tie representing a pairing between two club slots for a
-     * specific tournament. Order matters
+     * Constructs a new Tie representing a pairing between two club slots. Order
+     * matters.
+     *
+     * @param clubSlot1 home participant first leg
+     * @param clubSlot2 away participant first leg
+     */
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+        this.clubSlot1 = clubSlot1;
+        this.clubSlot2 = clubSlot2;
+        tournament = null;
+    }
+
+    /**
+     * Constructs a new Tie representing a pairing between two club slots. Order
+     * matters. Tournament is important in QRounds.
      *
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
@@ -41,7 +54,7 @@ public abstract class Tie implements Serializable {
 
     /**
      * Constructs a new Tie representing a pairing between two club slots with
-     * preset goals for a specific tournament. Order matters.
+     * preset goals. Order matters. Tournament is important in QRounds.
      *
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
@@ -85,14 +98,16 @@ public abstract class Tie implements Serializable {
      * Computes this tie's effective ranking relative to a caller tournament by
      * selecting one of the two underlying club rankings. If the caller tournament
      * is at a worse level than this tie's tournament, the worst ranking is
-     * returned; otherwise, the best ranking is returned.
+     * returned; otherwise, the best ranking is returned. Caller tournament may be
+     * null, because single-legged ties may not need a tournament.
      *
      * @param callerTournament the tournament context requesting the ranking
      * @return the ranking
      */
     public float getRanking(Tournament callerTournament) {
         float r1 = clubSlot1.getRanking(tournament), r2 = clubSlot2.getRanking(tournament);
-        return ((tournament.compareTo(callerTournament) > 0) ^ (r1 < r2)) ? r1 : r2;
+        return ((tournament.compareTo(callerTournament == null ? tournament : callerTournament) > 0) ^ (r1 < r2)) ? r1
+                : r2;
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {

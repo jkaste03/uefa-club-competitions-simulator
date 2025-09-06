@@ -2,6 +2,7 @@ package com.github.jkaste03.uefaccsim.service;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.util.*;
@@ -43,8 +44,8 @@ public class ClubEloDataLoader implements Serializable {
      * <ol>
      * <li>If the expected elo ratings CSV does not exist:
      * <ul>
-     * <li>Deletes any pre-existing CSV files (cleanup of stale data).</li>
-     * <li>Downloads the latest elo dataset using the current system date.</li>
+     * <li>Downloads the latest elo dataset using the current system date, and
+     * replaces the existing CSV(s).</li>
      * </ul>
      * </li>
      * <li>Loads elo ratings from the CSV file into the {@link #eloMap}.</li>
@@ -56,8 +57,7 @@ public class ClubEloDataLoader implements Serializable {
     public void init() {
         // Download file if it does not exist
         if (!Files.exists(Path.of(filePath))) {
-            deleteExistingCSVFiles();
-            downloadCSV(LocalDate.now());
+            downloadAndReplaceCSV(LocalDate.now());
         }
         loadEloRatings();
         validateAllClubsHaveElo();
@@ -79,17 +79,29 @@ public class ClubEloDataLoader implements Serializable {
 
     /**
      * Downloads the CSV file for the given date from the API.
-     * 
+     *
      * @param date the date for which to download the CSV file.
      */
-    private static void downloadCSV(LocalDate date) {
+    private static void downloadAndReplaceCSV(LocalDate date) {
         String urlString = BASE_URL + date;
-        try (InputStream in = new URI(urlString).toURL().openStream()) {
+        try {
             Files.createDirectories(Path.of(DATA_FOLDER));
-            Files.copy(in, Path.of(filePath), StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("Downloaded API data for " + date);
-        } catch (Exception e) {
-            System.err.println("Could not download API data from " + urlString + ": " + e.getMessage());
+            URI uri = new URI(urlString);
+            java.net.URL url = uri.toURL();
+            java.net.URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(5000); // 5 sekunder
+            conn.setReadTimeout(10000); // 10 sekunder
+            try (InputStream in = conn.getInputStream()) {
+                deleteExistingCSVFiles();
+                Files.copy(in, Path.of(filePath), StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Downloaded API data for " + date);
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            System.err.println("Timeout while downloading API data from " + urlString + ": " + e.getMessage());
+        } catch (URISyntaxException e) {
+            System.err.println("Invalid URI syntax for API URL: " + urlString + ". " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("I/O error while downloading API data from " + urlString + ": " + e.getMessage());
         }
     }
 
