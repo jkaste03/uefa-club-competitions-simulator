@@ -194,7 +194,7 @@ public class Rounds implements Serializable {
             // Execute seeding and draws for next round type.
             seedDrawQRounds(getRoundsOfType(roundTypes[i + 1]));
             // Play the matches of the round type.
-            playRounds(roundsOfType);
+            playQRounds(roundsOfType);
         }
         // Finalize League Phase participants: convert any pending tie-based club slots
         // (e.g. Winner of Tie X / Loser of Tie Y) into concrete club entries for all
@@ -268,15 +268,64 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Executes the scheduled matches for the supplied collection of rounds.
-     * 
-     * @param roundsOfType the list of rounds to be simulated
+     * Plays qualifying rounds for the provided list of rounds, grouped by
+     * tournament type.
+     * <p>
+     * The method performs the following steps:
+     * <ol>
+     * <li>Plays all Champions League (UCL) rounds.</li>
+     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * above.</li>
+     * <li>Plays all Europa League (UEL) and Europa Conference League (UECL)
+     * rounds.</li>
+     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * above.</li>
+     * <li>Plays all UCL rounds that use double-legged ties.</li>
+     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * above.</li>
+     * <li>Plays all UEL/UECL rounds that use double-legged ties.</li>
+     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * above.</li>
+     * </ol>
+     *
+     * The reason for this complex workflow is to make sure the inter-league ELO
+     * adjustments (point 2, 4, 5 and 8) are done in a realistic order.
+     *
+     * @param roundsOfType the list of qualifying rounds to be played, grouped by
+     *                     tournament type
      */
-    private void playRounds(List<Round> roundsOfType) {
-        // First legs of play
-        roundsOfType.forEach(r -> r.play(clubEloDataLoader));
-        // Second legs of play to determine tie outcomes.
-        // roundsOfType.forEach(r -> r.play(clubEloDataLoader));
+    private void playQRounds(List<Round> roundsOfType) {
+
+        List<Round> uclRounds = roundsOfType.stream()
+                .filter(r -> r.getTournament() == Tournament.CHAMPIONS_LEAGUE)
+                .toList();
+        List<Round> uelUeclRounds = roundsOfType.stream()
+                .filter(r -> r.getTournament() != Tournament.CHAMPIONS_LEAGUE)
+                .toList();
+
+        // 1. Play all UCL rounds
+        uclRounds.forEach(r -> r.play(clubEloDataLoader));
+        // 2. TODO: Apply all temp ELO changes to the clubs of represented NAs.
+        // TODO
+
+        // 3. Play all UEL/UECL rounds
+        uelUeclRounds.forEach(r -> r.play(clubEloDataLoader));
+        // 4. TODO: Apply all temp ELO changes to the clubs of represented NAs.
+        // TODO
+
+        // 5. Play all UCL rounds with DoubleLeggedTie
+        uclRounds.stream()
+                .filter(r -> !r.getTies().isEmpty() && r.getTies().get(0) instanceof DoubleLeggedTie)
+                .forEach(r -> r.play(clubEloDataLoader));
+        // 6. TODO: Apply all temp ELO changes to the clubs of represented NAs.
+        // TODO
+
+        // 7. Play all UEL/UECL rounds with DoubleLeggedTie
+        uelUeclRounds.stream()
+                .filter(r -> !r.getTies().isEmpty() && r.getTies().get(0) instanceof DoubleLeggedTie)
+                .forEach(r -> r.play(clubEloDataLoader));
+        // 8. TODO: Apply all temp ELO changes to the clubs of represented NAs.
+        // TODO
     }
 
     /**
