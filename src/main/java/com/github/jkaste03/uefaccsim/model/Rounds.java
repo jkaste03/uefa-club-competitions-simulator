@@ -51,10 +51,10 @@ public class Rounds implements Serializable {
      */
     public Rounds() {
         // Create instances for Champions League qualifier rounds.
-        uclQ1CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH, true);
+        uclQ1CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH);
         uclQ2CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
         uclQ2LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH);
-        uclQ3CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH, true);
+        uclQ3CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         uclQ3LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.LEAGUE_PATH);
         uclPoCP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         uclPoLP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
@@ -62,7 +62,7 @@ public class Rounds implements Serializable {
 
         // Create instances for Europa League qualifier rounds.
         uelQ1MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
-        uelQ2MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH, true);
+        uelQ2MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
         uelQ3MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
         uelQ3CP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         uelPo = new QRound(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
@@ -75,7 +75,7 @@ public class Rounds implements Serializable {
         ueclQ3MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
         ueclQ3CP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
-        ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH, true);
+        ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         ueclLP = new UeclLeaguePhaseRound();
 
         // Aggregate all rounds into a list for streamlined processing (order is
