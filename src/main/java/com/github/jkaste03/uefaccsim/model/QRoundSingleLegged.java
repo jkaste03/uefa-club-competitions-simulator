@@ -28,6 +28,6 @@ public class QRoundSingleLegged extends QRound {
      */
     @Override
     protected Tie newTie(ClubSlot club1, ClubSlot club2) {
-        return new SingleLeggedTie(club1, club2, tournament);
+        return new SingleLeggedTie(club1, club2, true, tournament);
     }
 }

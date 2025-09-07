@@ -487,9 +487,9 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
             // reversed
             int x = sol[ei];
             if (x == 0)
-                resultTies.add(new SingleLeggedTie(idxToClub[u], idxToClub[v], tournament));
+                resultTies.add(new SingleLeggedTie(idxToClub[u], idxToClub[v], false));
             else
-                resultTies.add(new SingleLeggedTie(idxToClub[v], idxToClub[u], tournament));
+                resultTies.add(new SingleLeggedTie(idxToClub[v], idxToClub[u], false));
         }
 
         ties = resultTies;
