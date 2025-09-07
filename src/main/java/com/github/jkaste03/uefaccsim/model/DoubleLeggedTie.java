@@ -48,7 +48,7 @@ public class DoubleLeggedTie extends Tie {
 
     // ----------------- Model parameters (tuneable) -----------------
     private static final double PARAM_MEAN_GOALS_PER_TEAM = 1.35; // mu (team mean)
-    private static final double PARAM_K = 0.55; // Elo -> goals scaling
+    private static final double PARAM_K = 0.50; // Elo -> goals scaling (was 0.95)
     private static final double PARAM_HFA = 65.0; // home-field advantage in Elo points
     private static final double PARAM_THETA = 35.0; // NB dispersion
     private static final double[] PARAM_DRAW_INFLATION = { 0.09, 0.05, 0.01 }; // for fav goals 0,1,2
@@ -85,10 +85,13 @@ public class DoubleLeggedTie extends Tie {
 
         // If no first-leg score known -> simulate both legs in order
         if (club1Goals == null) {
-            // FIRST LEG: club1 at home
+            simulateOutCome(elo1, elo2);
+
+            // Simulate first leg
             simulateMatch(elo1, elo2, true);
-            System.out.println("First leg result: " + club1.getName() + " " + club1Goals + " - " + club2Goals + " "
-                    + club2.getName());
+            // System.out.println("First leg result: " + club1.getName() + " " + club1Goals
+            // + " - " + club2Goals + " "
+            // + club2.getName());
             return;
         }
 
@@ -97,8 +100,9 @@ public class DoubleLeggedTie extends Tie {
 
         if (club1Goals != club2Goals) {
             club1Winner = club1Goals > club2Goals;
-            System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals + " - " + club2Goals + " "
-                    + club2.getName());
+            // System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals
+            // + " - " + club2Goals + " "
+            // + club2.getName());
             return;
         }
 
@@ -112,8 +116,9 @@ public class DoubleLeggedTie extends Tie {
 
         if (club1Goals != club2Goals) {
             club1Winner = club1Goals > club2Goals;
-            System.out.println("Aggregate result (AET): " + club1.getName() + " " + club1Goals + " - " + club2Goals
-                    + " " + club2.getName());
+            // System.out.println("Aggregate result (AET): " + club1.getName() + " " +
+            // club1Goals + " - " + club2Goals
+            // + " " + club2.getName());
             return;
         }
 
@@ -123,10 +128,53 @@ public class DoubleLeggedTie extends Tie {
         boolean homePenaltyWinner = simulatePenaltyWinner(elo2, elo1);
         // if homePenaltyWinner == true => club2 wins penalties => club1 loses
         club1Winner = !homePenaltyWinner;
-        System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals + " - " + club2Goals + " "
-                + club2.getName());
-        System.out.println("Penalty shootout winner: " + (club1Winner ? club1.getName() : club2.getName()));
+        // System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals
+        // + " - " + club2Goals + " "
+        // + club2.getName());
+        // System.out.println("Penalty shootout winner: " + (club1Winner ?
+        // club1.getName() : club2.getName()));
         return;
+    }
+
+    private void simulateOutCome(double elo1, double elo2) {
+        int club1WinnerCount = 0;
+        for (int i = 0; i < SIMS; i++) {
+            club1Goals = null;
+            club2Goals = null;
+            club1Winner = null;
+            simulateMatch(elo1, elo2, true);
+            simulateMatch(elo2, elo1, false);
+
+            // System.out.println(club1Goals + "-" + club2Goals);
+
+            if (club1Goals != club2Goals) {
+                club1Winner = club1Goals > club2Goals;
+                club1WinnerCount += club1Winner ? 1 : 0;
+                continue;
+            }
+
+            simulateExtraTime(elo2, elo1);
+
+            if (club1Goals != club2Goals) {
+                club1Winner = club1Goals > club2Goals;
+                club1WinnerCount += club1Winner ? 1 : 0;
+                continue;
+            }
+
+            // Penalties in second leg
+            // simulatePenaltyWinner expects (eloHome, eloAway) where home is venue of
+            // penalties (club2)
+            boolean homePenaltyWinner = simulatePenaltyWinner(elo2, elo1);
+            // if homePenaltyWinner == true => club2 wins penalties => club1 loses
+            club1Winner = !homePenaltyWinner;
+            club1WinnerCount += club1Winner ? 1 : 0;
+        }
+        club1Goals = null;
+        club2Goals = null;
+        club1Winner = null;
+        System.out.println("Probabilities after " + SIMS + " sims: " + clubSlot1.toCompactString() + " win "
+                + (club1WinnerCount * 100.0 / SIMS) + "%, " + clubSlot2.toCompactString() + " win "
+                + ((SIMS - club1WinnerCount) * 100.0 / SIMS) + "%");
     }
 
     // ----------------- Model core functions (adapted / self-contained)

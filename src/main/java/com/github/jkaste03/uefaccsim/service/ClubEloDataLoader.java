@@ -32,7 +32,9 @@ public class ClubEloDataLoader implements Serializable {
     private static final String BASE_URL = "http://api.clubelo.com/";
     // Folder for storing downloaded data
     private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefaccsim/data/";
-    private static String filePath = DATA_FOLDER + LocalDate.now() + ".csv";
+    // private static LocalDate date = LocalDate.of(2025, 8, 20);
+    private static LocalDate date = LocalDate.now();
+    private static String filePath = DATA_FOLDER + date + ".csv";
     private static String formerFilePath;
     /**
      * Map for storing Elo ratings by club ID.
@@ -88,7 +90,7 @@ public class ClubEloDataLoader implements Serializable {
     public void init() {
         // Download file if it does not exist
         if (!Files.exists(Path.of(filePath))) {
-            downloadAndReplaceCSV(LocalDate.now());
+            downloadAndReplaceCSV(date);
         }
         loadEloRatings();
         validateAllClubsHaveElo();

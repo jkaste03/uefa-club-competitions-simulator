@@ -122,6 +122,29 @@ public class QRound extends Round {
      */
     @Override
     public void draw() {
+        // if (tournament == Tournament.CHAMPIONS_LEAGUE
+        // && roundType == RoundType.Q1
+        // && pathType == PathType.CHAMPIONS_PATH
+        // && seeded.size() + unseeded.size() < UCL_Q1_CP_TIES_WITHOUT_REBALANCING * 2)
+        // {
+        // ties.add(createNewTie("Zalgiris Vilnius", "Hamrun"));
+        // ties.add(createNewTie("Kuopio", "Milsami Orhei"));
+        // ties.add(createNewTie("The New Saints", "Shkendija"));
+        // ties.add(createNewTie("Saburtalo", "Malmoe"));
+        // ties.add(createNewTie("FC Infonet", "RFS"));
+
+        // ties.add(createNewTie("Drita", "Differdang"));
+        // ties.add(createNewTie("Gota", "Lincoln"));
+        // ties.add(createNewTie("Egnatia", "Breidablik"));
+        // ties.add(createNewTie("Shelbourne", "Linfield"));
+        // ties.add(createNewTie("Steaua", "Escaldes"));
+
+        // ties.add(createNewTie("SS Virtus", "Zrinjski Mostar"));
+        // ties.add(createNewTie("Olimpija Ljubljana", "Kairat"));
+        // ties.add(createNewTie("Noah", "Podgorica"));
+        // ties.add(createNewTie("Razgrad", "Dinamo Minsk"));
+        // return;
+        // }
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded);
 
@@ -144,6 +167,17 @@ public class QRound extends Round {
                     "Could not construct a legal draw after " + MAX_DRAW_ATTEMPTS + " attempts.");
         }
     }
+
+    // private Tie createNewTie(String club1Name, String club2Name) {
+    // return newTie(clubSlots.stream()
+    // .filter(slot -> slot.toCompactString().equals(club1Name))
+    // .findFirst()
+    // .orElse(null),
+    // clubSlots.stream()
+    // .filter(slot -> slot.toCompactString().equals(club2Name))
+    // .findFirst()
+    // .orElse(null));
+    // }
 
     /**
      * Attempts to construct a complete one-to-one matching (set of Tie instances)
