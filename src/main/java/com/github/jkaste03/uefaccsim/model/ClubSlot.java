@@ -140,7 +140,7 @@ public class ClubSlot implements Serializable {
     public void resolveSlot(Tournament tournament) {
         if (isClub())
             return;
-        Tie t = getTie();
+        KnockoutTie t = (KnockoutTie) getTie();
         Boolean club1Won = t.isClub1Winner();
         if (club1Won == null)
             return; // Vinner ikke avklart

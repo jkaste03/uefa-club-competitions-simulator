@@ -14,7 +14,6 @@ public abstract class Tie implements Serializable {
     protected final ClubSlot clubSlot2;
     protected Integer club1Goals;
     protected Integer club2Goals;
-    protected Boolean club1Winner;
     /**
      * The tournament this tie is part of. This is needed for qualifying rounds,
      * where the tournament affects seeding in the next round.
@@ -98,10 +97,6 @@ public abstract class Tie implements Serializable {
         return club2Goals;
     }
 
-    public Boolean isClub1Winner() {
-        return club1Winner;
-    }
-
     public Tournament getTournament() {
         return tournament;
     }
@@ -111,7 +106,7 @@ public abstract class Tie implements Serializable {
      * selecting one of the two underlying club rankings. If the caller tournament
      * is at a worse level than this tie's tournament, the worst ranking is
      * returned; otherwise, the best ranking is returned. Caller tournament may be
-     * null, because single-legged ties may not need a tournament.
+     * null, because non-knockout ties may not need a tournament.
      *
      * @param callerTournament the tournament context requesting the ranking
      * @return the ranking

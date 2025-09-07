@@ -456,7 +456,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
         for (Slot s : slotList) {
             if (!s.filled || !s.ownerHome)
                 continue; // legg kun til én gang pr oppgjør
-            results.add(new SingleLeggedTie(s.owner, s.opponent, false));
+            results.add(new NonKnockoutTie(s.owner, s.opponent));
         }
 
         // Assign to ties field

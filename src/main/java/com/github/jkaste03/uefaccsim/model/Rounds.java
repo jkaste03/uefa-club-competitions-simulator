@@ -51,10 +51,10 @@ public class Rounds implements Serializable {
      */
     public Rounds() {
         // Create instances for Champions League qualifier rounds.
-        uclQ1CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH);
+        uclQ1CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q1, PathType.CHAMPIONS_PATH, true);
         uclQ2CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.CHAMPIONS_PATH);
         uclQ2LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH);
-        uclQ3CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
+        uclQ3CP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH, true);
         uclQ3LP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.LEAGUE_PATH);
         uclPoCP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         uclPoLP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
@@ -62,7 +62,7 @@ public class Rounds implements Serializable {
 
         // Create instances for Europa League qualifier rounds.
         uelQ1MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
-        uelQ2MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH);
+        uelQ2MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH, true);
         uelQ3MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
         uelQ3CP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         uelPo = new QRound(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
@@ -75,7 +75,7 @@ public class Rounds implements Serializable {
         ueclQ3MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.MAIN_PATH);
         ueclQ3CP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
-        ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
+        ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH, true);
         ueclLP = new UeclLeaguePhaseRound();
 
         // Aggregate all rounds into a list for streamlined processing (order is
@@ -289,7 +289,7 @@ public class Rounds implements Serializable {
      * </ol>
      *
      * The reason for this complex workflow is to make sure the inter-league ELO
-     * adjustments (point 2, 4, 5 and 8) are done in a realistic order.
+     * adjustments (point 2, 4, 6 and 8) are done in a realistic order.
      *
      * @param roundsOfType the list of qualifying rounds to be played, grouped by
      *                     tournament type
@@ -313,16 +313,16 @@ public class Rounds implements Serializable {
         // 4. TODO: Apply all temp ELO changes to the clubs of represented NAs.
         // TODO
 
-        // 5. Play all UCL rounds with DoubleLeggedTie
+        // 5. Play all double-legged UCL rounds
         uclRounds.stream()
-                .filter(r -> !r.getTies().isEmpty() && r.getTies().get(0) instanceof DoubleLeggedTie)
+                .filter(r -> !((QRound) r).isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
         // 6. TODO: Apply all temp ELO changes to the clubs of represented NAs.
         // TODO
 
-        // 7. Play all UEL/UECL rounds with DoubleLeggedTie
+        // 7. Play all double-legged UEL/UECL rounds
         uelUeclRounds.stream()
-                .filter(r -> !r.getTies().isEmpty() && r.getTies().get(0) instanceof DoubleLeggedTie)
+                .filter(r -> !((QRound) r).isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
         // 8. TODO: Apply all temp ELO changes to the clubs of represented NAs.
         // TODO

@@ -4,35 +4,44 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
- * DoubleLeggedTie is a specialized implementation of the Tie class that
- * represents a double-legged tie between two clubs.
+ * Represents a knockout tie, supporting both single-legged and two-legged
+ * formats. Extends {@link Tie} and provides simulation logic for match
+ * outcomes, including extra time and penalties.
  *
- * This implementation contains a full, self-contained match-scoring model:
- * - Elo -> expected goals (exponential scaling)
- * - Negative-binomial sampling via Poisson-Gamma mixture
- * - Dixon-Coles style draw-inflation for low draws
- * - Extra-time and penalty resolution
- * - Two-legged simulation (simulerer første ben først, så returbenet)
- *
- * Tweak the PARAM_* constants to calibrate behaviour for your data.
+ * <p>
+ * Key Features:
+ * <ul>
+ * <li>Supports single-legged and two-legged knockout ties.</li>
+ * <li>Simulates matches using Elo ratings for participating clubs.</li>
+ * <li>Handles aggregate scoring, extra time, and penalty shootouts.</li>
+ * </ul>
+ * </p>
+ * 
+ * @author jkaste03
  */
-public class DoubleLeggedTie extends Tie {
+public class KnockoutTie extends Tie {
     private static final int SIMS = 1000; // antall simuleringer for å estimere sannsynligheter
 
+    protected Boolean club1Winner;
+    private boolean singleLegged = false;
+
     /**
-     * Constructs a two‑legged tie for the given slots in the specified
+     * Constructs a knockout tie for the given slots in the specified
      * tournament. Order matters.
      * 
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
-     * @param tournament tournament
+     * @param clubSlot1    home participant first leg
+     * @param clubSlot2    away participant first leg
+     * @param tournament   tournament
+     * @param singleLegged indicates if the tie is single-legged.
      */
-    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
+    public KnockoutTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, boolean singleLegged) {
         super(clubSlot1, clubSlot2, tournament);
+        this.singleLegged = singleLegged;
     }
 
     /**
-     * Constructs a two‑legged tie with preset goals (first leg). Order matters.
+     * Constructs a two-legged knockout tie with preset goals (first leg). Order
+     * matters.
      * 
      * @param clubSlot1  home participant first leg
      * @param clubSlot2  away participant first leg
@@ -40,9 +49,13 @@ public class DoubleLeggedTie extends Tie {
      * @param club2Goals goals for club 2
      * @param tournament tournament
      */
-    public DoubleLeggedTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals,
+    public KnockoutTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals,
             Integer club2Goals, Tournament tournament) {
         super(clubSlot1, clubSlot2, club1Goals, club2Goals, tournament);
+    }
+
+    public Boolean isClub1Winner() {
+        return club1Winner;
     }
 
     /**
@@ -68,7 +81,7 @@ public class DoubleLeggedTie extends Tie {
         double elo1 = club1.getEloRating(clubEloDataLoader);
         double elo2 = club2.getEloRating(clubEloDataLoader);
 
-        // If no first-leg score known -> simulate both legs in order
+        // If no score known -> simulate first leg
         if (club1Goals == null) {
             // simulateOutCome(elo1, elo2);
 
@@ -77,11 +90,14 @@ public class DoubleLeggedTie extends Tie {
             // System.out.println("First leg result: " + club1.getName() + " " + club1Goals
             // + " - " + club2Goals + " "
             // + club2.getName());
-            return;
+            // If double-legged, wait for second leg
+            if (!singleLegged)
+                return;
         }
-
-        // SECOND LEG: club2 at home
-        simulateMatch(elo2, elo1, false);
+        // If double-legged, simulate second leg: club2 at home
+        if (!singleLegged) {
+            simulateMatch(elo2, elo1, false);
+        }
 
         if (club1Goals != club2Goals) {
             club1Winner = club1Goals > club2Goals;

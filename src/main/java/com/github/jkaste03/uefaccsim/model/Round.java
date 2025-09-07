@@ -175,7 +175,7 @@ public abstract class Round implements Serializable {
      * </p>
      * <ul>
      * <li>If it already represents a concrete club, nothing happens.</li>
-     * <li>If it depends on the outcome of a tie (e.g. a {@code DoubleLeggedTie}),
+     * <li>If it depends on the outcome of a tie (e.g. a {@code KnockoutTie}),
      * the underlying tie is inspected:
      * <ul>
      * <li>If the tie has a decided winner, the slot is replaced by either the

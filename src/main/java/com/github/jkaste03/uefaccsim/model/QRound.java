@@ -29,6 +29,10 @@ public class QRound extends Round {
     private final PathType pathType;
     private final List<ClubSlot> seeded = new ArrayList<>();
     private final List<ClubSlot> unseeded = new ArrayList<>();
+    /**
+     * Indicates if the ties in this qualifying round should be made single-legged.
+     */
+    private boolean singleLegged = false;
 
     /**
      * Constructs a qualifying round for the specified tournament, round type and
@@ -44,6 +48,22 @@ public class QRound extends Round {
     }
 
     /**
+     * Constructs a qualifying round for the specified tournament, round type and
+     * path type, with an option to have ties single-legged.
+     *
+     * @param tournament   the tournament of this round.
+     * @param roundType    the type of the round (Q1, Q2, etc.).
+     * @param pathType     the path type representing the qualifying route.
+     * @param singleLegged indicates if the ties in this round should be
+     *                     single-legged.
+     */
+    public QRound(Tournament tournament, RoundType roundType, PathType pathType, boolean singleLegged) {
+        super(tournament, roundType);
+        this.pathType = pathType;
+        this.singleLegged = singleLegged;
+    }
+
+    /**
      * {@inheritDoc}
      * <p>
      * Returns a string representation of the qualifying round, including the
@@ -54,17 +74,8 @@ public class QRound extends Round {
         return super.getName() + " " + roundType + " " + pathType;
     }
 
-    /**
-     * Creates a new double-legged tie between two club slots for the current
-     * tournament round. Order of clubs matters.
-     *
-     * @param club1 the first club slot participating in the tie
-     * @param club2 the second club slot participating in the tie
-     * @return a new {@link DoubleLeggedTie} instance involving the specified clubs
-     *         and tournament
-     */
-    protected Tie newTie(ClubSlot club1, ClubSlot club2) {
-        return new DoubleLeggedTie(club1, club2, tournament);
+    public boolean isSingleLegged() {
+        return singleLegged;
     }
 
     /**
@@ -253,8 +264,8 @@ public class QRound extends Round {
             newRemainingUnseeded.remove(opp);
 
             Tie tie = rng.nextBoolean()
-                    ? (Tie) newTie(nextSeeded, opp)
-                    : (Tie) newTie(opp, nextSeeded);
+                    ? (Tie) new KnockoutTie(nextSeeded, opp, tournament, singleLegged)
+                    : (Tie) new KnockoutTie(opp, nextSeeded, tournament, singleLegged);
             result.add(tie);
 
             if (buildMatching(newRemainingSeeded, newRemainingUnseeded, result, rng)) {
