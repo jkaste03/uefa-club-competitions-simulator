@@ -11,8 +11,10 @@ import java.util.stream.StreamSupport;
 import com.github.jkaste03.uefaccsim.model.ClubRepository;
 
 /**
- * Primary purpose: maintain a lookup map ({@code Map<Integer, Double>}) from
- * internal club id to the current day's Elo rating (field {@link #eloMap}).
+ * Primary purpose: maintain a lookup map ({@code Map<Integer, EloData>}) from
+ * internal club id to an {@link EloData} object (field {@link #eloDataMap}).
+ * {@link EloData} contains both the club's current Elo rating and any pending
+ * inter-league Elo adjustment to be applied after a matchday.
  * The class is centered around initializing and providing fast, read access to
  * this mapping.
  *
@@ -24,10 +26,46 @@ import com.github.jkaste03.uefaccsim.model.ClubRepository;
  * {@code http://api.clubelo.com/yyyy-MM-dd}).</li>
  * <li>Persist the raw CSV under a deterministic, date‑stamped filename.</li>
  * <li>Parse the CSV, resolve each club name to an internal id via
- * {@code ClubRepository}, and populate {@link #eloMap}.</li>
+ * {@code ClubRepository}, and populate {@link #eloDataMap} with {@link EloData}
+ * objects.</li>
  * </ul>
  */
 public class ClubEloDataLoader implements Serializable {
+    /**
+     * Container for Elo data per club.
+     */
+    public static class EloData {
+        private double elo;
+        /**
+         * Inter-league Elo adjustment to be applied after all matches on a matchday
+         * have been played. We wait because when multiple matches are played on the
+         * same day/time, the inter-league Elo changes from one match should not affect
+         * the others.
+         */
+        private double pendingInterLeagueEloAdjustment;
+
+        public EloData(double elo) {
+            this.elo = elo;
+            this.pendingInterLeagueEloAdjustment = 0.0;
+        }
+
+        public double getElo() {
+            return elo;
+        }
+
+        public void setElo(double elo) {
+            this.elo = elo;
+        }
+
+        public double getPendingInterLeagueEloAdjustment() {
+            return pendingInterLeagueEloAdjustment;
+        }
+
+        public void setPendingInterLeagueEloAdjustment(double pendingInterLeagueEloAdjustment) {
+            this.pendingInterLeagueEloAdjustment = pendingInterLeagueEloAdjustment;
+        }
+    }
+
     // URL for the club elo ratings API
     private static final String BASE_URL = "http://api.clubelo.com/";
     // Folder for storing downloaded data
@@ -37,9 +75,9 @@ public class ClubEloDataLoader implements Serializable {
     private static String filePath = DATA_FOLDER + date + ".csv";
     private static String formerFilePath;
     /**
-     * Map for storing Elo ratings by club ID.
+     * Map for storing Elo data by club ID.
      */
-    private final Map<Integer, Double> eloMap = new HashMap<>();
+    private final Map<Integer, EloData> eloDataMap = new HashMap<>();
 
     public ClubEloDataLoader() {
         formerFilePath = getLatestCsvFilePath();
@@ -81,7 +119,7 @@ public class ClubEloDataLoader implements Serializable {
      * replaces the existing CSV(s).</li>
      * </ul>
      * </li>
-     * <li>Loads elo ratings from the CSV file into the {@link #eloMap}.</li>
+     * <li>Loads elo ratings from the CSV file into the {@link #eloDataMap}.</li>
      * <li>Validates that every required club has an associated elo rating,
      * enforcing data completeness.</li>
      * </ol>
@@ -94,20 +132,6 @@ public class ClubEloDataLoader implements Serializable {
         }
         loadEloRatings();
         validateAllClubsHaveElo();
-    }
-
-    /**
-     * Deletes all existing CSV files in the data package.
-     */
-    private static void deleteExistingCSVFiles() {
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Path.of(DATA_FOLDER), "*.csv")) {
-            for (Path entry : stream) {
-                Files.delete(entry);
-            }
-            System.out.println("Deleted old API data");
-        } catch (IOException e) {
-            System.err.println("Could not delete existing CSV files: " + e.getMessage());
-        }
     }
 
     /**
@@ -159,8 +183,22 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
+     * Deletes all existing CSV files in the data package.
+     */
+    private static void deleteExistingCSVFiles() {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Path.of(DATA_FOLDER), "*.csv")) {
+            for (Path entry : stream) {
+                Files.delete(entry);
+            }
+            System.out.println("Deleted old API data");
+        } catch (IOException e) {
+            System.err.println("Could not delete existing CSV files: " + e.getMessage());
+        }
+    }
+
+    /**
      * Loads Elo rating values from the CSV file referenced by {@code filePath} into
-     * the internal {@code eloMap}.
+     * the internal {@code eloDataMap}.
      *
      * The method:
      * <ul>
@@ -172,7 +210,7 @@ public class ClubEloDataLoader implements Serializable {
      * <li>Uses the 2nd column (index 1) as the club's name to resolve a club id via
      * {@link ClubRepository#getIdByName(String)}.</li>
      * <li>Parses the 5th column (index 4) as a {@code double} Elo rating.</li>
-     * <li>Stores the Elo rating in {@code eloMap} keyed by the resolved club id
+     * <li>Stores the Elo rating in {@code eloDataMap} keyed by the resolved club id
      * (even if the id may be -1 if not found).</li>
      * </ul>
      */
@@ -186,7 +224,7 @@ public class ClubEloDataLoader implements Serializable {
                 String clubName = values[1].trim();
                 int clubid = ClubRepository.getIdByName(clubName);
                 double elo = Double.parseDouble(values[4].trim());
-                eloMap.put(clubid, elo);
+                eloDataMap.put(clubid, new EloData(elo));
             }
         } catch (IOException e) {
             System.err.println("Could not read API data: " + e.getMessage());
@@ -197,20 +235,58 @@ public class ClubEloDataLoader implements Serializable {
      * Retrieves the Elo rating for the specified club id.
      *
      * @param clubId the id of the club whose Elo rating is requested
-     * @return the Elo rating for the club if available, or 0.0 if not found
+     * @return the Elo rating for the club if available
      */
     public double getEloRating(int clubId) {
-        return eloMap.get(clubId);
+        EloData data = eloDataMap.get(clubId);
+        return data.getElo();
     }
 
     /**
      * Sets the Elo rating for a specified club id.
      *
-     * @param clubId the id of the club whose Elo rating is to be set
-     * @param elo    the new Elo rating for the club
+     * @param clubId the id of the club whose elo rating is to be set
+     * @param elo    the new elo rating for the club
      */
     public void setEloRating(int clubId, double elo) {
-        eloMap.put(clubId, elo);
+        EloData data = eloDataMap.get(clubId);
+        data.setElo(elo);
+    }
+
+    /**
+     * Retrieves the pendingInterLeagueEloAdjustment for the specified club id.
+     * 
+     * @param clubId the id of the club
+     * @return the pendingInterLeagueEloAdjustment value
+     */
+    public double getPendingInterLeagueEloAdjustment(int clubId) {
+        EloData data = eloDataMap.get(clubId);
+        return data.getPendingInterLeagueEloAdjustment();
+    }
+
+    /**
+     * Sets the pendingInterLeagueEloAdjustment for a specified club id.
+     * 
+     * @param clubId                          the id of the club
+     * @param pendingInterLeagueEloAdjustment the new
+     *                                        pendingInterLeagueEloAdjustment value
+     */
+    public void setPendingInterLeagueEloAdjustment(int clubId, double pendingInterLeagueEloAdjustment) {
+        EloData data = eloDataMap.get(clubId);
+        data.setPendingInterLeagueEloAdjustment(pendingInterLeagueEloAdjustment);
+    }
+
+    /**
+     * Applies all pending inter-league elo adjustments to the current elo ratings
+     * for each club.
+     */
+    public void applyAllPendingInterLeagueEloAdjustments() {
+        for (Map.Entry<Integer, EloData> entry : eloDataMap.entrySet()) {
+            EloData data = entry.getValue();
+            double newElo = data.getElo() + data.getPendingInterLeagueEloAdjustment();
+            data.setElo(newElo);
+            data.setPendingInterLeagueEloAdjustment(0.0); // Reset pending change after applying
+        }
     }
 
     /**
@@ -223,7 +299,7 @@ public class ClubEloDataLoader implements Serializable {
         List<String> missing = new ArrayList<>();
         ClubRepository.getAllClubs().forEach(club -> {
             int id = club.getId();
-            if (!eloMap.containsKey(id)) {
+            if (!eloDataMap.containsKey(id)) {
                 missing.add(club.getName() + " (id=" + id + ")");
             }
         });
