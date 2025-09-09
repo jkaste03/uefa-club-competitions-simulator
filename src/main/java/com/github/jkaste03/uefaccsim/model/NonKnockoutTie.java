@@ -44,6 +44,12 @@ public class NonKnockoutTie extends Tie {
         simulateMatch(elo1, elo2, true);
 
         System.out.println(
-                "Result: " + club1.getName() + " " + club1Goals + " - " + club2Goals + " " + club2.getName());
+                "Result: " + club1.getName() + " " + club1Goals1stLeg + " - " + club2Goals1stLeg + " "
+                        + club2.getName());
+    }
+
+    @Override
+    public String toString() {
+        return "NonKnockoutTie [" + fieldsToString() + "]";
     }
 }

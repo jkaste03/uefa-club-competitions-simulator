@@ -12,8 +12,10 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 public abstract class Tie implements Serializable {
     protected final ClubSlot clubSlot1;
     protected final ClubSlot clubSlot2;
-    protected Integer club1Goals;
-    protected Integer club2Goals;
+    protected Integer club1Goals1stLeg;
+    protected Integer club2Goals1stLeg;
+    protected Integer club1Goals2ndLeg;
+    protected Integer club2Goals2ndLeg;
     /**
      * The tournament this tie is part of. This is needed for qualifying rounds,
      * where the tournament affects seeding in the next round.
@@ -67,17 +69,18 @@ public abstract class Tie implements Serializable {
      * Constructs a new Tie representing a pairing between two club slots with
      * preset goals. Order matters. Tournament is important in QRounds.
      *
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
-     * @param club1Goals goals for club 1
-     * @param club2Goals goals for club 2
-     * @param tournament tournament
+     * @param clubSlot1        home participant first leg
+     * @param clubSlot2        away participant first leg
+     * @param club1Goals1stLeg first leg goals for club 1
+     * @param club2Goals1stLeg first leg goals for club 2
+     * @param tournament       tournament
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals, Integer club2Goals, Tournament tournament) {
+    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals1stLeg, Integer club2Goals1stLeg,
+            Tournament tournament) {
         this.clubSlot1 = clubSlot1;
         this.clubSlot2 = clubSlot2;
-        this.club1Goals = club1Goals;
-        this.club2Goals = club2Goals;
+        this.club1Goals1stLeg = club1Goals1stLeg;
+        this.club2Goals1stLeg = club2Goals1stLeg;
         this.tournament = tournament;
     }
 
@@ -89,12 +92,30 @@ public abstract class Tie implements Serializable {
         return clubSlot2;
     }
 
-    public Integer getClub1Goals() {
-        return club1Goals;
+    public Integer getClub1Goals1stLeg() {
+        return club1Goals1stLeg;
     }
 
-    public Integer getClub2Goals() {
-        return club2Goals;
+    public Integer getClub2Goals1stLeg() {
+        return club2Goals1stLeg;
+    }
+
+    /**
+     * Returns the total goals scored by club 1 across both potential legs
+     * 
+     * @return total goals for club 1
+     */
+    protected int getClub1Goals() {
+        return (club1Goals1stLeg == null ? 0 : club1Goals1stLeg) + (club1Goals2ndLeg == null ? 0 : club1Goals2ndLeg);
+    }
+
+    /**
+     * Returns the total goals scored by club 2 across both potential legs
+     * 
+     * @return total goals for club 2
+     */
+    protected int getClub2Goals() {
+        return (club2Goals1stLeg == null ? 0 : club2Goals1stLeg) + (club2Goals2ndLeg == null ? 0 : club2Goals2ndLeg);
     }
 
     public Tournament getTournament() {
@@ -171,10 +192,13 @@ public abstract class Tie implements Serializable {
         int gUnd = sampleFromPmf(pmfUnd);
         int homeGoals = favIsHome ? gFav : gUnd;
         int awayGoals = favIsHome ? gUnd : gFav;
-        club1Goals = (club1Goals == null) ? (firstLeg ? homeGoals : awayGoals)
-                : club1Goals + (firstLeg ? homeGoals : awayGoals);
-        club2Goals = (club2Goals == null) ? (firstLeg ? awayGoals : homeGoals)
-                : club2Goals + (firstLeg ? awayGoals : homeGoals);
+        if (firstLeg) {
+            club1Goals1stLeg = homeGoals;
+            club2Goals1stLeg = awayGoals;
+        } else {
+            club1Goals2ndLeg = awayGoals;
+            club2Goals2ndLeg = homeGoals;
+        }
     }
 
     // simulate extra-time (shorter period). For ET in the second leg use
@@ -183,8 +207,8 @@ public abstract class Tie implements Serializable {
         double[] lambdas = eloToLambdas(eloHome, eloAway);
         double lHome = lambdas[0] * PARAM_ET_FACTOR;
         double lAway = lambdas[1] * PARAM_ET_FACTOR;
-        club2Goals += sampleNegBinomial(lHome, PARAM_THETA);
-        club1Goals += sampleNegBinomial(lAway, PARAM_THETA);
+        club2Goals2ndLeg += sampleNegBinomial(lHome, PARAM_THETA);
+        club1Goals2ndLeg += sampleNegBinomial(lAway, PARAM_THETA);
     }
 
     // simulate penalty winner based on Elo diff (logistic)
@@ -349,7 +373,10 @@ public abstract class Tie implements Serializable {
     protected String fieldsToString() {
         return "clubSlot1=" + clubSlot1 +
                 ", clubSlot2=" + clubSlot2 +
-                ", club1Goals=" + club1Goals +
-                ", club2Goals=" + club2Goals;
+                ", club1Goals1stLeg=" + club1Goals1stLeg +
+                ", club2Goals1stLeg=" + club2Goals1stLeg +
+                ", club1Goals2ndLeg=" + club1Goals2ndLeg +
+                ", club2Goals2ndLeg=" + club2Goals2ndLeg +
+                ", tournament=" + tournament;
     }
 }

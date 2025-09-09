@@ -59,19 +59,25 @@ public class KnockoutTie extends Tie {
     }
 
     /**
-     * Kjører én simulering av returkampen (eller simulerer begge ben hvis ingen
-     * ben er spilt) og setter club1Winner = true/false.
+     * Simulates the outcome of a knockout tie between two clubs using their Elo
+     * ratings.
+     * The method handles both single-legged and double-legged ties, including extra
+     * time and penalties if necessary.
+     * <p>
+     * Steps:
+     * <ul>
+     * <li>If no score is known, simulates the first leg (club1 at home).</li>
+     * <li>If the tie is double-legged, simulates the second leg (club2 at
+     * home).</li>
+     * <li>Determines the winner based on aggregate goals.</li>
+     * <li>If aggregate scores are level, simulates extra time at the second leg
+     * venue.</li>
+     * <li>If still level after extra time, simulates a penalty shootout at the
+     * second leg venue.</li>
+     * <li>Sets {@code club1Winner} to indicate if club1 won the tie.</li>
+     * </ul>
      *
-     * Behaviour:
-     * - If first leg (club1Goals) is null: simulate FIRST LEG (club1 home), THEN
-     * SECOND LEG (club2 home). Apply away-goals, then ET (in second leg), then
-     * penalties.
-     * - If first leg exists: treat that as first leg result (clubSlot1 home),
-     * simulate return leg (clubSlot2 home), compute aggregate, apply away-goals,
-     * then ET and penalties if needed.
-     *
-     * Note: Away-goals are applied before ET (common in many competitions). Adjust
-     * logic if your tournament rules differ.
+     * @param clubEloDataLoader the loader providing Elo ratings for clubs
      */
     @Override
     public void play(ClubEloDataLoader clubEloDataLoader) {
@@ -82,7 +88,7 @@ public class KnockoutTie extends Tie {
         double elo2 = club2.getEloRating(clubEloDataLoader);
 
         // If no score known -> simulate first leg
-        if (club1Goals == null) {
+        if (club1Goals1stLeg == null) {
             // simulateOutCome(elo1, elo2);
 
             // Simulate first leg
@@ -99,8 +105,8 @@ public class KnockoutTie extends Tie {
             simulateMatch(elo2, elo1, false);
         }
 
-        if (club1Goals != club2Goals) {
-            club1Winner = club1Goals > club2Goals;
+        if (getClub1Goals() != getClub2Goals()) {
+            club1Winner = getClub1Goals() > getClub2Goals();
             // System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals
             // + " - " + club2Goals + " "
             // + club2.getName());
@@ -115,8 +121,8 @@ public class KnockoutTie extends Tie {
         simulateExtraTime(elo2, elo1); // simulate ET with club2 at home
         // et.home == extra-time goals for club2; et.away == extra-time goals for club1
 
-        if (club1Goals != club2Goals) {
-            club1Winner = club1Goals > club2Goals;
+        if (getClub1Goals() != getClub2Goals()) {
+            club1Winner = getClub1Goals() > getClub2Goals();
             // System.out.println("Aggregate result (AET): " + club1.getName() + " " +
             // club1Goals + " - " + club2Goals
             // + " " + club2.getName());
@@ -139,24 +145,26 @@ public class KnockoutTie extends Tie {
     private void simulateOutCome(double elo1, double elo2) {
         int club1WinnerCount = 0;
         for (int i = 0; i < SIMS; i++) {
-            club1Goals = null;
-            club2Goals = null;
+            club1Goals1stLeg = null;
+            club2Goals1stLeg = null;
+            club1Goals2ndLeg = null;
+            club2Goals2ndLeg = null;
             club1Winner = null;
             simulateMatch(elo1, elo2, true);
             simulateMatch(elo2, elo1, false);
 
             // System.out.println(club1Goals + "-" + club2Goals);
 
-            if (club1Goals != club2Goals) {
-                club1Winner = club1Goals > club2Goals;
+            if (getClub1Goals() != getClub2Goals()) {
+                club1Winner = getClub1Goals() > getClub2Goals();
                 club1WinnerCount += club1Winner ? 1 : 0;
                 continue;
             }
 
             simulateExtraTime(elo2, elo1);
 
-            if (club1Goals != club2Goals) {
-                club1Winner = club1Goals > club2Goals;
+            if (getClub1Goals() != getClub2Goals()) {
+                club1Winner = getClub1Goals() > getClub2Goals();
                 club1WinnerCount += club1Winner ? 1 : 0;
                 continue;
             }
@@ -169,11 +177,19 @@ public class KnockoutTie extends Tie {
             club1Winner = !homePenaltyWinner;
             club1WinnerCount += club1Winner ? 1 : 0;
         }
-        club1Goals = null;
-        club2Goals = null;
+        club1Goals1stLeg = null;
+        club2Goals1stLeg = null;
+        club1Goals2ndLeg = null;
+        club2Goals2ndLeg = null;
         club1Winner = null;
         System.out.println("Probabilities after " + SIMS + " sims: " + clubSlot1.toCompactString() + " win "
                 + (club1WinnerCount * 100.0 / SIMS) + "%, " + clubSlot2.toCompactString() + " win "
                 + ((SIMS - club1WinnerCount) * 100.0 / SIMS) + "%");
+    }
+
+    @Override
+    public String toString() {
+        return "KnockoutTie [" + fieldsToString() + ", club1Winner=" + club1Winner + ", singleLegged=" + singleLegged
+                + "]";
     }
 }
