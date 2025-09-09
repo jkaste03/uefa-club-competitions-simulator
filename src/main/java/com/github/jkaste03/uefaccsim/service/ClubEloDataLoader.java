@@ -34,39 +34,37 @@ public class ClubEloDataLoader implements Serializable {
     /**
      * Container for Elo data per club.
      */
-    public static class EloData {
+    public static class EloData implements Serializable {
         private double elo;
         /**
-         * Inter-league Elo adjustment to be applied after all matches on a matchday
-         * have been played. We wait because when multiple matches are played on the
-         * same day/time, the inter-league Elo changes from one match should not affect
-         * the others.
+         * Holds the pending Elo adjustment to be applied after a matchday.
+         * This prevents order bias when processing inter-league Elo changes.
          */
-        private double pendingInterLeagueEloAdjustment;
+        private double uncommitedEloDelta;
 
         public EloData(double elo) {
             this.elo = elo;
-            this.pendingInterLeagueEloAdjustment = 0.0;
+            this.uncommitedEloDelta = 0.0;
         }
 
         public double getElo() {
             return elo;
         }
 
-        public void updateElo(double elo) {
-            this.elo += elo;
+        public void updateElo(double deltaElo) {
+            this.elo += deltaElo;
         }
 
-        public double getPendingInterLeagueEloAdjustment() {
-            return pendingInterLeagueEloAdjustment;
+        public double getUncommitedEloDelta() {
+            return uncommitedEloDelta;
         }
 
-        public void setPendingInterLeagueEloAdjustment(double pendingInterLeagueEloAdjustment) {
-            this.pendingInterLeagueEloAdjustment = pendingInterLeagueEloAdjustment;
+        public void setUncommitedEloDelta(double uncommitedEloDelta) {
+            this.uncommitedEloDelta = uncommitedEloDelta;
         }
 
-        public void updatePendingInterLeagueEloAdjustment(double pendingInterLeagueEloAdjustment) {
-            this.pendingInterLeagueEloAdjustment += pendingInterLeagueEloAdjustment;
+        public void updateUncommitedEloDelta(double deltaUncommitedEloDelta) {
+            this.uncommitedEloDelta += deltaUncommitedEloDelta;
         }
     }
 
@@ -249,8 +247,8 @@ public class ClubEloDataLoader implements Serializable {
     /**
      * Updates the Elo rating for a specified club id.
      *
-     * @param clubId the id of the club whose elo rating is to be updated
-     * @param elo    the delta elo rating for the club
+     * @param clubId   the id of the club whose elo rating is to be updated
+     * @param deltaElo the delta elo rating for the club
      */
     public void updateEloRating(int clubId, double deltaElo) {
         EloData data = eloDataMap.get(clubId);
@@ -258,38 +256,36 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Retrieves the pendingInterLeagueEloAdjustment for the specified club id.
-     * 
+     * Retrieves the uncommitedEloDelta for the specified club id.
+     *
      * @param clubId the id of the club
-     * @return the pendingInterLeagueEloAdjustment value
+     * @return the uncommitedEloDelta value
      */
-    public double getPendingInterLeagueEloAdjustment(int clubId) {
+    public double getUncommitedEloDelta(int clubId) {
         EloData data = eloDataMap.get(clubId);
-        return data.getPendingInterLeagueEloAdjustment();
+        return data.getUncommitedEloDelta();
     }
 
     /**
-     * Updates the pendingInterLeagueEloAdjustment for a specified club id.
-     * 
-     * @param clubId                          the id of the club
-     * @param pendingInterLeagueEloAdjustment the delta
-     *                                        pendingInterLeagueEloAdjustment
-     *                                        value
+     * Updates the uncommitedEloDelta for a specified club id.
+     *
+     * @param clubId                  the id of the club
+     * @param deltaUncommitedEloDelta the delta uncommitedEloDelta value
      */
-    public void updatePendingInterLeagueEloAdjustment(int clubId, double pendingInterLeagueEloAdjustment) {
+    public void updateUncommitedEloDelta(int clubId, double deltaUncommitedEloDelta) {
         EloData data = eloDataMap.get(clubId);
-        data.updatePendingInterLeagueEloAdjustment(pendingInterLeagueEloAdjustment);
+        data.updateUncommitedEloDelta(deltaUncommitedEloDelta);
     }
 
     /**
-     * Applies all pending inter-league elo adjustments to the current elo ratings
+     * Applies all uncommited elo adjustments to the current elo ratings
      * for each club.
      */
-    public void applyAllPendingInterLeagueEloAdjustments() {
+    public void applyAllUncommitedEloDeltas() {
         for (Map.Entry<Integer, EloData> entry : eloDataMap.entrySet()) {
             EloData data = entry.getValue();
-            data.updateElo(data.getPendingInterLeagueEloAdjustment());
-            data.setPendingInterLeagueEloAdjustment(0.0); // Reset pending change after applying
+            data.updateElo(data.getUncommitedEloDelta());
+            data.setUncommitedEloDelta(0.0); // Reset pending change after applying
         }
     }
 

@@ -91,6 +91,8 @@ public class KnockoutTie extends Tie {
         if (club1Goals1stLeg == null) {
             // Simulate first leg
             simulateMatch(elo1, elo2, true);
+            // Apply Elo changes after first leg
+            applyEloForMatch(elo1, elo2, clubEloDataLoader, true);
             // If double-legged, wait for second leg
             if (!singleLegged)
                 return;
@@ -103,6 +105,8 @@ public class KnockoutTie extends Tie {
         // Check aggregate before potential ET/penalties
         if (getClub1Goals() != getClub2Goals()) {
             club1Winner = getClub1Goals() > getClub2Goals();
+            // Apply Elo changes second leg
+            applyEloForMatch(elo2, elo1, clubEloDataLoader, false);
             return;
         }
 
@@ -111,6 +115,8 @@ public class KnockoutTie extends Tie {
         // Check aggregate after ET
         if (getClub1Goals() != getClub2Goals()) {
             club1Winner = getClub1Goals() > getClub2Goals();
+            // Apply Elo changes second leg
+            applyEloForMatch(elo2, elo1, clubEloDataLoader, false);
             return;
         }
 

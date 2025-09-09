@@ -349,6 +349,50 @@ public abstract class Tie implements Serializable {
         return pmf.length - 1;
     }
 
+    // --- Elo helper functions ---
+    private static double expectedScore(double eloA, double eloB) {
+        return 1.0 / (1.0 + Math.pow(10.0, (eloB - eloA) / 400.0));
+    }
+
+    /**
+     * Margin multiplier G:
+     * G = ln(goalDiff + 1) * (2.2 / (0.001 * |eloDiff| + 2.2))
+     */
+    private static double marginMultiplier(int goalsA, int goalsB, double eloA, double eloB) {
+        int goalDiff = Math.abs(goalsA - goalsB);
+        if (goalDiff == 0)
+            return 1.0; // ingen ekstra effekt ved uavgjort
+        double logPart = Math.log(goalDiff + 1.0); // naturlig log
+        double denom = (Math.abs(eloA - eloB) * 0.001) + 2.2;
+        return logPart * (2.2 / denom);
+    }
+
+    /**
+     * Compute Elo delta for A (positive if A gains)
+     * K is base-koeffisient (konfigurerbar)
+     */
+    private static double computeEloDelta(double eloA, double eloB, int goalsA, int goalsB, double K) {
+        double S;
+        if (goalsA > goalsB)
+            S = 1.0;
+        else if (goalsA == goalsB)
+            S = 0.5;
+        else
+            S = 0.0;
+
+        double E = expectedScore(eloA, eloB);
+        double G = marginMultiplier(goalsA, goalsB, eloA, eloB);
+        System.out.println(
+                "Elo delta for " + eloA + " vs " + eloB + " (" + goalsA + "-" + goalsB + "): " + (K * G * (S - E)));
+        return K * G * (S - E);
+    }
+
+    protected void applyEloForMatch(double elo1, double elo2, ClubEloDataLoader clubEloDataLoader, boolean firstLeg) {
+        double deltaA = computeEloDelta(elo1, elo2, club1Goals1stLeg, club2Goals1stLeg, 30);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlot1.getClubIdWrapper().id(), firstLeg ? deltaA : -deltaA);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlot2.getClubIdWrapper().id(), firstLeg ? -deltaA : deltaA);
+    }
+
     /**
      * Returns a compact "Club1 vs Club2" string for the tie.
      * 
