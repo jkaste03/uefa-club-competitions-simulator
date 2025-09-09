@@ -53,8 +53,8 @@ public class ClubEloDataLoader implements Serializable {
             return elo;
         }
 
-        public void setElo(double elo) {
-            this.elo = elo;
+        public void updateElo(double elo) {
+            this.elo += elo;
         }
 
         public double getPendingInterLeagueEloAdjustment() {
@@ -63,6 +63,10 @@ public class ClubEloDataLoader implements Serializable {
 
         public void setPendingInterLeagueEloAdjustment(double pendingInterLeagueEloAdjustment) {
             this.pendingInterLeagueEloAdjustment = pendingInterLeagueEloAdjustment;
+        }
+
+        public void updatePendingInterLeagueEloAdjustment(double pendingInterLeagueEloAdjustment) {
+            this.pendingInterLeagueEloAdjustment += pendingInterLeagueEloAdjustment;
         }
     }
 
@@ -243,14 +247,14 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Sets the Elo rating for a specified club id.
+     * Updates the Elo rating for a specified club id.
      *
-     * @param clubId the id of the club whose elo rating is to be set
-     * @param elo    the new elo rating for the club
+     * @param clubId the id of the club whose elo rating is to be updated
+     * @param elo    the delta elo rating for the club
      */
-    public void setEloRating(int clubId, double elo) {
+    public void updateEloRating(int clubId, double deltaElo) {
         EloData data = eloDataMap.get(clubId);
-        data.setElo(elo);
+        data.updateElo(deltaElo);
     }
 
     /**
@@ -265,15 +269,16 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Sets the pendingInterLeagueEloAdjustment for a specified club id.
+     * Updates the pendingInterLeagueEloAdjustment for a specified club id.
      * 
      * @param clubId                          the id of the club
-     * @param pendingInterLeagueEloAdjustment the new
-     *                                        pendingInterLeagueEloAdjustment value
+     * @param pendingInterLeagueEloAdjustment the delta
+     *                                        pendingInterLeagueEloAdjustment
+     *                                        value
      */
-    public void setPendingInterLeagueEloAdjustment(int clubId, double pendingInterLeagueEloAdjustment) {
+    public void updatePendingInterLeagueEloAdjustment(int clubId, double pendingInterLeagueEloAdjustment) {
         EloData data = eloDataMap.get(clubId);
-        data.setPendingInterLeagueEloAdjustment(pendingInterLeagueEloAdjustment);
+        data.updatePendingInterLeagueEloAdjustment(pendingInterLeagueEloAdjustment);
     }
 
     /**
@@ -283,8 +288,7 @@ public class ClubEloDataLoader implements Serializable {
     public void applyAllPendingInterLeagueEloAdjustments() {
         for (Map.Entry<Integer, EloData> entry : eloDataMap.entrySet()) {
             EloData data = entry.getValue();
-            double newElo = data.getElo() + data.getPendingInterLeagueEloAdjustment();
-            data.setElo(newElo);
+            data.updateElo(data.getPendingInterLeagueEloAdjustment());
             data.setPendingInterLeagueEloAdjustment(0.0); // Reset pending change after applying
         }
     }

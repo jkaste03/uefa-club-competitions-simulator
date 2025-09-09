@@ -89,13 +89,8 @@ public class KnockoutTie extends Tie {
 
         // If no score known -> simulate first leg
         if (club1Goals1stLeg == null) {
-            // simulateOutCome(elo1, elo2);
-
             // Simulate first leg
             simulateMatch(elo1, elo2, true);
-            // System.out.println("First leg result: " + club1.getName() + " " + club1Goals
-            // + " - " + club2Goals + " "
-            // + club2.getName());
             // If double-legged, wait for second leg
             if (!singleLegged)
                 return;
@@ -105,41 +100,23 @@ public class KnockoutTie extends Tie {
             simulateMatch(elo2, elo1, false);
         }
 
+        // Check aggregate before potential ET/penalties
         if (getClub1Goals() != getClub2Goals()) {
             club1Winner = getClub1Goals() > getClub2Goals();
-            // System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals
-            // + " - " + club2Goals + " "
-            // + club2.getName());
             return;
         }
 
-        // is club2,
-        // but we want to add ET goals to aggregates for club1/club2 correctly.
-        // We simulated as (elo1, elo2) above for convenience; adjust to simulate ET at
-        // second leg venue:
-        // Re-simulate ET correctly at second leg venue:
         simulateExtraTime(elo2, elo1); // simulate ET with club2 at home
-        // et.home == extra-time goals for club2; et.away == extra-time goals for club1
 
+        // Check aggregate after ET
         if (getClub1Goals() != getClub2Goals()) {
             club1Winner = getClub1Goals() > getClub2Goals();
-            // System.out.println("Aggregate result (AET): " + club1.getName() + " " +
-            // club1Goals + " - " + club2Goals
-            // + " " + club2.getName());
             return;
         }
 
         // Penalties in second leg
-        // simulatePenaltyWinner expects (eloHome, eloAway) where home is venue of
-        // penalties (club2)
         boolean homePenaltyWinner = simulatePenaltyWinner(elo2, elo1);
-        // if homePenaltyWinner == true => club2 wins penalties => club1 loses
         club1Winner = !homePenaltyWinner;
-        // System.out.println("Aggregate result: " + club1.getName() + " " + club1Goals
-        // + " - " + club2Goals + " "
-        // + club2.getName());
-        // System.out.println("Penalty shootout winner: " + (club1Winner ?
-        // club1.getName() : club2.getName()));
     }
 
     private void simulateOutCome(double elo1, double elo2) {
