@@ -28,8 +28,8 @@ public record ClubIdWrapper(int id) implements Serializable {
      * @param clubEloDataLoader the loader responsible for supplying Elo ratings
      * @return the Elo rating associated with this club's identifier
      */
-    public double getEloRating(ClubEloDataLoader clubEloDataLoader) {
-        return clubEloDataLoader.getEloRating(id);
+    public double getElo(ClubEloDataLoader clubEloDataLoader) {
+        return clubEloDataLoader.getElo(id);
     }
 
     // TODO: Needs changing

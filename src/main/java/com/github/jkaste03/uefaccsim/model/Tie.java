@@ -10,12 +10,12 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
  * Abstract base for a tie between two club slots. May hold goals.
  */
 public abstract class Tie implements Serializable {
-    protected final ClubSlot clubSlot1;
-    protected final ClubSlot clubSlot2;
-    protected Integer club1Goals1stLeg;
-    protected Integer club2Goals1stLeg;
-    protected Integer club1Goals2ndLeg;
-    protected Integer club2Goals2ndLeg;
+    protected final ClubSlot clubSlotA;
+    protected final ClubSlot clubSlotB;
+    protected Integer clubAGoals1stLeg;
+    protected Integer clubBGoals1stLeg;
+    protected Integer clubAGoals2ndLeg;
+    protected Integer clubBGoals2ndLeg;
     /**
      * The tournament this tie is part of. This is needed for qualifying rounds,
      * where the tournament affects seeding in the next round.
@@ -24,30 +24,32 @@ public abstract class Tie implements Serializable {
 
     // ----------------- Play parameters (tunable) -----------------
     // These parameters control the simulation of matches in the tie model.
-    protected static final double PARAM_MEAN_GOALS_PER_TEAM = 1.35; // Average goals per team
-    protected static final double PARAM_K = 0.50; // Elo to goals scaling factor
-    protected static final double PARAM_HFA = 65.0; // Home-field advantage in Elo points
-    protected static final double PARAM_THETA = 35.0; // Negative binomial dispersion
-    protected static final double[] PARAM_DRAW_INFLATION = { 0.09, 0.05, 0.01 }; // Draw inflation for favorite goals
-                                                                                 // 0,1,2
-    protected static final int PARAM_GMAX = 7; // Maximum goals explicitly modeled
+    private static final double PARAM_MEAN_GOALS_PER_TEAM = 1.35; // Average goals per team
+    private static final double PARAM_ELO_TO_GOALS_K = 0.50; // Elo to goals scaling factor
+    protected static final double PARAM_ELO_UPDATE_K = 30.0; // Elo K-factor for Elo updates
+    private static final double PARAM_HFA = 65.0; // Home-field advantage in Elo points
+    private static final double PARAM_THETA = 35.0; // Negative binomial dispersion
+    private static final double[] PARAM_DRAW_INFLATION = { 0.09, 0.05, 0.01 }; // Draw inflation for favorite goals
+                                                                               // 0,1,2
+    private static final int PARAM_GMAX = 7; // Maximum goals explicitly modeled
     protected static final double PARAM_ET_FACTOR = 30.0 / 90.0; // Extra time duration fraction
-    // protected static final int PARAM_MC_SIMULATIONS = 5000; // Simulations for
+    protected static final double PARAM_PSO_FACTOR = 10.0 / 90.0; // Penalty shootout fraction (for Elo update only)
+    // private static final int PARAM_MC_SIMULATIONS = 5000; // Simulations for
     // probability estimation
-    protected static final double PARAM_PENALTY_BETA = 0.18; // Logistic scale for penalty win probability
+    private static final double PARAM_PENALTY_BETA = 0.18; // Logistic scale for penalty win probability
 
-    protected static final Random RNG = new Random();
+    private static final Random RNG = new Random();
 
     /**
      * Constructs a new Tie representing a pairing between two club slots. Order
      * matters.
      *
-     * @param clubSlot1 home participant first leg
-     * @param clubSlot2 away participant first leg
+     * @param clubSlotA home participant first leg
+     * @param clubSlotB away participant first leg
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
-        this.clubSlot1 = clubSlot1;
-        this.clubSlot2 = clubSlot2;
+    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
+        this.clubSlotA = clubSlotA;
+        this.clubSlotB = clubSlotB;
         tournament = null;
     }
 
@@ -55,13 +57,13 @@ public abstract class Tie implements Serializable {
      * Constructs a new Tie representing a pairing between two club slots. Order
      * matters. Tournament is important in QRounds.
      *
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
+     * @param clubSlotA  home participant first leg
+     * @param clubSlotB  away participant first leg
      * @param tournament tournament
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament) {
-        this.clubSlot1 = clubSlot1;
-        this.clubSlot2 = clubSlot2;
+    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Tournament tournament) {
+        this.clubSlotA = clubSlotA;
+        this.clubSlotB = clubSlotB;
         this.tournament = tournament;
     }
 
@@ -69,53 +71,53 @@ public abstract class Tie implements Serializable {
      * Constructs a new Tie representing a pairing between two club slots with
      * preset goals. Order matters. Tournament is important in QRounds.
      *
-     * @param clubSlot1        home participant first leg
-     * @param clubSlot2        away participant first leg
-     * @param club1Goals1stLeg first leg goals for club 1
-     * @param club2Goals1stLeg first leg goals for club 2
+     * @param clubSlotA        home participant first leg
+     * @param clubSlotB        away participant first leg
+     * @param clubAGoals1stLeg first leg goals for club A
+     * @param clubBGoals1stLeg first leg goals for club B
      * @param tournament       tournament
      */
-    public Tie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals1stLeg, Integer club2Goals1stLeg,
+    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg,
             Tournament tournament) {
-        this.clubSlot1 = clubSlot1;
-        this.clubSlot2 = clubSlot2;
-        this.club1Goals1stLeg = club1Goals1stLeg;
-        this.club2Goals1stLeg = club2Goals1stLeg;
+        this.clubSlotA = clubSlotA;
+        this.clubSlotB = clubSlotB;
+        this.clubAGoals1stLeg = clubAGoals1stLeg;
+        this.clubBGoals1stLeg = clubBGoals1stLeg;
         this.tournament = tournament;
     }
 
-    public ClubSlot getClubSlot1() {
-        return clubSlot1;
+    public ClubSlot getClubSlotA() {
+        return clubSlotA;
     }
 
-    public ClubSlot getClubSlot2() {
-        return clubSlot2;
+    public ClubSlot getClubSlotB() {
+        return clubSlotB;
     }
 
-    public Integer getClub1Goals1stLeg() {
-        return club1Goals1stLeg;
+    public Integer getClubAGoals1stLeg() {
+        return clubAGoals1stLeg;
     }
 
-    public Integer getClub2Goals1stLeg() {
-        return club2Goals1stLeg;
-    }
-
-    /**
-     * Returns the total goals scored by club 1 across both potential legs
-     * 
-     * @return total goals for club 1
-     */
-    protected int getClub1Goals() {
-        return (club1Goals1stLeg == null ? 0 : club1Goals1stLeg) + (club1Goals2ndLeg == null ? 0 : club1Goals2ndLeg);
+    public Integer getClubBGoals1stLeg() {
+        return clubBGoals1stLeg;
     }
 
     /**
-     * Returns the total goals scored by club 2 across both potential legs
+     * Returns the total goals scored by club A across both potential legs
      * 
-     * @return total goals for club 2
+     * @return total goals for club A
      */
-    protected int getClub2Goals() {
-        return (club2Goals1stLeg == null ? 0 : club2Goals1stLeg) + (club2Goals2ndLeg == null ? 0 : club2Goals2ndLeg);
+    protected int getClubAGoals() {
+        return (clubAGoals1stLeg == null ? 0 : clubAGoals1stLeg) + (clubAGoals2ndLeg == null ? 0 : clubAGoals2ndLeg);
+    }
+
+    /**
+     * Returns the total goals scored by club B across both potential legs
+     * 
+     * @return total goals for club B
+     */
+    protected int getClubBGoals() {
+        return (clubBGoals1stLeg == null ? 0 : clubBGoals1stLeg) + (clubBGoals2ndLeg == null ? 0 : clubBGoals2ndLeg);
     }
 
     public Tournament getTournament() {
@@ -133,14 +135,14 @@ public abstract class Tie implements Serializable {
      * @return the ranking
      */
     public float getRanking(Tournament callerTournament) {
-        float r1 = clubSlot1.getRanking(tournament), r2 = clubSlot2.getRanking(tournament);
-        return ((tournament.compareTo(callerTournament == null ? tournament : callerTournament) > 0) ^ (r1 < r2)) ? r1
-                : r2;
+        float rA = clubSlotA.getRanking(tournament), rB = clubSlotB.getRanking(tournament);
+        return ((tournament.compareTo(callerTournament == null ? tournament : callerTournament) > 0) ^ (rA < rB)) ? rA
+                : rB;
     }
 
     public void incrementSeedingCounter(boolean isSeeded) {
-        clubSlot1.incrementSeedingCounter(isSeeded);
-        clubSlot2.incrementSeedingCounter(isSeeded);
+        clubSlotA.incrementSeedingCounter(isSeeded);
+        clubSlotB.incrementSeedingCounter(isSeeded);
     }
 
     /**
@@ -151,21 +153,49 @@ public abstract class Tie implements Serializable {
      */
     public abstract void play(ClubEloDataLoader clubEloDataLoader);
 
-    // ----------------- Model core functions (adapted / self-contained)
-    // -----------------
-
+    /**
+     * Calculates the expected number of goals (lambda) for the home team using a
+     * Poisson model. The calculation is based on the mean goals per team and an
+     * adjustment factor derived from the Elo rating difference.
+     *
+     * @param PARAM_MEAN_GOALS_PER_TEAM The average number of goals scored per team.
+     * @param PARAM_ELO_TO_GOALS_K      The scaling factor that converts Elo rating
+     *                                  difference to goal expectation.
+     * @param dr                        The Elo rating difference between the home
+     *                                  and away teams.
+     * @return The expected number of goals for the home team.
+     */
     private static double[] eloToLambdas(double eloHome, double eloAway) {
         double dr = eloHome - eloAway + PARAM_HFA; // add home advantage to home team's Elo
-        double lambdaHome = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_K * dr / 400.0);
-        double lambdaAway = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_K * (-dr) / 400.0);
+        double lambdaHome = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_ELO_TO_GOALS_K * dr / 400.0);
+        double lambdaAway = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_ELO_TO_GOALS_K * (-dr) / 400.0);
         return new double[] { lambdaHome, lambdaAway };
     }
 
-    // simulate one match (home vs away) using conditional NB-sampling and
-    // draw-inflation
-    protected void simulateMatch(double eloHome, double eloAway, boolean firstLeg) {
-        double[] lambdas = eloToLambdas(eloHome, eloAway);
-        double lHome = lambdas[0], lAway = lambdas[1];
+    /**
+     * Simulates a football match between two clubs, updating the goals for each
+     * leg.
+     *
+     * <p>
+     * The simulation uses club Elo ratings to determine expected goals (lambdas)
+     * for home and away teams, adjusts for extra time (ET) if applicable, and
+     * samples goals using a negative binomial distribution. Draw inflation is
+     * applied for low goal counts to increase the probability of draws.
+     *
+     * @param firstLeg          true if simulating the first leg of the tie; false
+     *                          for the second leg
+     * @param ET                true if the match is in extra time; false otherwise
+     * @param clubEloDataLoader loader for retrieving club Elo ratings
+     */
+    protected void simulateMatch(boolean firstLeg, boolean ET, ClubEloDataLoader clubEloDataLoader) {
+        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
+        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+
+        // Get lambdas for home/away
+        double[] lambdas = firstLeg ? eloToLambdas(eloA, eloB) : eloToLambdas(eloB, eloA);
+        // Adjust for ET if needed
+        double lHome = ET ? lambdas[0] * PARAM_ET_FACTOR : lambdas[0];
+        double lAway = ET ? lambdas[1] * PARAM_ET_FACTOR : lambdas[1];
 
         boolean favIsHome = lHome >= lAway;
         double lambdaFav = favIsHome ? lHome : lAway;
@@ -193,27 +223,50 @@ public abstract class Tie implements Serializable {
         int homeGoals = favIsHome ? gFav : gUnd;
         int awayGoals = favIsHome ? gUnd : gFav;
         if (firstLeg) {
-            club1Goals1stLeg = homeGoals;
-            club2Goals1stLeg = awayGoals;
+            clubAGoals1stLeg += homeGoals;
+            clubBGoals1stLeg += awayGoals;
         } else {
-            club1Goals2ndLeg = awayGoals;
-            club2Goals2ndLeg = homeGoals;
+            clubAGoals2ndLeg += awayGoals;
+            clubBGoals2ndLeg += homeGoals;
         }
     }
 
-    // simulate extra-time (shorter period). For ET in the second leg use
-    // (eloHome=secondLegHome, eloAway=secondLegAway).
-    protected void simulateExtraTime(double eloHome, double eloAway) {
-        double[] lambdas = eloToLambdas(eloHome, eloAway);
-        double lHome = lambdas[0] * PARAM_ET_FACTOR;
-        double lAway = lambdas[1] * PARAM_ET_FACTOR;
-        club2Goals2ndLeg += sampleNegBinomial(lHome, PARAM_THETA);
-        club1Goals2ndLeg += sampleNegBinomial(lAway, PARAM_THETA);
-    }
+    // protected void simulateExtraTime(boolean firstLeg, ClubEloDataLoader
+    // clubEloDataLoader) {
+    // simulateExtraTime(firstLeg, clubEloDataLoader, PARAM_ET_FACTOR);
+    // double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
+    // double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
 
-    // simulate penalty winner based on Elo diff (logistic)
-    protected static boolean simulatePenaltyWinner(double eloHome, double eloAway) {
-        double dr = eloHome - eloAway;
+    // if (firstLeg) {
+    // double[] lambdas = eloToLambdas(eloA, eloB);
+    // double lHome = lambdas[0] * PARAM_ET_FACTOR;
+    // double lAway = lambdas[1] * PARAM_ET_FACTOR;
+    // clubAGoals1stLeg += sampleNegBinomial(lHome, PARAM_THETA);
+    // clubBGoals1stLeg += sampleNegBinomial(lAway, PARAM_THETA);
+    // } else {
+    // double[] lambdas = eloToLambdas(eloB, eloA);
+    // double lHome = lambdas[0] * PARAM_ET_FACTOR;
+    // double lAway = lambdas[1] * PARAM_ET_FACTOR;
+    // clubAGoals2ndLeg += sampleNegBinomial(lAway, PARAM_THETA);
+    // clubBGoals2ndLeg += sampleNegBinomial(lHome, PARAM_THETA);
+    // }
+    // }
+
+    /**
+     * Simulates the outcome of a penalty shootout between two clubs based on their
+     * Elo ratings.
+     *
+     * @param firstLeg          Indicates if the simulation is for the first leg
+     *                          (true) or second leg (false) of the tie.
+     * @param clubEloDataLoader Loader providing Elo ratings for the clubs involved.
+     * @return {@code true} if the home club (determined by {@code firstLeg}) wins
+     *         the penalty shootout; {@code false} otherwise.
+     */
+    protected boolean simulatePenaltyWinner(boolean firstLeg, ClubEloDataLoader clubEloDataLoader) {
+        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
+        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+
+        double dr = firstLeg ? eloA - eloB : eloB - eloA;
         double z = PARAM_PENALTY_BETA * dr / 400.0;
         double pHome = 1.0 / (1.0 + Math.exp(-z));
         return RNG.nextDouble() < pHome;
@@ -368,10 +421,23 @@ public abstract class Tie implements Serializable {
     }
 
     /**
-     * Compute Elo delta for A (positive if A gains)
-     * K is base-koeffisient (konfigurerbar)
+     * Computes the Elo rating delta for a match between two teams based on their
+     * Elo ratings, the number of goals scored by each team, and a scaling factor K.
+     * 
+     * The calculation considers home field advantage (HFA), the match result (win,
+     * draw, loss), the expected score based on Elo ratings, and a margin multiplier
+     * based on the goal difference.
+     * 
+     * @param eloA   The Elo rating of team A (home team).
+     * @param eloB   The Elo rating of team B (away team).
+     * @param goalsA The number of goals scored by team A.
+     * @param goalsB The number of goals scored by team B.
+     * @param K      The scaling factor for Elo adjustment.
+     * @return The computed Elo rating delta for team A.
      */
-    private static double computeEloDelta(double eloA, double eloB, int goalsA, int goalsB, double K) {
+    protected static double computeEloDelta(double eloA, double eloB, int goalsA, int goalsB, double K) {
+        // adjust Elo with HFA
+        double eloAeff = eloA + PARAM_HFA;
         double S;
         if (goalsA > goalsB)
             S = 1.0;
@@ -380,27 +446,50 @@ public abstract class Tie implements Serializable {
         else
             S = 0.0;
 
-        double E = expectedScore(eloA, eloB);
-        double G = marginMultiplier(goalsA, goalsB, eloA, eloB);
+        double E = expectedScore(eloAeff, eloB);
+        double G = marginMultiplier(goalsA, goalsB, eloAeff, eloB);
         System.out.println(
                 "Elo delta for " + eloA + " vs " + eloB + " (" + goalsA + "-" + goalsB + "): " + (K * G * (S - E)));
         return K * G * (S - E);
     }
 
-    protected void applyEloForMatch(double elo1, double elo2, ClubEloDataLoader clubEloDataLoader, boolean firstLeg) {
-        double deltaA = computeEloDelta(elo1, elo2, club1Goals1stLeg, club2Goals1stLeg, 30);
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlot1.getClubIdWrapper().id(), firstLeg ? deltaA : -deltaA);
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlot2.getClubIdWrapper().id(), firstLeg ? -deltaA : deltaA);
+    /**
+     * Updates the Elo ratings for two clubs based on the result of a match leg.
+     *
+     * <p>
+     * This method calculates the Elo rating change (delta) for both clubs involved
+     * in the tie, considering whether the match is the first or second leg. The Elo
+     * change is computed using the provided K-factor and the goals scored by each
+     * club. The computed delta is then applied to both clubs using the
+     * {@link ClubEloDataLoader} without committing the changes immediately.
+     *
+     * @param goalsA            the number of goals scored by club A
+     * @param goalsB            the number of goals scored by club B
+     * @param firstLeg          {@code true} if this is the first leg of the tie;
+     *                          {@code false} otherwise
+     * @param k                 the K-factor used in Elo calculation
+     * @param clubEloDataLoader the loader responsible for retrieving and updating
+     *                          club Elo ratings
+     */
+    protected void updateEloForResult(int goalsA, int goalsB, boolean firstLeg,
+            double k, ClubEloDataLoader clubEloDataLoader) {
+        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
+        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+
+        double deltaElo = firstLeg ? computeEloDelta(eloA, eloB, goalsA, goalsB, k)
+                : computeEloDelta(eloB, eloA, goalsB, goalsA, k);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlotA.getClubIdWrapper().id(), deltaElo);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlotB.getClubIdWrapper().id(), -deltaElo);
     }
 
     /**
-     * Returns a compact "Club1 vs Club2" string for the tie.
+     * Returns a compact "ClubA vs ClubB" string for the tie.
      * 
      * @return compact string representation of the tie
      */
     public String toCompactString() {
-        return clubSlot1.toCompactString() + " vs " +
-                clubSlot2.toCompactString();
+        return clubSlotA.toCompactString() + " vs " +
+                clubSlotB.toCompactString();
     }
 
     @Override
@@ -415,12 +504,12 @@ public abstract class Tie implements Serializable {
      * @return a human-readable summary of this tie's state
      */
     protected String fieldsToString() {
-        return "clubSlot1=" + clubSlot1 +
-                ", clubSlot2=" + clubSlot2 +
-                ", club1Goals1stLeg=" + club1Goals1stLeg +
-                ", club2Goals1stLeg=" + club2Goals1stLeg +
-                ", club1Goals2ndLeg=" + club1Goals2ndLeg +
-                ", club2Goals2ndLeg=" + club2Goals2ndLeg +
+        return "clubSlotA=" + clubSlotA +
+                ", clubSlotB=" + clubSlotB +
+                ", clubAGoals1stLeg=" + clubAGoals1stLeg +
+                ", clubBGoals1stLeg=" + clubBGoals1stLeg +
+                ", clubAGoals2ndLeg=" + clubAGoals2ndLeg +
+                ", clubBGoals2ndLeg=" + clubBGoals2ndLeg +
                 ", tournament=" + tournament;
     }
 }

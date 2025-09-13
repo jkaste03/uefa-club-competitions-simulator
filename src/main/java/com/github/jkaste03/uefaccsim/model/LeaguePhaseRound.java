@@ -144,7 +144,7 @@ public abstract class LeaguePhaseRound extends Round {
         // Sort the club slots based on their ranking. Leave the UCL winner at the top
         // if present.
         clubSlots.subList(isUclWinnerHere[0] ? 1 : 0, clubSlots.size())
-                .sort((c1, c2) -> Float.compare(c1.getRanking(tournament), c2.getRanking(tournament)));
+                .sort((cA, cB) -> Float.compare(cA.getRanking(tournament), cB.getRanking(tournament)));
     }
 
     /**

@@ -90,28 +90,28 @@ public class UefaCCSim {
     // System.out.println("-----------------------------------------------------------------------------------");
     // ClubRepository.getAllClubs().stream()
     // .filter(club -> club.getRanking() != -1)
-    // .sorted((c1, c2) -> {
-    // int c1Seeded = c1.getTimesSeeded();
-    // int c1Unseeded = c1.getTimesUnseeded();
-    // int c1Participated = c1Seeded + c1Unseeded;
-    // double c1CondSeed = c1Participated > 0 ? (double) c1Seeded / c1Participated :
+    // .sorted((cA, cB) -> {
+    // int cASeeded = cA.getTimesSeeded();
+    // int cAUnseeded = cA.getTimesUnseeded();
+    // int cAParticipated = cASeeded + cAUnseeded;
+    // double cACondSeed = cAParticipated > 0 ? (double) cASeeded / cAParticipated :
     // 0.0;
-    // double c1CondUnseed = c1Participated > 0 ? (double) c1Unseeded /
-    // c1Participated : 0.0;
+    // double cACondUnseed = cAParticipated > 0 ? (double) cAUnseeded /
+    // cAParticipated : 0.0;
 
-    // int c2Seeded = c2.getTimesSeeded();
-    // int c2Unseeded = c2.getTimesUnseeded();
-    // int c2Participated = c2Seeded + c2Unseeded;
-    // double c2CondSeed = c2Participated > 0 ? (double) c2Seeded / c2Participated :
+    // int cBSeeded = cB.getTimesSeeded();
+    // int cBUnseeded = cB.getTimesUnseeded();
+    // int cBParticipated = cBSeeded + cBUnseeded;
+    // double cBCondSeed = cBParticipated > 0 ? (double) cBSeeded / cBParticipated :
     // 0.0;
-    // double c2CondUnseed = c2Participated > 0 ? (double) c2Unseeded /
-    // c2Participated : 0.0;
+    // double cBCondUnseed = cBParticipated > 0 ? (double) cBUnseeded /
+    // cBParticipated : 0.0;
 
     // // Hvis begge har 0% seeded, sorter på unseeded
-    // if (c1CondSeed == 0.0 && c2CondSeed == 0.0) {
-    // return Double.compare(c2CondUnseed, c1CondUnseed);
+    // if (cACondSeed == 0.0 && cBCondSeed == 0.0) {
+    // return Double.compare(cBCondUnseed, cACondUnseed);
     // }
-    // return Double.compare(c2CondSeed, c1CondSeed);
+    // return Double.compare(cBCondSeed, cACondSeed);
     // })
     // .forEach(club -> {
     // int seededCount = club.getTimesSeeded();
@@ -138,17 +138,17 @@ public class UefaCCSim {
     // System.out.println("---------------------------------------------------------------");
     // ClubRepository.getAllClubs().stream()
     // .filter(club -> club.getRanking() != -1)
-    // .sorted((c1, c2) -> {
-    // double c1AbsSeed = (double) c1.getTimesSeeded() / SIMS;
-    // double c2AbsSeed = (double) c2.getTimesSeeded() / SIMS;
+    // .sorted((cA, cB) -> {
+    // double cAAbsSeed = (double) cA.getTimesSeeded() / SIMS;
+    // double cBAbsSeed = (double) cB.getTimesSeeded() / SIMS;
     // // Hvis begge har 0% seeded, sorter på unseeded
-    // if ((c1AbsSeed == 0.0 && c2AbsSeed == 0.0) ||
-    // (c1AbsSeed == 1.0 && c2AbsSeed == 1.0)) {
-    // double c1AbsUnseed = (double) c1.getTimesUnseeded() / SIMS;
-    // double c2AbsUnseed = (double) c2.getTimesUnseeded() / SIMS;
-    // return Double.compare(c2AbsUnseed, c1AbsUnseed);
+    // if ((cAAbsSeed == 0.0 && cBAbsSeed == 0.0) ||
+    // (cAAbsSeed == 1.0 && cBAbsSeed == 1.0)) {
+    // double cAAbsUnseed = (double) cA.getTimesUnseeded() / SIMS;
+    // double cBAbsUnseed = (double) cB.getTimesUnseeded() / SIMS;
+    // return Double.compare(cBAbsUnseed, cAAbsUnseed);
     // }
-    // return Double.compare(c2AbsSeed, c1AbsSeed);
+    // return Double.compare(cBAbsSeed, cAAbsSeed);
     // })
     // .forEach(club -> {
     // int seededCount = club.getTimesSeeded();

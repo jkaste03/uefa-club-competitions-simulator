@@ -22,37 +22,6 @@ public class ClubSlot implements Serializable {
     private ClubIdWrapper clubIdWrapper;
 
     /**
-     * Constructs a single‑leg tie between the two given child slots. Order matters.
-     * 
-     * @param clubSlot1 home participant
-     * @param clubSlot2 away participant
-     */
-    // public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, boolean singleLegged,
-    // Tournament tournament) {
-    // if (singleLegged) {
-    // this.tie = new SingleLeggedTie(clubSlot1, clubSlot2, tournament);
-    // } else {
-    // this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament);
-    // }
-    // }
-
-    /**
-     * Constructs a two‑legged tie with preset goals (first leg). Order matters.
-     * 
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
-     * @param tournament tournament
-     * @param club1Goals goals for club 1
-     * @param club2Goals goals for club 2
-     */
-    // public ClubSlot(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament
-    // tournament, Integer club1Goals,
-    // Integer club2Goals) {
-    // this.tie = new DoubleLeggedTie(clubSlot1, clubSlot2, tournament, club1Goals,
-    // club2Goals);
-    // }
-
-    /**
      * Creates a ClubSlot representing a specific club.
      *
      * @param clubId the ID of the club
@@ -119,7 +88,7 @@ public class ClubSlot implements Serializable {
         if (isClub()) {
             return List.of(getClub().getCountry());
         } else {
-            return Stream.of(tie.getClubSlot1(), tie.getClubSlot2())
+            return Stream.of(tie.getClubSlotA(), tie.getClubSlotB())
                     .flatMap(cs -> cs.getCountries().stream())
                     .collect(Collectors.toList());
         }
@@ -141,11 +110,11 @@ public class ClubSlot implements Serializable {
         if (isClub())
             return;
         KnockoutTie t = (KnockoutTie) getTie();
-        Boolean club1Won = t.isClub1Winner();
-        if (club1Won == null)
-            return; // Vinner ikke avklart
-        boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie på høyere nivå => ta taper
-        ClubSlot chosen = (club1Won ^ higher) ? t.getClubSlot1() : t.getClubSlot2();
+        Boolean clubAWon = t.isClubAWinner();
+        if (clubAWon == null)
+            return; // Winner not decided yet
+        boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie on higher level => take loser
+        ClubSlot chosen = (clubAWon ^ higher) ? t.getClubSlotA() : t.getClubSlotB();
         this.clubIdWrapper = chosen.getClubIdWrapper();
         this.tie = null;
     }
@@ -159,7 +128,7 @@ public class ClubSlot implements Serializable {
     }
 
     /**
-     * Returns a compact "Club1 vs Club2" string for ties, or the club name if not a
+     * Returns a compact "ClubA vs ClubB" string for ties, or the club name if not a
      * tie.
      *
      * @return compact string representation of this ClubSlot

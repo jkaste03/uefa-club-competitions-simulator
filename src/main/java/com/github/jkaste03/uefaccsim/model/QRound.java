@@ -179,13 +179,13 @@ public class QRound extends Round {
         }
     }
 
-    // private Tie createNewTie(String club1Name, String club2Name) {
+    // private Tie createNewTie(String clubAName, String clubBName) {
     // return newTie(clubSlots.stream()
-    // .filter(slot -> slot.toCompactString().equals(club1Name))
+    // .filter(slot -> slot.toCompactString().equals(clubAName))
     // .findFirst()
     // .orElse(null),
     // clubSlots.stream()
-    // .filter(slot -> slot.toCompactString().equals(club2Name))
+    // .filter(slot -> slot.toCompactString().equals(clubBName))
     // .findFirst()
     // .orElse(null));
     // }

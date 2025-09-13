@@ -239,7 +239,7 @@ public class ClubEloDataLoader implements Serializable {
      * @param clubId the id of the club whose Elo rating is requested
      * @return the Elo rating for the club if available
      */
-    public double getEloRating(int clubId) {
+    public double getElo(int clubId) {
         EloData data = eloDataMap.get(clubId);
         return data.getElo();
     }

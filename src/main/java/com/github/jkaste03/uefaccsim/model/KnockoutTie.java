@@ -22,20 +22,20 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 public class KnockoutTie extends Tie {
     private static final int SIMS = 1000; // antall simuleringer for å estimere sannsynligheter
 
-    protected Boolean club1Winner;
+    protected Boolean clubAWinner;
     private boolean singleLegged = false;
 
     /**
      * Constructs a knockout tie for the given slots in the specified
      * tournament. Order matters.
      * 
-     * @param clubSlot1    home participant first leg
-     * @param clubSlot2    away participant first leg
+     * @param clubSlotA    home participant first leg
+     * @param clubSlotB    away participant first leg
      * @param tournament   tournament
      * @param singleLegged indicates if the tie is single-legged.
      */
-    public KnockoutTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Tournament tournament, boolean singleLegged) {
-        super(clubSlot1, clubSlot2, tournament);
+    public KnockoutTie(ClubSlot clubSlotA, ClubSlot clubSlotB, Tournament tournament, boolean singleLegged) {
+        super(clubSlotA, clubSlotB, tournament);
         this.singleLegged = singleLegged;
     }
 
@@ -43,136 +43,125 @@ public class KnockoutTie extends Tie {
      * Constructs a two-legged knockout tie with preset goals (first leg). Order
      * matters.
      * 
-     * @param clubSlot1  home participant first leg
-     * @param clubSlot2  away participant first leg
-     * @param club1Goals goals for club 1
-     * @param club2Goals goals for club 2
+     * @param clubSlotA  home participant first leg
+     * @param clubSlotB  away participant first leg
+     * @param clubAGoals goals for club A
+     * @param clubBGoals goals for club B
      * @param tournament tournament
      */
-    public KnockoutTie(ClubSlot clubSlot1, ClubSlot clubSlot2, Integer club1Goals,
-            Integer club2Goals, Tournament tournament) {
-        super(clubSlot1, clubSlot2, club1Goals, club2Goals, tournament);
+    public KnockoutTie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals,
+            Integer clubBGoals, Tournament tournament) {
+        super(clubSlotA, clubSlotB, clubAGoals, clubBGoals, tournament);
     }
 
-    public Boolean isClub1Winner() {
-        return club1Winner;
+    public Boolean isClubAWinner() {
+        return clubAWinner;
     }
 
-    /**
-     * Simulates the outcome of a knockout tie between two clubs using their Elo
-     * ratings.
-     * The method handles both single-legged and double-legged ties, including extra
-     * time and penalties if necessary.
-     * <p>
-     * Steps:
-     * <ul>
-     * <li>If no score is known, simulates the first leg (club1 at home).</li>
-     * <li>If the tie is double-legged, simulates the second leg (club2 at
-     * home).</li>
-     * <li>Determines the winner based on aggregate goals.</li>
-     * <li>If aggregate scores are level, simulates extra time at the second leg
-     * venue.</li>
-     * <li>If still level after extra time, simulates a penalty shootout at the
-     * second leg venue.</li>
-     * <li>Sets {@code club1Winner} to indicate if club1 won the tie.</li>
-     * </ul>
-     *
-     * @param clubEloDataLoader the loader providing Elo ratings for clubs
-     */
     @Override
     public void play(ClubEloDataLoader clubEloDataLoader) {
-        ClubIdWrapper club1 = clubSlot1.getClubIdWrapper();
-        ClubIdWrapper club2 = clubSlot2.getClubIdWrapper();
-
-        double elo1 = club1.getEloRating(clubEloDataLoader);
-        double elo2 = club2.getEloRating(clubEloDataLoader);
 
         // If no score known -> simulate first leg
-        if (club1Goals1stLeg == null) {
+        if (clubAGoals1stLeg == null) {
             // Simulate first leg
-            simulateMatch(elo1, elo2, true);
-            // Apply Elo changes after first leg
-            applyEloForMatch(elo1, elo2, clubEloDataLoader, true);
+            simulateMatch(true, false, clubEloDataLoader);
+            // Update Elo after first leg (only for first leg goals)
+            updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubEloDataLoader);
             // If double-legged, wait for second leg
             if (!singleLegged)
                 return;
         }
-        // If double-legged, simulate second leg: club2 at home
-        if (!singleLegged) {
-            simulateMatch(elo2, elo1, false);
+        // If double-legged, simulate second leg
+        else if (!singleLegged) {
+            simulateMatch(false, false, clubEloDataLoader);
+
+            // Update Elo after second leg (only for second leg goals)
+            updateEloForResult(clubAGoals2ndLeg, clubBGoals2ndLeg, false, PARAM_ELO_UPDATE_K, clubEloDataLoader);
         }
 
         // Check aggregate before potential ET/penalties
-        if (getClub1Goals() != getClub2Goals()) {
-            club1Winner = getClub1Goals() > getClub2Goals();
-            // Apply Elo changes second leg
-            applyEloForMatch(elo2, elo1, clubEloDataLoader, false);
+        if (getClubAGoals() != getClubBGoals()) {
+            clubAWinner = getClubAGoals() > getClubBGoals();
             return;
         }
 
-        simulateExtraTime(elo2, elo1); // simulate ET with club2 at home
+        // Temporary variables to track goals scored in ET
+        int clubAGoalsPre90 = clubAGoals2ndLeg;
+        int clubBGoalsPre90 = clubBGoals2ndLeg;
+
+        // Simulate ET
+        simulateMatch(singleLegged, true, clubEloDataLoader);
+
+        // Needed to know how many goals were scored in ET for Elo update
+        int clubAGoalsPost90 = clubAGoals2ndLeg - clubAGoalsPre90;
+        int clubBGoalsPost90 = clubBGoals2ndLeg - clubBGoalsPre90;
+
+        // Update Elo after ET (only for ET goals)
+        updateEloForResult(clubAGoalsPost90, clubBGoalsPost90, singleLegged, PARAM_ET_FACTOR * PARAM_ELO_UPDATE_K,
+                clubEloDataLoader);
 
         // Check aggregate after ET
-        if (getClub1Goals() != getClub2Goals()) {
-            club1Winner = getClub1Goals() > getClub2Goals();
-            // Apply Elo changes second leg
-            applyEloForMatch(elo2, elo1, clubEloDataLoader, false);
+        if (getClubAGoals() != getClubBGoals()) {
+            clubAWinner = getClubAGoals() > getClubBGoals();
             return;
         }
 
-        // Penalties in second leg
-        boolean homePenaltyWinner = simulatePenaltyWinner(elo2, elo1);
-        club1Winner = !homePenaltyWinner;
+        // Simulate penalties
+        clubAWinner = simulatePenaltyWinner(singleLegged, clubEloDataLoader);
+
+        // Update Elo for penalty shootout outcome. We treat the winner as having scored
+        // 1-0 (not actual match goals) for Elo purposes only, using a reduced K-factor.
+        updateEloForResult(clubAWinner ? 1 : 0, clubAWinner ? 0 : 1, singleLegged,
+                PARAM_PSO_FACTOR * PARAM_ELO_UPDATE_K, clubEloDataLoader);
     }
 
-    private void simulateOutCome(double elo1, double elo2) {
-        int club1WinnerCount = 0;
+    private void simulateOutCome(ClubEloDataLoader clubEloDataLoader) {
+        int clubAWinnerCount = 0;
         for (int i = 0; i < SIMS; i++) {
-            club1Goals1stLeg = null;
-            club2Goals1stLeg = null;
-            club1Goals2ndLeg = null;
-            club2Goals2ndLeg = null;
-            club1Winner = null;
-            simulateMatch(elo1, elo2, true);
-            simulateMatch(elo2, elo1, false);
+            clubAGoals1stLeg = null;
+            clubBGoals1stLeg = null;
+            clubAGoals2ndLeg = null;
+            clubBGoals2ndLeg = null;
+            clubAWinner = null;
+            simulateMatch(true, false, clubEloDataLoader);
+            simulateMatch(false, false, clubEloDataLoader);
 
-            // System.out.println(club1Goals + "-" + club2Goals);
+            // System.out.println(clubAGoals + "-" + clubBGoals);
 
-            if (getClub1Goals() != getClub2Goals()) {
-                club1Winner = getClub1Goals() > getClub2Goals();
-                club1WinnerCount += club1Winner ? 1 : 0;
+            if (getClubAGoals() != getClubBGoals()) {
+                clubAWinner = getClubAGoals() > getClubBGoals();
+                clubAWinnerCount += clubAWinner ? 1 : 0;
                 continue;
             }
 
-            simulateExtraTime(elo2, elo1);
+            simulateMatch(false, true, clubEloDataLoader);
 
-            if (getClub1Goals() != getClub2Goals()) {
-                club1Winner = getClub1Goals() > getClub2Goals();
-                club1WinnerCount += club1Winner ? 1 : 0;
+            if (getClubAGoals() != getClubBGoals()) {
+                clubAWinner = getClubAGoals() > getClubBGoals();
+                clubAWinnerCount += clubAWinner ? 1 : 0;
                 continue;
             }
 
             // Penalties in second leg
             // simulatePenaltyWinner expects (eloHome, eloAway) where home is venue of
-            // penalties (club2)
-            boolean homePenaltyWinner = simulatePenaltyWinner(elo2, elo1);
-            // if homePenaltyWinner == true => club2 wins penalties => club1 loses
-            club1Winner = !homePenaltyWinner;
-            club1WinnerCount += club1Winner ? 1 : 0;
+            // penalties (clubB)
+            boolean clubAWinner = simulatePenaltyWinner(false, clubEloDataLoader);
+
+            clubAWinnerCount += clubAWinner ? 1 : 0;
         }
-        club1Goals1stLeg = null;
-        club2Goals1stLeg = null;
-        club1Goals2ndLeg = null;
-        club2Goals2ndLeg = null;
-        club1Winner = null;
-        System.out.println("Probabilities after " + SIMS + " sims: " + clubSlot1.toCompactString() + " win "
-                + (club1WinnerCount * 100.0 / SIMS) + "%, " + clubSlot2.toCompactString() + " win "
-                + ((SIMS - club1WinnerCount) * 100.0 / SIMS) + "%");
+        clubAGoals1stLeg = null;
+        clubBGoals1stLeg = null;
+        clubAGoals2ndLeg = null;
+        clubBGoals2ndLeg = null;
+        clubAWinner = null;
+        System.out.println("Probabilities after " + SIMS + " sims: " + clubSlotA.toCompactString() + " win "
+                + (clubAWinnerCount * 100.0 / SIMS) + "%, " + clubSlotB.toCompactString() + " win "
+                + ((SIMS - clubAWinnerCount) * 100.0 / SIMS) + "%");
     }
 
     @Override
     public String toString() {
-        return "KnockoutTie [" + fieldsToString() + ", club1Winner=" + club1Winner + ", singleLegged=" + singleLegged
+        return "KnockoutTie [" + fieldsToString() + ", clubAWinner=" + clubAWinner + ", singleLegged=" + singleLegged
                 + "]";
     }
 }

@@ -56,16 +56,16 @@ public final class PoliticalTieRestrictions {
      * pairing is considered prohibited if any Country from one slot is mapped (via
      * ILLEGAL_MAP) as incompatible with any Country in the other slot.
      *
-     * @param clubSlot1 the first club slot
-     * @param clubSlot2 the second club slot
+     * @param clubSlotA the first club slot
+     * @param clubSlotB the second club slot
      * @return true if the pairing violates political restrictions, false otherwise
      */
-    public static boolean isProhibited(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+    public static boolean isProhibited(ClubSlot clubSlotA, ClubSlot clubSlotB) {
         // Choose the smaller collection as outer loop for fewer lookups
-        Collection<Country> c1s = clubSlot1.getCountries();
-        Collection<Country> c2s = clubSlot2.getCountries();
-        Collection<Country> outer = c1s.size() <= c2s.size() ? c1s : c2s;
-        Collection<Country> inner = outer == c1s ? c2s : c1s;
+        Collection<Country> csAc = clubSlotA.getCountries();
+        Collection<Country> csBc = clubSlotB.getCountries();
+        Collection<Country> outer = csAc.size() <= csBc.size() ? csAc : csBc;
+        Collection<Country> inner = outer == csAc ? csBc : csAc;
         for (Country cOuter : outer) {
             Set<Country> banned = ILLEGAL_MAP.get(cOuter);
             if (banned == null)

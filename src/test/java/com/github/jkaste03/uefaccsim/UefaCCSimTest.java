@@ -193,12 +193,12 @@ public class UefaCCSimTest {
             int[] homeCounts = new int[potCount + 1]; // 1-based
             int[] awayCounts = new int[potCount + 1];
             for (Tie tie : ties) {
-                // ClubSlot1 is always home
-                if (tie.getClubSlot1().equals(clubSlot)) {
-                    int oppPot = potIndex.get(tie.getClubSlot2());
+                // ClubSlotA is always home
+                if (tie.getClubSlotA().equals(clubSlot)) {
+                    int oppPot = potIndex.get(tie.getClubSlotB());
                     homeCounts[oppPot]++;
-                } else if (tie.getClubSlot2().equals(clubSlot)) {
-                    int oppPot = potIndex.get(tie.getClubSlot1());
+                } else if (tie.getClubSlotB().equals(clubSlot)) {
+                    int oppPot = potIndex.get(tie.getClubSlotA());
                     awayCounts[oppPot]++;
                 }
             }
@@ -280,10 +280,10 @@ public class UefaCCSimTest {
      */
     private void checkNoIllegalTies(Round round, List<? extends Tie> ties) {
         for (Tie tie : ties) {
-            ClubSlot c1 = tie.getClubSlot1();
-            ClubSlot c2 = tie.getClubSlot2();
-            assertFalse(round.isIllegalTie(c1, c2),
-                    () -> "Illegal tie: " + c1 + " vs " + c2 + " in round " + round.getName());
+            ClubSlot cA = tie.getClubSlotA();
+            ClubSlot cB = tie.getClubSlotB();
+            assertFalse(round.isIllegalTie(cA, cB),
+                    () -> "Illegal tie: " + cA + " vs " + cB + " in round " + round.getName());
         }
     }
 
@@ -301,9 +301,9 @@ public class UefaCCSimTest {
             // Create a map to count the number of opponents from each country
             Map<Country, Long> opponentCountryCounts = ties.stream()
                     // Filter ties to include only those involving the current club slot
-                    .filter(tie -> tie.getClubSlot1().equals(clubSlot) || tie.getClubSlot2().equals(clubSlot))
+                    .filter(tie -> tie.getClubSlotA().equals(clubSlot) || tie.getClubSlotB().equals(clubSlot))
                     // Map each tie to the opponent club slot
-                    .map(tie -> tie.getClubSlot1().equals(clubSlot) ? tie.getClubSlot2() : tie.getClubSlot1())
+                    .map(tie -> tie.getClubSlotA().equals(clubSlot) ? tie.getClubSlotB() : tie.getClubSlotA())
                     // Group the opponents by their country and count the occurrences
                     .collect(Collectors.groupingBy(opp -> opp.getCountries().get(0), Collectors.counting()));
 
@@ -327,8 +327,8 @@ public class UefaCCSimTest {
         int expectedOpponents = (potsCount == 6) ? 6 : 2 * potsCount; // 6-pot special case, otherwise 2 per pot
         for (ClubSlot club : lp.getClubSlots()) {
             Set<ClubSlot> opponents = ties.stream()
-                    .filter(t -> t.getClubSlot1().equals(club) || t.getClubSlot2().equals(club))
-                    .map(t -> t.getClubSlot1().equals(club) ? t.getClubSlot2() : t.getClubSlot1())
+                    .filter(t -> t.getClubSlotA().equals(club) || t.getClubSlotB().equals(club))
+                    .map(t -> t.getClubSlotA().equals(club) ? t.getClubSlotB() : t.getClubSlotA())
                     .collect(Collectors.toSet());
             assertEquals(expectedOpponents, opponents.size(),
 
@@ -346,8 +346,8 @@ public class UefaCCSimTest {
         // Unordered pairs based on ClubIdWrapper equality (identity = club id)
         Set<Set<ClubIdWrapper>> seenPairs = new HashSet<>();
         for (Tie t : ties) {
-            ClubIdWrapper a = t.getClubSlot1().getClubIdWrapper();
-            ClubIdWrapper b = t.getClubSlot2().getClubIdWrapper();
+            ClubIdWrapper a = t.getClubSlotA().getClubIdWrapper();
+            ClubIdWrapper b = t.getClubSlotB().getClubIdWrapper();
             Set<ClubIdWrapper> pair = Set.of(a, b); // record equality ensures id-based comparison
             assertTrue(seenPairs.add(pair), "Duplicate tie found for pair: " + pair);
         }

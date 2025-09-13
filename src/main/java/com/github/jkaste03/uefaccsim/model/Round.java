@@ -97,32 +97,32 @@ public abstract class Round implements Serializable {
      * </ul>
      * For all other round types, only political restrictions are considered.
      *
-     * @param clubSlot1 the first club slot
-     * @param clubSlot2 the second club slot
+     * @param clubSlotA the first club slot
+     * @param clubSlotB the second club slot
      * @return true if the pairing is not allowed; false otherwise
      */
-    public boolean isIllegalTie(ClubSlot clubSlot1, ClubSlot clubSlot2) {
+    public boolean isIllegalTie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
         if (this instanceof QRound || this instanceof LeaguePhaseRound) {
-            // if (PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2)) {
+            // if (PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB)) {
             // System.out.println("Political restriction between " +
-            // clubSlot1.toCompactString() + " and "
-            // + clubSlot2.toCompactString());
+            // clubSlotA.toCompactString() + " and "
+            // + clubSlotB.toCompactString());
             // }
-            return hasCommonCountry(clubSlot1, clubSlot2)
-                    || PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2);
+            return hasCommonCountry(clubSlotA, clubSlotB)
+                    || PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
         }
-        return PoliticalTieRestrictions.isProhibited(clubSlot1, clubSlot2);
+        return PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
     }
 
     /**
      * Checks if two club slots share at least one common country.
      * 
-     * @param clubSlot1 the first club slot.
-     * @param clubSlot2 the second club slot.
+     * @param clubSlotA the first club slot.
+     * @param clubSlotB the second club slot.
      * @return true if they share at least one common country, false otherwise.
      */
-    private static boolean hasCommonCountry(ClubSlot clubSlot1, ClubSlot clubSlot2) {
-        return clubSlot1.getCountries().stream().anyMatch(clubSlot2.getCountries()::contains);
+    private static boolean hasCommonCountry(ClubSlot clubSlotA, ClubSlot clubSlotB) {
+        return clubSlotA.getCountries().stream().anyMatch(clubSlotB.getCountries()::contains);
     }
 
     /**
