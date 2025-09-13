@@ -14,6 +14,7 @@ import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.model.ClubIdWrapper;
 import com.github.jkaste03.uefaccsim.model.ClubSlot;
 import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
+import com.github.jkaste03.uefaccsim.model.NonKnockoutTie;
 import com.github.jkaste03.uefaccsim.model.QRound;
 import com.github.jkaste03.uefaccsim.model.Round;
 import com.github.jkaste03.uefaccsim.model.Rounds;
@@ -112,7 +113,7 @@ public class UefaCCSimTest {
             // continue; // Skip per original logic (you handle UECL separately later)
             // }
             List<LeaguePhaseRound.Pot> pots = lp.getPots();
-            List<Tie> ties = lp.getTies();
+            List<NonKnockoutTie> ties = lp.getTies();
             List<ClubSlot> clubSlots = lp.getClubSlots();
 
             // NEW: verify pot.index() is 0-based and covers full range [0..pots.size()-1]
@@ -178,7 +179,7 @@ public class UefaCCSimTest {
      *                        at home and one away
      */
     private void checkOpponentPotHomeAway(List<LeaguePhaseRound.Pot> pots, List<ClubSlot> clubSlots,
-            List<Tie> ties) {
+            List<NonKnockoutTie> ties) {
         // Precompute pot index for O(1) lookups
         //
         // Note: pot.index() is verified to be 0-based above; we map to 1-based array
@@ -296,7 +297,7 @@ public class UefaCCSimTest {
      * @throws AssertionError if a club meets more than two clubs from the same
      *                        country
      */
-    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<Tie> ties) {
+    private void checkNoClubMeetsCountryMoreThanTwice(List<ClubSlot> clubSlots, List<NonKnockoutTie> ties) {
         for (ClubSlot clubSlot : clubSlots) {
             // Create a map to count the number of opponents from each country
             Map<Country, Long> opponentCountryCounts = ties.stream()
@@ -322,7 +323,7 @@ public class UefaCCSimTest {
      * @param lp   the league phase round under test
      * @param ties all ties in that round
      */
-    private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<Tie> ties) {
+    private void checkEachClubHasExpectedUniqueOpponents(LeaguePhaseRound lp, List<NonKnockoutTie> ties) {
         int potsCount = lp.getPots().size();
         int expectedOpponents = (potsCount == 6) ? 6 : 2 * potsCount; // 6-pot special case, otherwise 2 per pot
         for (ClubSlot club : lp.getClubSlots()) {
@@ -342,10 +343,10 @@ public class UefaCCSimTest {
      *
      * @param ties ties to scan for duplicate unordered pairs
      */
-    private void checkNoDuplicateTiesById(List<Tie> ties) {
+    private void checkNoDuplicateTiesById(List<NonKnockoutTie> ties) {
         // Unordered pairs based on ClubIdWrapper equality (identity = club id)
         Set<Set<ClubIdWrapper>> seenPairs = new HashSet<>();
-        for (Tie t : ties) {
+        for (NonKnockoutTie t : ties) {
             ClubIdWrapper a = t.getClubSlotA().getClubIdWrapper();
             ClubIdWrapper b = t.getClubSlotB().getClubIdWrapper();
             Set<ClubIdWrapper> pair = Set.of(a, b); // record equality ensures id-based comparison

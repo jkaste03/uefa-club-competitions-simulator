@@ -13,7 +13,6 @@ import java.util.ArrayList;
  * Abstract class representing a round in the UEFA competitions.
  */
 public abstract class Round implements Serializable {
-    protected List<Tie> ties = new ArrayList<>();
     protected final Tournament tournament;
     protected final RoundType roundType;
     // References to the next rounds
@@ -40,10 +39,6 @@ public abstract class Round implements Serializable {
      */
     public String getName() {
         return tournament + "";
-    }
-
-    public List<Tie> getTies() {
-        return ties;
     }
 
     public Tournament getTournament() {
@@ -162,9 +157,22 @@ public abstract class Round implements Serializable {
     protected abstract void draw();
 
     /**
+     * Retrieves the list of ties associated with this round. The specific type of
+     * {@link Tie}s returned may vary depending on the implementation.
+     *
+     * @return a list of ties for this round
+     */
+    protected abstract List<? extends Tie> getTies();
+
+    /**
      * Plays the round. This method is responsible for playing the round.
      */
-    public abstract void play(ClubEloDataLoader clubEloDataLoader);
+    public void play(ClubEloDataLoader clubEloDataLoader) {
+        for (Tie tie : getTies()) {
+            tie.play(clubEloDataLoader);
+        }
+        // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches
+    }
 
     /**
      * Attempts to resolve every {@link ClubSlot} in this round to a concrete club

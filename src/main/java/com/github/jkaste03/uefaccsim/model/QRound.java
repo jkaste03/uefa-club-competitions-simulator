@@ -1,11 +1,11 @@
 package com.github.jkaste03.uefaccsim.model;
 
 import java.util.List;
+import java.util.Random;
 
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +14,7 @@ import java.util.Collections;
  * Class representing a qualifying round in the UEFA competitions.
  */
 public class QRound extends Round {
+    private List<KnockoutTie> ties = new ArrayList<>();
     /**
      * Excluding rebalancing, the number of ties in the UCL Q1 CP round is 16. If
      * the number of ties is less than 16, losers of ties need to jump to the UECL
@@ -32,7 +33,7 @@ public class QRound extends Round {
     /**
      * Indicates if the ties in this qualifying round should be made single-legged.
      */
-    private boolean singleLegged = false;
+    private boolean isSingleLegged = false;
 
     /**
      * Constructs a qualifying round for the specified tournament, round type and
@@ -51,16 +52,16 @@ public class QRound extends Round {
      * Constructs a qualifying round for the specified tournament, round type and
      * path type, with an option to have ties single-legged.
      *
-     * @param tournament   the tournament of this round.
-     * @param roundType    the type of the round (Q1, Q2, etc.).
-     * @param pathType     the path type representing the qualifying route.
-     * @param singleLegged indicates if the ties in this round should be
-     *                     single-legged.
+     * @param tournament     the tournament of this round.
+     * @param roundType      the type of the round (Q1, Q2, etc.).
+     * @param pathType       the path type representing the qualifying route.
+     * @param isSingleLegged indicates if the ties in this round should be
+     *                       single-legged.
      */
-    public QRound(Tournament tournament, RoundType roundType, PathType pathType, boolean singleLegged) {
+    public QRound(Tournament tournament, RoundType roundType, PathType pathType, boolean isSingleLegged) {
         super(tournament, roundType);
         this.pathType = pathType;
-        this.singleLegged = singleLegged;
+        this.isSingleLegged = isSingleLegged;
     }
 
     /**
@@ -74,8 +75,13 @@ public class QRound extends Round {
         return super.getName() + " " + roundType + " " + pathType;
     }
 
+    @Override
+    public List<KnockoutTie> getTies() {
+        return ties;
+    }
+
     public boolean isSingleLegged() {
-        return singleLegged;
+        return isSingleLegged;
     }
 
     /**
@@ -159,7 +165,7 @@ public class QRound extends Round {
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded);
 
-        java.util.Random rng = new java.util.Random(System.nanoTime());
+        Random rng = new Random(System.nanoTime());
 
         // Attempt multiple times (should almost always succeed first try if a valid
         // matching exists). If no valid matching is found after attempts, throw.
@@ -214,7 +220,7 @@ public class QRound extends Round {
      *         is possible
      */
     private boolean buildMatching(List<ClubSlot> remainingSeeded, List<ClubSlot> remainingUnseeded,
-            List<Tie> result, java.util.Random rng) {
+            List<KnockoutTie> result, Random rng) {
         if (remainingSeeded.isEmpty()) {
             return true; // all paired
         }
@@ -263,9 +269,9 @@ public class QRound extends Round {
             List<ClubSlot> newRemainingUnseeded = new ArrayList<>(remainingUnseeded);
             newRemainingUnseeded.remove(opp);
 
-            Tie tie = rng.nextBoolean()
-                    ? (Tie) new KnockoutTie(nextSeeded, opp, tournament, singleLegged)
-                    : (Tie) new KnockoutTie(opp, nextSeeded, tournament, singleLegged);
+            KnockoutTie tie = rng.nextBoolean()
+                    ? new KnockoutTie(nextSeeded, opp, tournament, isSingleLegged)
+                    : new KnockoutTie(opp, nextSeeded, tournament, isSingleLegged);
             result.add(tie);
 
             if (buildMatching(newRemainingSeeded, newRemainingUnseeded, result, rng)) {
@@ -339,19 +345,9 @@ public class QRound extends Round {
         return noOfClubsToSkip;
     }
 
-    /**
-     * Plays the ties in the qualifying round. TODO: Consider moving to new
-     * abstract class above QRound and KnockOutRound, or to Round
-     */
-    public void play(ClubEloDataLoader clubEloDataLoader) {
-        for (Tie tie : ties) {
-            tie.play(clubEloDataLoader);
-        }
-        // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches
-    }
-
     @Override
     public String toString() {
-        return "QRound [name=" + getName() + fieldsToString() + ", seeded=" + seeded + ", unseeded=" + unseeded + "]";
+        return "QRound [name=" + getName() + fieldsToString() + ", ties=" + ties + ", seeded=" + seeded + ", unseeded="
+                + unseeded + "]";
     }
 }

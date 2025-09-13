@@ -223,11 +223,11 @@ public abstract class Tie implements Serializable {
         int homeGoals = favIsHome ? gFav : gUnd;
         int awayGoals = favIsHome ? gUnd : gFav;
         if (firstLeg) {
-            clubAGoals1stLeg += homeGoals;
-            clubBGoals1stLeg += awayGoals;
+            clubAGoals1stLeg = (clubAGoals1stLeg == null ? homeGoals : clubAGoals1stLeg + homeGoals);
+            clubBGoals1stLeg = (clubBGoals1stLeg == null ? awayGoals : clubBGoals1stLeg + awayGoals);
         } else {
-            clubAGoals2ndLeg += awayGoals;
-            clubBGoals2ndLeg += homeGoals;
+            clubAGoals2ndLeg = (clubAGoals2ndLeg == null ? awayGoals : clubAGoals2ndLeg + awayGoals);
+            clubBGoals2ndLeg = (clubBGoals2ndLeg == null ? homeGoals : clubBGoals2ndLeg + homeGoals);
         }
     }
 

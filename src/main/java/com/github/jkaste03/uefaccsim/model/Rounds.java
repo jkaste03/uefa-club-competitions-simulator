@@ -180,21 +180,22 @@ public class Rounds implements Serializable {
     private void runQRounds() {
         // Retrieve all defined round types
         final RoundType[] roundTypes = RoundType.values();
-        List<Round> roundsOfType = null;
+        // List to hold QRounds of a specific type during iteration
+        List<QRound> qRoundsOfType;
         // Execute seeding and draws for Q1 round type.
-        seedDrawQRounds(getRoundsOfType(RoundType.Q1));
+        seedDrawRounds(getRoundsOfType(RoundType.Q1));
         for (int i = 0; roundTypes[i] != RoundType.LEAGUE_PHASE; i++) {
             // Filter rounds by the current round type.
-            roundsOfType = getRoundsOfType(roundTypes[i]);
+            qRoundsOfType = getQRoundsOfType(roundTypes[i]);
             // Resolve club slots for the current round type: convert any pending tie-based
             // club slots (e.g. Winner of Tie X / Loser of Tie Y) into concrete club entries
-            resolveClubSlots(roundsOfType);
-            // Register ties for the next round type.
-            regTiesForNextRounds(roundsOfType);
+            resolveClubSlots(getRoundsOfType(roundTypes[i]));
+            // Register qround ties for the next round type.
+            regQRoundTiesForNextRounds(qRoundsOfType);
             // Execute seeding and draws for next round type.
             seedDrawQRounds(getRoundsOfType(roundTypes[i + 1]));
             // Play the matches of the round type.
-            playQRounds(roundsOfType);
+            playQRounds(qRoundsOfType);
         }
         // Finalize League Phase participants: convert any pending tie-based club slots
         // (e.g. Winner of Tie X / Loser of Tie Y) into concrete club entries for all
@@ -213,15 +214,37 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Seeds and draws the given rounds if applicable.
-     * 
-     * @param roundsOfType a list of rounds (only processed if they are qualifying
-     *                     rounds)
+     * Retrieves a list of {@link QRound} objects from the rounds of the specified
+     * {@link RoundType}.
+     * <p>
+     * This method filters the rounds obtained by {@code getRoundsOfType(roundType)}
+     * to include only instances of {@link QRound}.
+     * </p>
+     *
+     * @param roundType the type of round to filter by
+     * @return a list of {@link QRound} instances matching the specified round type
+     */
+    private List<QRound> getQRoundsOfType(RoundType roundType) {
+        return getRoundsOfType(roundType).stream()
+                .filter(r -> r instanceof QRound)
+                .map(r -> (QRound) r)
+                .toList();
+    }
+
+    /**
+     * Invokes the seeding and draw process for each qualifying round in the
+     * provided list.
+     * Only rounds that are instances of {@link QRound} will have their
+     * {@code seedDraw()} method called.
+     *
+     * @param roundsOfType the list of {@link Round} objects to process
      */
     private void seedDrawQRounds(List<Round> roundsOfType) {
-        if (roundsOfType.get(0) instanceof QRound) {
-            seedDrawRounds(roundsOfType);
-        }
+        roundsOfType.forEach(round -> {
+            if (round instanceof QRound) {
+                ((QRound) round).seedDraw();
+            }
+        });
     }
 
     /**
@@ -256,20 +279,26 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Registers ties for the next round type if the current rounds are QRounds.
-     * This ensures that winners are correctly aligned for their subsequent matches.
+     * Registers ties for the next rounds for each qualifying round in the provided
+     * list.
+     * <p>
+     * Iterates over the given list of {@link QRound} objects and invokes the
+     * {@code regTiesForNextRounds()}
+     * method on each instance to set up the ties for subsequent rounds.
      *
-     * @param roundsOfType list of rounds
+     * @param roundsOfType the list of qualifying round objects to process
      */
-    private void regTiesForNextRounds(List<Round> roundsOfType) {
+    private void regQRoundTiesForNextRounds(List<QRound> roundsOfType) {
         roundsOfType.forEach(round -> {
-            ((QRound) round).regTiesForNextRounds();
+            if (round instanceof QRound) {
+                ((QRound) round).regTiesForNextRounds();
+            }
         });
     }
 
     /**
-     * Plays qualifying rounds for the provided list of rounds, grouped by
-     * tournament type.
+     * Plays qualifying rounds for the provided list of {@link QRound}s, of a
+     * specific tournament type.
      * <p>
      * The method performs the following steps:
      * <ol>
@@ -291,15 +320,15 @@ public class Rounds implements Serializable {
      * The reason for this complex workflow is to make sure the inter-league ELO
      * adjustments (point 2, 4, 6 and 8) are done in a realistic order.
      *
-     * @param roundsOfType the list of qualifying rounds to be played, grouped by
+     * @param roundsOfType the list of qualifying rounds to be played, of a specific
      *                     tournament type
      */
-    private void playQRounds(List<Round> roundsOfType) {
+    private void playQRounds(List<QRound> roundsOfType) {
 
-        List<Round> uclRounds = roundsOfType.stream()
+        List<QRound> uclRounds = roundsOfType.stream()
                 .filter(r -> r.getTournament() == Tournament.CHAMPIONS_LEAGUE)
                 .toList();
-        List<Round> uelUeclRounds = roundsOfType.stream()
+        List<QRound> uelUeclRounds = roundsOfType.stream()
                 .filter(r -> r.getTournament() != Tournament.CHAMPIONS_LEAGUE)
                 .toList();
 
@@ -315,14 +344,14 @@ public class Rounds implements Serializable {
 
         // 5. Play all double-legged UCL rounds
         uclRounds.stream()
-                .filter(r -> !((QRound) r).isSingleLegged())
+                .filter(r -> !r.isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
         // 6. TODO: Apply all temp ELO changes to the clubs of represented NAs.
         // TODO
 
         // 7. Play all double-legged UEL/UECL rounds
         uelUeclRounds.stream()
-                .filter(r -> !((QRound) r).isSingleLegged())
+                .filter(r -> !r.isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
         // 8. TODO: Apply all temp ELO changes to the clubs of represented NAs.
         // TODO

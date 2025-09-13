@@ -10,15 +10,15 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 
 /**
  * Represents a slot in a tournament bracket, which can either be a specific
- * club or a tie (pairing) between two clubs.
+ * club or a knockout tie (pairing) between two clubs.
  * <p>
  * A {@code ClubSlot} is a flexible abstraction.
  */
 public class ClubSlot implements Serializable {
 
-    // This either represents a tie between two clubs or a single club; whichever is
-    // not used is null.
-    private Tie tie;
+    // This either represents a knockout tie between two clubs or a single club;
+    // whichever is not used is null.
+    private KnockoutTie tie;
     private ClubIdWrapper clubIdWrapper;
 
     /**
@@ -31,11 +31,11 @@ public class ClubSlot implements Serializable {
     }
 
     /**
-     * Constructs a ClubSlot with the specified Tie.
+     * Constructs a ClubSlot with the specified KnockoutTie.
      *
-     * @param tie the Tie associated with this ClubSlot
+     * @param tie the KnockoutTie associated with this ClubSlot
      */
-    public ClubSlot(Tie tie) {
+    public ClubSlot(KnockoutTie tie) {
         this.tie = tie;
     }
 
@@ -47,7 +47,7 @@ public class ClubSlot implements Serializable {
         return clubIdWrapper != null;
     }
 
-    public Tie getTie() {
+    public KnockoutTie getTie() {
         return tie;
     }
 
@@ -109,12 +109,11 @@ public class ClubSlot implements Serializable {
     public void resolveSlot(Tournament tournament) {
         if (isClub())
             return;
-        KnockoutTie t = (KnockoutTie) getTie();
-        Boolean clubAWon = t.isClubAWinner();
+        Boolean clubAWon = tie.isClubAWinner();
         if (clubAWon == null)
             return; // Winner not decided yet
-        boolean higher = t.getTournament().compareTo(tournament) > 0; // innerTie on higher level => take loser
-        ClubSlot chosen = (clubAWon ^ higher) ? t.getClubSlotA() : t.getClubSlotB();
+        boolean higher = tie.getTournament().compareTo(tournament) > 0; // innerTie on higher level => take loser
+        ClubSlot chosen = (clubAWon ^ higher) ? tie.getClubSlotA() : tie.getClubSlotB();
         this.clubIdWrapper = chosen.getClubIdWrapper();
         this.tie = null;
     }

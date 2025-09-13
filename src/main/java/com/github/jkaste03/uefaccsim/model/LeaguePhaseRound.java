@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**
  * Class representing a league phase in the UEFA competitions.
@@ -14,6 +13,7 @@ import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
  * format.
  */
 public abstract class LeaguePhaseRound extends Round {
+    protected List<NonKnockoutTie> ties = new ArrayList<>();
     protected final List<Pot> pots = new ArrayList<>();
 
     /**
@@ -55,6 +55,11 @@ public abstract class LeaguePhaseRound extends Round {
     @Override
     public String getName() {
         return super.getName() + " " + RoundType.LEAGUE_PHASE;
+    }
+
+    @Override
+    public List<NonKnockoutTie> getTies() {
+        return ties;
     }
 
     public List<Pot> getPots() {
@@ -147,28 +152,8 @@ public abstract class LeaguePhaseRound extends Round {
                 .sort((cA, cB) -> Float.compare(cA.getRanking(tournament), cB.getRanking(tournament)));
     }
 
-    /**
-     * Draws the league phase round.
-     */
-    @Override
-    protected abstract void draw();
-
-    /**
-     * Plays the league phase round.
-     * This method is currently not implemented and will throw an
-     * UnsupportedOperationException.
-     *
-     * @param clubEloDataLoader the data loader for club Elo ratings.
-     */
-    // TODO: Consider moving all play methods to Round
-    public void play(ClubEloDataLoader clubEloDataLoader) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'play'");
-        // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches
-    }
-
     @Override
     public String toString() {
-        return "LeaguePhaseRound [name=" + getName() + ", pots=" + pots + "]";
+        return "LeaguePhaseRound [name=" + getName() + ", ties=" + ties + ", pots=" + pots + "]";
     }
 }
