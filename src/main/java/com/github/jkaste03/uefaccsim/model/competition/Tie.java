@@ -155,14 +155,14 @@ public abstract class Tie implements Serializable {
 
     /**
      * Calculates the expected number of goals (lambda) for the home team using a
-     * Poisson model. The calculation is based on the mean goals per team and an
-     * adjustment factor derived from the Elo rating difference.
+     * Poisson model. The calculation is based on the mean goals per team, adjusted
+     * by the Elo rating difference (dr) between the teams. The adjustment uses an
+     * exponential function with a scaling factor (PARAM_ELO_TO_GOALS_K) and
+     * normalizes the rating difference over 400 points.
      *
-     * @param PARAM_MEAN_GOALS_PER_TEAM The average number of goals scored per team.
-     * @param PARAM_ELO_TO_GOALS_K      The scaling factor that converts Elo rating
-     *                                  difference to goal expectation.
-     * @param dr                        The Elo rating difference between the home
-     *                                  and away teams.
+     * @see PARAM_MEAN_GOALS_PER_TEAM Average goals scored per team per match.
+     * @see PARAM_ELO_TO_GOALS_K Scaling factor to convert Elo rating difference to
+     *      goal expectation.
      * @return The expected number of goals for the home team.
      */
     private static double[] eloToLambdas(double eloHome, double eloAway) {
@@ -402,14 +402,33 @@ public abstract class Tie implements Serializable {
         return pmf.length - 1;
     }
 
-    // --- Elo helper functions ---
+    /**
+     * Calculates the expected score for a team (A) against another team (B) based
+     * on their Elo ratings. The expected score represents the probability that team
+     * A will win or draw against team B.
+     *
+     * @param eloA the Elo rating of team A
+     * @param eloB the Elo rating of team B
+     * @return the expected score (probability) for team A, ranging from 0.0 to 1.0
+     */
     private static double expectedScore(double eloA, double eloB) {
         return 1.0 / (1.0 + Math.pow(10.0, (eloB - eloA) / 400.0));
     }
 
     /**
-     * Margin multiplier G:
-     * G = ln(goalDiff + 1) * (2.2 / (0.001 * |eloDiff| + 2.2))
+     * Calculates a multiplier based on the goal margin and Elo rating difference
+     * between two teams.
+     * <p>
+     * The multiplier increases with the absolute goal difference and decreases with
+     * the Elo rating difference. If the match is a draw (goal difference is zero),
+     * the multiplier is 1.0. Otherwise, it uses the natural logarithm of (goal
+     * difference + 1) scaled by a factor that depends on the Elo ratings.
+     *
+     * @param goalsA the number of goals scored by team A
+     * @param goalsB the number of goals scored by team B
+     * @param eloA   the Elo rating of team A
+     * @param eloB   the Elo rating of team B
+     * @return a double value representing the margin multiplier
      */
     private static double marginMultiplier(int goalsA, int goalsB, double eloA, double eloB) {
         int goalDiff = Math.abs(goalsA - goalsB);
@@ -473,11 +492,14 @@ public abstract class Tie implements Serializable {
      */
     protected void updateEloForResult(int goalsA, int goalsB, boolean firstLeg,
             double k, ClubEloDataLoader clubEloDataLoader) {
+        // Retrieve Elo ratings
         double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
         double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
 
+        // Compute Elo delta for club A (club B gets -delta)
         double deltaElo = firstLeg ? computeEloDelta(eloA, eloB, goalsA, goalsB, k)
                 : computeEloDelta(eloB, eloA, goalsB, goalsA, k);
+        // Update Elo without committing
         clubEloDataLoader.updateUncommitedEloDelta(clubSlotA.getClubIdWrapper().id(), deltaElo);
         clubEloDataLoader.updateUncommitedEloDelta(clubSlotB.getClubIdWrapper().id(), -deltaElo);
     }
