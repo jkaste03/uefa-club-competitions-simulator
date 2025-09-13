@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.io.Serializable;
 import java.util.List;
@@ -7,6 +7,8 @@ import java.util.stream.Stream;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.model.Club;
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
  * Represents a slot in a tournament bracket, which can either be a specific

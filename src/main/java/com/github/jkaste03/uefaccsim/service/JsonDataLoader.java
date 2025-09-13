@@ -6,9 +6,9 @@ import java.io.Reader;
 import java.util.List;
 
 import com.github.jkaste03.uefaccsim.model.Club;
-import com.github.jkaste03.uefaccsim.model.ClubRepository;
-import com.github.jkaste03.uefaccsim.model.ClubSlot;
-import com.github.jkaste03.uefaccsim.model.Round;
+import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.competition.Round;
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

@@ -1,9 +1,10 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
 
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 import java.io.Serializable;

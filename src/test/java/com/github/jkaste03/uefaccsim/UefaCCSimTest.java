@@ -11,14 +11,14 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
-import com.github.jkaste03.uefaccsim.model.ClubIdWrapper;
-import com.github.jkaste03.uefaccsim.model.ClubSlot;
-import com.github.jkaste03.uefaccsim.model.LeaguePhaseRound;
-import com.github.jkaste03.uefaccsim.model.NonKnockoutTie;
-import com.github.jkaste03.uefaccsim.model.QRound;
-import com.github.jkaste03.uefaccsim.model.Round;
-import com.github.jkaste03.uefaccsim.model.Rounds;
-import com.github.jkaste03.uefaccsim.model.Tie;
+import com.github.jkaste03.uefaccsim.model.competition.ClubIdWrapper;
+import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.competition.LeaguePhaseRound;
+import com.github.jkaste03.uefaccsim.model.competition.NonKnockoutTie;
+import com.github.jkaste03.uefaccsim.model.competition.QRound;
+import com.github.jkaste03.uefaccsim.model.competition.Round;
+import com.github.jkaste03.uefaccsim.model.competition.Rounds;
+import com.github.jkaste03.uefaccsim.model.competition.Tie;
 
 import java.util.List;
 import java.util.Map;

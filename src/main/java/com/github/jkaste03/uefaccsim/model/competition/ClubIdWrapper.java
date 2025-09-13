@@ -1,7 +1,8 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.io.Serializable;
 
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
 
 /**

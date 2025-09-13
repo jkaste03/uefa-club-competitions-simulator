@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.ArrayList;
 import java.util.Collections;

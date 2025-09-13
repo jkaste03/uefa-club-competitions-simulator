@@ -1,8 +1,9 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.rule;
 
 import java.util.*;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
 
 /**
  * Class containing all the illegal matchups based on political restrictions

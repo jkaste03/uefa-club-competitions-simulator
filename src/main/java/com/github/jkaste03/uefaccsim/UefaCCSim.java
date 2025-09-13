@@ -8,7 +8,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.stream.IntStream;
 
-import com.github.jkaste03.uefaccsim.model.Rounds;
+import com.github.jkaste03.uefaccsim.model.competition.Rounds;
 
 /**
  * Entry point class for running multiple independent UEFA club competition

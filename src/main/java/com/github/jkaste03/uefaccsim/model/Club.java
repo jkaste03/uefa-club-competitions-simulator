@@ -3,6 +3,7 @@ package com.github.jkaste03.uefaccsim.model;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
  * Represents a football club with a name, country, and UEFA ranking.

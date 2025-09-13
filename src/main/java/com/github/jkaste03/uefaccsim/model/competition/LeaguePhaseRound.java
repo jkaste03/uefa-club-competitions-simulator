@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
  * Class representing a league phase in the UEFA competitions.

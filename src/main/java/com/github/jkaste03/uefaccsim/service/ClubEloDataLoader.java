@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
-import com.github.jkaste03.uefaccsim.model.ClubRepository;
+import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
  * Primary purpose: maintain a lookup map ({@code Map<Integer, EloData>}) from

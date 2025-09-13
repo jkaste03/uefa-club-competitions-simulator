@@ -1,4 +1,4 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.model.competition;
 
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;

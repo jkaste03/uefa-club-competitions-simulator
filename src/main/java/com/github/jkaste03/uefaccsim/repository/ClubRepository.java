@@ -1,8 +1,10 @@
-package com.github.jkaste03.uefaccsim.model;
+package com.github.jkaste03.uefaccsim.repository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.github.jkaste03.uefaccsim.model.Club;
 
 /**
  * This class serves as a repository for managing club instances in the UEFA
