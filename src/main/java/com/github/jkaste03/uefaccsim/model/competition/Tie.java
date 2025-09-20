@@ -496,12 +496,13 @@ public abstract class Tie implements Serializable {
         double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
         double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
 
-        // Compute Elo delta for club A (club B gets -delta)
-        double deltaElo = firstLeg ? computeEloDelta(eloA, eloB, goalsA, goalsB, k)
+        // Compute Elo delta for home club. Away club gets -delta.
+        double deltaElo = firstLeg
+                ? computeEloDelta(eloA, eloB, goalsA, goalsB, k)
                 : computeEloDelta(eloB, eloA, goalsB, goalsA, k);
         // Update Elo without committing
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlotA.getClubIdWrapper().id(), deltaElo);
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlotB.getClubIdWrapper().id(), -deltaElo);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlotA.getClubIdWrapper().id(), firstLeg ? deltaElo : -deltaElo);
+        clubEloDataLoader.updateUncommitedEloDelta(clubSlotB.getClubIdWrapper().id(), firstLeg ? -deltaElo : deltaElo);
     }
 
     /**
