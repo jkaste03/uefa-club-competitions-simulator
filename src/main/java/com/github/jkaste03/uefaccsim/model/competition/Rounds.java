@@ -334,27 +334,27 @@ public class Rounds implements Serializable {
 
         // 1. Play all UCL rounds
         uclRounds.forEach(r -> r.play(clubEloDataLoader));
-        // 2. TODO: Apply all temp ELO changes to the clubs of represented NAs.
-        // TODO
+        // 2. Apply all temp ELO changes to the clubs of represented NAs.
+        clubEloDataLoader.applyAllUncommitedEloDeltas();
 
         // 3. Play all UEL/UECL rounds
         uelUeclRounds.forEach(r -> r.play(clubEloDataLoader));
-        // 4. TODO: Apply all temp ELO changes to the clubs of represented NAs.
-        // TODO
+        // 4. Apply all temp ELO changes to the clubs of represented NAs.
+        clubEloDataLoader.applyAllUncommitedEloDeltas();
 
         // 5. Play all double-legged UCL rounds
         uclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
-        // 6. TODO: Apply all temp ELO changes to the clubs of represented NAs.
-        // TODO
+        // 6. Apply all temp ELO changes to the clubs of represented NAs.
+        clubEloDataLoader.applyAllUncommitedEloDeltas();
 
         // 7. Play all double-legged UEL/UECL rounds
         uelUeclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
                 .forEach(r -> r.play(clubEloDataLoader));
-        // 8. TODO: Apply all temp ELO changes to the clubs of represented NAs.
-        // TODO
+        // 8. Apply all temp ELO changes to the clubs of represented NAs.
+        clubEloDataLoader.applyAllUncommitedEloDeltas();
     }
 
     /**

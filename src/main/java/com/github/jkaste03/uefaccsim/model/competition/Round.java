@@ -172,7 +172,6 @@ public abstract class Round implements Serializable {
         for (Tie tie : getTies()) {
             tie.play(clubEloDataLoader);
         }
-        // Todo: Update the clubEloDataLoader with the new Elo ratings after the matches
     }
 
     /**
