@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -88,8 +88,6 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 allClubs.add(club);
             }
         }
-
-        final Random random = new Random();
 
         // Helper for country counters (max two opponents from same foreign country)
         class CountryHelper {
@@ -190,7 +188,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             // create a shuffled copy to simulate balls drawing order
             List<ClubSlot> potCopy = new ArrayList<>(pots.get(p).clubs());
             // shuffle to avoid deterministic bias
-            Collections.shuffle(potCopy, random);
+            Collections.shuffle(potCopy, ThreadLocalRandom.current());
             potLists.add(potCopy);
         }
 
@@ -316,7 +314,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 if (candidates.isEmpty())
                     return;
 
-                Collections.shuffle(candidates, random); // random tie-break
+                Collections.shuffle(candidates, ThreadLocalRandom.current()); // random tie-break
 
                 int ownersPot = slot.ownersPot;
 
@@ -419,7 +417,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
             countryHelper.clear();
             // reshuffle pots to vary randomness
             for (int p = 0; p < POT_COUNT; p++) {
-                Collections.shuffle(potLists.get(p), random);
+                Collections.shuffle(potLists.get(p), ThreadLocalRandom.current());
             }
 
             // Utility for Slot to compute complementary index (we add method outside of

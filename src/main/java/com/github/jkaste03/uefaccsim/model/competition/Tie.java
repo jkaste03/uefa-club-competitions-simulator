@@ -1,7 +1,7 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.io.Serializable;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
@@ -38,7 +38,12 @@ public abstract class Tie implements Serializable {
     // probability estimation
     private static final double PARAM_PENALTY_BETA = 0.18; // Logistic scale for penalty win probability
 
-    private static final Random RNG = new Random();
+    // Thread-local Gaussian cache for Box–Muller transform (avoid Random.nextGaussian contention/unsupported)
+    private static final ThreadLocal<GaussianCache> GAUSS_CACHE = ThreadLocal.withInitial(GaussianCache::new);
+    private static final class GaussianCache {
+        boolean has;
+        double spare;
+    }
 
     /**
      * Constructs a new Tie representing a pairing between two club slots. Order
@@ -269,7 +274,7 @@ public abstract class Tie implements Serializable {
         double dr = firstLeg ? eloA - eloB : eloB - eloA;
         double z = PARAM_PENALTY_BETA * dr / 400.0;
         double pHome = 1.0 / (1.0 + Math.exp(-z));
-        return RNG.nextDouble() < pHome;
+        return ThreadLocalRandom.current().nextDouble() < pHome;
     }
 
     // ----------------- Probability primitives -----------------
@@ -283,7 +288,7 @@ public abstract class Tie implements Serializable {
             double p = 1.0;
             int k = 0;
             while (p > L) {
-                p *= RNG.nextDouble();
+                p *= ThreadLocalRandom.current().nextDouble();
                 k++;
                 if (k > 10000)
                     break; // safety
@@ -291,7 +296,7 @@ public abstract class Tie implements Serializable {
             return k - 1;
         } else {
             double std = Math.sqrt(lambda);
-            double val = Math.round(RNG.nextGaussian() * std + lambda);
+            double val = Math.round(nextGaussianBM() * std + lambda);
             return (int) Math.max(0, val);
         }
     }
@@ -301,18 +306,18 @@ public abstract class Tie implements Serializable {
         if (shape <= 0)
             throw new IllegalArgumentException("shape must be > 0");
         if (shape < 1.0) {
-            double u = RNG.nextDouble();
+            double u = ThreadLocalRandom.current().nextDouble();
             return sampleGamma(shape + 1.0, scale) * Math.pow(u, 1.0 / shape);
         }
         double d = shape - 1.0 / 3.0;
         double c = 1.0 / Math.sqrt(9.0 * d);
         while (true) {
-            double x = RNG.nextGaussian();
+            double x = nextGaussianBM();
             double v = 1.0 + c * x;
             if (v <= 0)
                 continue;
             v = v * v * v;
-            double u = RNG.nextDouble();
+            double u = ThreadLocalRandom.current().nextDouble();
             double xsq = x * x;
             if (u < 1.0 - 0.0331 * xsq * xsq)
                 return d * v * scale;
@@ -392,7 +397,7 @@ public abstract class Tie implements Serializable {
         double s = 0.0;
         for (double v : pmf)
             s += v;
-        double u = RNG.nextDouble() * s;
+        double u = ThreadLocalRandom.current().nextDouble() * s;
         double c = 0.0;
         for (int i = 0; i < pmf.length; i++) {
             c += pmf[i];
@@ -400,6 +405,28 @@ public abstract class Tie implements Serializable {
                 return i;
         }
         return pmf.length - 1;
+    }
+
+    // Box–Muller Gaussian generator using ThreadLocalRandom with per-thread spare caching
+    private static double nextGaussianBM() {
+        GaussianCache gc = GAUSS_CACHE.get();
+        if (gc.has) {
+            gc.has = false;
+            return gc.spare;
+        }
+    double u1, u2;
+        // ensure u1 != 0 to avoid log(0)
+        do {
+            u1 = ThreadLocalRandom.current().nextDouble();
+        } while (u1 <= 1e-12);
+        u2 = ThreadLocalRandom.current().nextDouble();
+        double r = Math.sqrt(-2.0 * Math.log(u1));
+        double theta = 2.0 * Math.PI * u2;
+        double z0 = r * Math.cos(theta);
+        double z1 = r * Math.sin(theta);
+        gc.spare = z1;
+        gc.has = true;
+        return z0;
     }
 
     /**

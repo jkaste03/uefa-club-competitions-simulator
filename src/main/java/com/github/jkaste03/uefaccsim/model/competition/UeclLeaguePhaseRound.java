@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import com.github.jkaste03.uefaccsim.enums.Country;
@@ -24,7 +24,6 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
      * The number of pots used for seeding clubs in the league phase.
      */
     private final static int POT_COUNT = 6;
-    Random rnd = new Random();
 
     /**
      * Constructs a ConferenceLeaguePhaseRound.
@@ -206,7 +205,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                 String key = pa + "-" + pb;
                 if (pa == pb) {
                     List<int[]> candidates = new ArrayList<>(intraCache.get(pa));
-                    Collections.shuffle(candidates, rnd);
+                    Collections.shuffle(candidates, ThreadLocalRandom.current());
                     for (int[] flat : candidates) {
                         boolean okAll = true;
                         for (int k = 0; k < 6; k += 2) {
@@ -261,7 +260,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                     boolean ok = true;
                     for (int i = 0; i < n && ok; ++i) {
                         boolean[] seen = new boolean[n];
-                        ok = dfsMatch(i, allowed, seen, matchToB, matchToA, rnd);
+                        ok = dfsMatch(i, allowed, seen, matchToB, matchToA);
                     }
                     if (!ok)
                         return false;
@@ -286,13 +285,13 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                 }
             }
 
-            boolean dfsMatch(int aIdx, boolean[][] allowed, boolean[] seen, int[] matchToB, int[] matchToA, Random r) {
+            boolean dfsMatch(int aIdx, boolean[][] allowed, boolean[] seen, int[] matchToB, int[] matchToA) {
                 int n = allowed.length;
                 int[] order = new int[n];
                 for (int i = 0; i < n; ++i)
                     order[i] = i;
                 for (int i = n - 1; i > 0; --i) {
-                    int j = r.nextInt(i + 1);
+                    int j = ThreadLocalRandom.current().nextInt(i + 1);
                     int tmp = order[i];
                     order[i] = order[j];
                     order[j] = tmp;
@@ -301,7 +300,7 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
                     if (!allowed[aIdx][bi] || seen[bi])
                         continue;
                     seen[bi] = true;
-                    if (matchToA[bi] == -1 || dfsMatch(matchToA[bi], allowed, seen, matchToB, matchToA, r)) {
+                    if (matchToA[bi] == -1 || dfsMatch(matchToA[bi], allowed, seen, matchToB, matchToA)) {
                         matchToB[aIdx] = bi;
                         matchToA[bi] = aIdx;
                         return true;
@@ -409,7 +408,6 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
             for (int i = 0; i < idxToClub.length; ++i)
                 countryCounts.get(i).clear();
             // rerun solver with new RNG seed
-            rnd = new Random(rnd.nextLong());
             s = new Solver();
             if (!s.solve(0))
                 continue;
