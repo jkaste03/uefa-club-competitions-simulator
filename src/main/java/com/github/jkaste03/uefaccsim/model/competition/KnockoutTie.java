@@ -60,21 +60,20 @@ public class KnockoutTie extends Tie {
 
     @Override
     public void play(ClubEloDataLoader clubEloDataLoader) {
-
         // If no score known -> simulate first leg
         if (clubAGoals1stLeg == null) {
-            // Simulate first leg
+            // Simulate first leg (club A at home)
             simulateMatch(true, false, clubEloDataLoader);
             // Update Elo after first leg (only for first leg goals)
             updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubEloDataLoader);
-            // If double-legged, wait for second leg
+            // If two-legged, return now and wait for second leg to be played later.
             if (!singleLegged)
                 return;
         }
         // If double-legged, simulate second leg
         else if (!singleLegged) {
+            // Two-legged tie: simulate second leg
             simulateMatch(false, false, clubEloDataLoader);
-
             // Update Elo after second leg (only for second leg goals)
             updateEloForResult(clubAGoals2ndLeg, clubBGoals2ndLeg, false, PARAM_ELO_UPDATE_K, clubEloDataLoader);
         }
@@ -89,15 +88,15 @@ public class KnockoutTie extends Tie {
         int clubAGoalsPre90 = clubAGoals2ndLeg;
         int clubBGoalsPre90 = clubBGoals2ndLeg;
 
-        // Simulate ET
+        // Simulate ET at the venue of the decisive leg
         simulateMatch(singleLegged, true, clubEloDataLoader);
 
-        // Needed to know how many goals were scored in ET for Elo update
-        int clubAGoalsPost90 = clubAGoals2ndLeg - clubAGoalsPre90;
-        int clubBGoalsPost90 = clubBGoals2ndLeg - clubBGoalsPre90;
+        // Goals scored in ET (for Elo update with reduced K)
+        int clubAGoalsET = clubAGoals2ndLeg - clubAGoalsPre90;
+        int clubBGoalsET = clubBGoals2ndLeg - clubBGoalsPre90;
 
         // Update Elo after ET (only for ET goals)
-        updateEloForResult(clubAGoalsPost90, clubBGoalsPost90, singleLegged, PARAM_ET_FACTOR * PARAM_ELO_UPDATE_K,
+        updateEloForResult(clubAGoalsET, clubBGoalsET, singleLegged, PARAM_ET_FACTOR * PARAM_ELO_UPDATE_K,
                 clubEloDataLoader);
 
         // Check aggregate after ET
@@ -106,7 +105,7 @@ public class KnockoutTie extends Tie {
             return;
         }
 
-        // Simulate penalties
+        // Penalties at the venue of the decisive leg
         clubAWinner = simulatePenaltyWinner(singleLegged, clubEloDataLoader);
 
         // Update Elo for penalty shootout outcome. We treat the winner as having scored
@@ -115,6 +114,7 @@ public class KnockoutTie extends Tie {
                 PARAM_PSO_FACTOR * PARAM_ELO_UPDATE_K, clubEloDataLoader);
     }
 
+    @SuppressWarnings("unused")
     private void simulateOutCome(ClubEloDataLoader clubEloDataLoader) {
         int clubAWinnerCount = 0;
         for (int i = 0; i < SIMS; i++) {
