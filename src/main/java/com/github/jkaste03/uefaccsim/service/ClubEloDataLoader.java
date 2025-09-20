@@ -11,79 +11,43 @@ import java.util.stream.StreamSupport;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
- * Primary purpose: maintain a lookup map ({@code Map<Integer, EloData>}) from
- * internal club id to an {@link EloData} object (field {@link #eloDataMap}).
- * {@link EloData} contains both the club's current Elo rating and any pending
- * inter-league Elo adjustment to be applied after a matchday.
- * The class is centered around initializing and providing fast, read access to
- * this mapping.
- *
+ * ClubEloDataLoader is responsible for managing the loading, updating, and
+ * validation
+ * of football club Elo ratings from a remote API and local CSV files.
  * <p>
- * Secondary responsibilities:
+ * Main responsibilities include:
  * <ul>
- * <li>Download (once per JVM run / per calendar day) the CSV for today from the
- * public ClubElo API (endpoint pattern:
- * {@code http://api.clubelo.com/yyyy-MM-dd}).</li>
- * <li>Persist the raw CSV under a deterministic, date‑stamped filename.</li>
- * <li>Parse the CSV, resolve each club name to an internal id via
- * {@code ClubRepository}, and populate {@link #eloDataMap} with {@link EloData}
- * objects.</li>
+ * <li>Downloading the latest Elo ratings CSV from the ClubElo API for a
+ * specified date.</li>
+ * <li>Storing and managing Elo data in local files within a designated data
+ * folder.</li>
+ * <li>Loading Elo ratings into memory and mapping them to club IDs using the
+ * ClubRepository.</li>
+ * <li>Supporting pending (uncommitted) Elo deltas for clubs, allowing batch
+ * updates before committing changes.</li>
+ * <li>Validating that all clubs in the repository have corresponding Elo
+ * ratings, ensuring data completeness.</li>
  * </ul>
+ * <p>
+ * <b>Note:</b> Club names in the local data.json must match those used by the
+ * ClubElo API.
+ * If a club is missing an Elo rating, update data.json accordingly.
+ * </p>
+ *
+ * @author johan
  */
 public class ClubEloDataLoader implements Serializable {
-    /**
-     * Container for Elo data per club.
-     */
-    public static class EloData implements Serializable {
-        private double elo;
-        /**
-         * Holds the pending Elo adjustment to be applied after a matchday.
-         * This prevents order bias when processing inter-league Elo changes.
-         */
-        private double uncommitedEloDelta;
-
-        public EloData(double elo) {
-            this.elo = elo;
-            this.uncommitedEloDelta = 0.0;
-        }
-
-        public double getElo() {
-            return elo;
-        }
-
-        public void updateElo(double deltaElo) {
-            this.elo += deltaElo;
-        }
-
-        public double getUncommitedEloDelta() {
-            return uncommitedEloDelta;
-        }
-
-        public void setUncommitedEloDelta(double uncommitedEloDelta) {
-            this.uncommitedEloDelta = uncommitedEloDelta;
-        }
-
-        public void updateUncommitedEloDelta(double deltaUncommitedEloDelta) {
-            this.uncommitedEloDelta += deltaUncommitedEloDelta;
-        }
-    }
-
-    // URL for the club elo ratings API
+    /** URL for the club elo ratings API */
     private static final String BASE_URL = "http://api.clubelo.com/";
-    // Folder for storing downloaded data
+    /** Folder for storing downloaded data */
     private static final String DATA_FOLDER = "src/main/java/com/github/jkaste03/uefaccsim/data/";
-    // private static LocalDate date = LocalDate.of(2025, 8, 20);
-    private static LocalDate date = LocalDate.now();
+    private static final LocalDate date = LocalDate.now();
+    /** File path for the current date's CSV file */
     private static String filePath = DATA_FOLDER + date + ".csv";
-    private static String formerFilePath;
-    /**
-     * Map for storing Elo data by club ID.
-     */
-    private final Map<Integer, EloData> eloDataMap = new HashMap<>();
-
-    public ClubEloDataLoader() {
-        formerFilePath = getLatestCsvFilePath();
-    }
+    /** Map: clubId -> current Elo rating. */
+    private final Map<Integer, Double> eloMap = new HashMap<>();
+    /** Map: clubId -> pending uncommitted Elo delta. */
+    private final Map<Integer, Double> pendingDeltas = new HashMap<>();
 
     /**
      * Retrieves the file path of the latest CSV file in the data folder.
@@ -176,11 +140,15 @@ public class ClubEloDataLoader implements Serializable {
         } catch (IOException e) {
             System.err.println("I/O error while downloading API data from " + urlString + ": " + e.getMessage());
         }
-        if (!success && formerFilePath != null) {
-            System.err.println("Falling back to previous CSV file: " + formerFilePath);
-            filePath = formerFilePath;
-        } else if (!success) {
-            throw new IllegalStateException("Failed to download API data and no previous CSV file available.");
+        // Try to fall back to previous file if download failed
+        if (!success) {
+            String previousFilePath = getLatestCsvFilePath();
+            if (previousFilePath != null) {
+                System.err.println("Falling back to previous CSV file: " + previousFilePath);
+                filePath = previousFilePath;
+            } else {
+                throw new IllegalStateException("Failed to download API data and no previous CSV file available.");
+            }
         }
     }
 
@@ -200,7 +168,7 @@ public class ClubEloDataLoader implements Serializable {
 
     /**
      * Loads Elo rating values from the CSV file referenced by {@code filePath} into
-     * the internal {@code eloDataMap}.
+     * the internal {@code eloMap}.
      *
      * The method:
      * <ul>
@@ -212,8 +180,8 @@ public class ClubEloDataLoader implements Serializable {
      * <li>Uses the 2nd column (index 1) as the club's name to resolve a club id via
      * {@link ClubRepository#getIdByName(String)}.</li>
      * <li>Parses the 5th column (index 4) as a {@code double} Elo rating.</li>
-     * <li>Stores the Elo rating in {@code eloDataMap} keyed by the resolved club id
-     * (even if the id may be -1 if not found).</li>
+     * <li>Stores the Elo rating in {@code eloMap} keyed by the resolved club
+     * id</li>
      * </ul>
      */
     private void loadEloRatings() {
@@ -226,7 +194,7 @@ public class ClubEloDataLoader implements Serializable {
                 String clubName = values[1].trim();
                 int clubid = ClubRepository.getIdByName(clubName);
                 double elo = Double.parseDouble(values[4].trim());
-                eloDataMap.put(clubid, new EloData(elo));
+                eloMap.put(clubid, elo);
             }
         } catch (IOException e) {
             System.err.println("Could not read API data: " + e.getMessage());
@@ -240,8 +208,8 @@ public class ClubEloDataLoader implements Serializable {
      * @return the Elo rating for the club if available
      */
     public double getElo(int clubId) {
-        EloData data = eloDataMap.get(clubId);
-        return data.getElo();
+        Double elo = eloMap.get(clubId);
+        return elo;
     }
 
     /**
@@ -251,8 +219,8 @@ public class ClubEloDataLoader implements Serializable {
      * @param deltaElo the delta elo rating for the club
      */
     public void updateEloRating(int clubId, double deltaElo) {
-        EloData data = eloDataMap.get(clubId);
-        data.updateElo(deltaElo);
+        double current = eloMap.get(clubId);
+        eloMap.put(clubId, current + deltaElo);
     }
 
     /**
@@ -262,8 +230,7 @@ public class ClubEloDataLoader implements Serializable {
      * @return the uncommitedEloDelta value
      */
     public double getUncommitedEloDelta(int clubId) {
-        EloData data = eloDataMap.get(clubId);
-        return data.getUncommitedEloDelta();
+        return pendingDeltas.getOrDefault(clubId, 0.0);
     }
 
     /**
@@ -273,8 +240,8 @@ public class ClubEloDataLoader implements Serializable {
      * @param deltaUncommitedEloDelta the delta uncommitedEloDelta value
      */
     public void updateUncommitedEloDelta(int clubId, double deltaUncommitedEloDelta) {
-        EloData data = eloDataMap.get(clubId);
-        data.updateUncommitedEloDelta(deltaUncommitedEloDelta);
+        double newVal = pendingDeltas.getOrDefault(clubId, 0.0) + deltaUncommitedEloDelta;
+        pendingDeltas.put(clubId, newVal);
     }
 
     /**
@@ -282,11 +249,14 @@ public class ClubEloDataLoader implements Serializable {
      * for each club.
      */
     public void applyAllUncommitedEloDeltas() {
-        for (Map.Entry<Integer, EloData> entry : eloDataMap.entrySet()) {
-            EloData data = entry.getValue();
-            data.updateElo(data.getUncommitedEloDelta());
-            data.setUncommitedEloDelta(0.0); // Reset pending change after applying
+        // Apply only the clubs that have a pending delta (O(k))
+        for (Map.Entry<Integer, Double> e : pendingDeltas.entrySet()) {
+            int clubId = e.getKey();
+            double delta = e.getValue();
+            double current = eloMap.get(clubId);
+            eloMap.put(clubId, current + delta);
         }
+        pendingDeltas.clear();
     }
 
     /**
@@ -299,7 +269,7 @@ public class ClubEloDataLoader implements Serializable {
         List<String> missing = new ArrayList<>();
         ClubRepository.getAllClubs().forEach(club -> {
             int id = club.getId();
-            if (!eloDataMap.containsKey(id)) {
+            if (!eloMap.containsKey(id)) {
                 missing.add(club.getName() + " (id=" + id + ")");
             }
         });
