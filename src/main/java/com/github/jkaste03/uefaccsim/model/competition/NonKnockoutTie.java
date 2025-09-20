@@ -35,14 +35,10 @@ public class NonKnockoutTie extends Tie {
      */
     @Override
     public void play(ClubEloDataLoader clubEloDataLoader) {
-        ClubIdWrapper clubA = clubSlotA.getClubIdWrapper();
-        ClubIdWrapper clubB = clubSlotB.getClubIdWrapper();
-
-        simulateMatch(true, clubEloDataLoader);
-
-        System.out.println(
-                "Result: " + clubA.getName() + " " + clubAGoals1stLeg + " - " + clubBGoals1stLeg + " "
-                        + clubB.getName());
+    // Single regular-season style match: clubSlotA is home
+    simulateMatch(true, clubEloDataLoader);
+    // Apply Elo update for the result (full K)
+    updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubEloDataLoader);
     }
 
     private void simulateMatch(boolean firstLeg, ClubEloDataLoader clubEloDataLoader) {
