@@ -38,8 +38,10 @@ public abstract class Tie implements Serializable {
     // probability estimation
     private static final double PARAM_PENALTY_BETA = 0.18; // Logistic scale for penalty win probability
 
-    // Thread-local Gaussian cache for Box–Muller transform (avoid Random.nextGaussian contention/unsupported)
+    // Thread-local Gaussian cache for Box–Muller transform (avoid
+    // Random.nextGaussian contention/unsupported)
     private static final ThreadLocal<GaussianCache> GAUSS_CACHE = ThreadLocal.withInitial(GaussianCache::new);
+
     private static final class GaussianCache {
         boolean has;
         double spare;
@@ -407,14 +409,22 @@ public abstract class Tie implements Serializable {
         return pmf.length - 1;
     }
 
-    // Box–Muller Gaussian generator using ThreadLocalRandom with per-thread spare caching
+    /**
+     * Generates a pseudo-random value drawn from the standard normal (Gaussian)
+     * distribution with mean 0 and variance 1, using the Box–Muller transform
+     * (trigonometric form).
+     *
+     * @return a standard normal deviate (mean 0, standard deviation 1)
+     * @implNote Uses ThreadLocalRandom as the uniform source and a thread-local
+     *           cache to store the spare sample from the Box–Muller pair.
+     */
     private static double nextGaussianBM() {
         GaussianCache gc = GAUSS_CACHE.get();
         if (gc.has) {
             gc.has = false;
             return gc.spare;
         }
-    double u1, u2;
+        double u1, u2;
         // ensure u1 != 0 to avoid log(0)
         do {
             u1 = ThreadLocalRandom.current().nextDouble();
