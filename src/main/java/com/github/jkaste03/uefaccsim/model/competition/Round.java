@@ -28,7 +28,7 @@ public abstract class Round implements Serializable {
      * @param tournament the tournament of the round.
      * @param roundType  the type of the round.
      */
-    public Round(Tournament tournament, RoundType roundType) {
+    protected Round(Tournament tournament, RoundType roundType) {
         this.tournament = tournament;
         this.roundType = roundType;
     }

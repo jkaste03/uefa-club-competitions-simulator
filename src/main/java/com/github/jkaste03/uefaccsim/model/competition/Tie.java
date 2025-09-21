@@ -5,6 +5,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.config.SimulationConfig;
+import com.github.jkaste03.uefaccsim.service.match.DefaultMatchSimulator;
+import com.github.jkaste03.uefaccsim.service.match.MatchSimulator;
 
 /**
  * Abstract base for a tie between two club slots. May hold goals.
@@ -24,28 +27,13 @@ public abstract class Tie implements Serializable {
 
     // ----------------- Play parameters (tunable) -----------------
     // These parameters control the simulation of matches in the tie model.
-    private static final double PARAM_MEAN_GOALS_PER_TEAM = 1.35; // Average goals per team
-    private static final double PARAM_ELO_TO_GOALS_K = 0.50; // Elo to goals scaling factor
-    protected static final double PARAM_ELO_UPDATE_K = 30.0; // Elo K-factor for Elo updates
+    protected static final double PARAM_ELO_UPDATE_K = 30.0; // Elo K-factor for
+    // Elo updates
     private static final double PARAM_HFA = 65.0; // Home-field advantage in Elo points
-    private static final double PARAM_THETA = 35.0; // Negative binomial dispersion
-    private static final double[] PARAM_DRAW_INFLATION = { 0.09, 0.05, 0.01 }; // Draw inflation for favorite goals
-                                                                               // 0,1,2
-    private static final int PARAM_GMAX = 7; // Maximum goals explicitly modeled
     protected static final double PARAM_ET_FACTOR = 30.0 / 90.0; // Extra time duration fraction
-    protected static final double PARAM_PSO_FACTOR = 10.0 / 90.0; // Penalty shootout fraction (for Elo update only)
-    // private static final int PARAM_MC_SIMULATIONS = 5000; // Simulations for
-    // probability estimation
+    protected static final double PARAM_PSO_FACTOR = 10.0 / 90.0; // Penalty
+    // shootout fraction (for Elo update only)
     private static final double PARAM_PENALTY_BETA = 0.18; // Logistic scale for penalty win probability
-
-    // Thread-local Gaussian cache for Box–Muller transform (avoid
-    // Random.nextGaussian contention/unsupported)
-    private static final ThreadLocal<GaussianCache> GAUSS_CACHE = ThreadLocal.withInitial(GaussianCache::new);
-
-    private static final class GaussianCache {
-        boolean has;
-        double spare;
-    }
 
     /**
      * Constructs a new Tie representing a pairing between two club slots. Order
@@ -54,7 +42,7 @@ public abstract class Tie implements Serializable {
      * @param clubSlotA home participant first leg
      * @param clubSlotB away participant first leg
      */
-    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
+    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
         this.clubSlotA = clubSlotA;
         this.clubSlotB = clubSlotB;
         tournament = null;
@@ -68,7 +56,7 @@ public abstract class Tie implements Serializable {
      * @param clubSlotB  away participant first leg
      * @param tournament tournament
      */
-    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Tournament tournament) {
+    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Tournament tournament) {
         this.clubSlotA = clubSlotA;
         this.clubSlotB = clubSlotB;
         this.tournament = tournament;
@@ -84,7 +72,7 @@ public abstract class Tie implements Serializable {
      * @param clubBGoals1stLeg first leg goals for club B
      * @param tournament       tournament
      */
-    public Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg,
+    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg,
             Tournament tournament) {
         this.clubSlotA = clubSlotA;
         this.clubSlotB = clubSlotB;
@@ -107,6 +95,14 @@ public abstract class Tie implements Serializable {
 
     public Integer getClubBGoals1stLeg() {
         return clubBGoals1stLeg;
+    }
+
+    public Integer getClubAGoals2ndLeg() {
+        return clubAGoals2ndLeg;
+    }
+
+    public Integer getClubBGoals2ndLeg() {
+        return clubBGoals2ndLeg;
     }
 
     /**
@@ -161,25 +157,6 @@ public abstract class Tie implements Serializable {
     public abstract void play(ClubEloDataLoader clubEloDataLoader);
 
     /**
-     * Calculates the expected number of goals (lambda) for the home team using a
-     * Poisson model. The calculation is based on the mean goals per team, adjusted
-     * by the Elo rating difference (dr) between the teams. The adjustment uses an
-     * exponential function with a scaling factor (PARAM_ELO_TO_GOALS_K) and
-     * normalizes the rating difference over 400 points.
-     *
-     * @see PARAM_MEAN_GOALS_PER_TEAM Average goals scored per team per match.
-     * @see PARAM_ELO_TO_GOALS_K Scaling factor to convert Elo rating difference to
-     *      goal expectation.
-     * @return The expected number of goals for the home team.
-     */
-    private static double[] eloToLambdas(double eloHome, double eloAway) {
-        double dr = eloHome - eloAway + PARAM_HFA; // add home advantage to home team's Elo
-        double lambdaHome = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_ELO_TO_GOALS_K * dr / 400.0);
-        double lambdaAway = PARAM_MEAN_GOALS_PER_TEAM * Math.exp(PARAM_ELO_TO_GOALS_K * (-dr) / 400.0);
-        return new double[] { lambdaHome, lambdaAway };
-    }
-
-    /**
      * Simulates a football match between two clubs, updating the goals for each
      * leg.
      *
@@ -197,44 +174,21 @@ public abstract class Tie implements Serializable {
     protected void simulateMatch(boolean firstLeg, boolean ET, ClubEloDataLoader clubEloDataLoader) {
         double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
         double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+        double eloHome = firstLeg ? eloA : eloB;
+        double eloAway = firstLeg ? eloB : eloA;
 
-        // Get lambdas for home/away
-        double[] lambdas = firstLeg ? eloToLambdas(eloA, eloB) : eloToLambdas(eloB, eloA);
-        // Adjust for ET if needed
-        double lHome = ET ? lambdas[0] * PARAM_ET_FACTOR : lambdas[0];
-        double lAway = ET ? lambdas[1] * PARAM_ET_FACTOR : lambdas[1];
+        MatchSimulator simulator = new DefaultMatchSimulator();
+        SimulationConfig cfg = SimulationConfig.getDefault();
+        MatchResult mr = simulator.simulate(eloHome, eloAway, ET, cfg);
 
-        boolean favIsHome = lHome >= lAway;
-        double lambdaFav = favIsHome ? lHome : lAway;
-        double lambdaUnd = favIsHome ? lAway : lHome;
-
-        int gFav = sampleNegBinomial(lambdaFav, PARAM_THETA);
-        if (gFav > PARAM_GMAX)
-            gFav = PARAM_GMAX;
-
-        double[] pmfUnd = negBinomPmfVector(lambdaUnd, PARAM_THETA, PARAM_GMAX);
-
-        if (gFav <= 2) {
-            int idx = gFav;
-            double factor = 1.0 + PARAM_DRAW_INFLATION[idx];
-            pmfUnd[idx] *= factor;
-            // renormalize
-            double sum = 0.0;
-            for (double v : pmfUnd)
-                sum += v;
-            for (int i = 0; i < pmfUnd.length; i++)
-                pmfUnd[i] /= sum;
-        }
-
-        int gUnd = sampleFromPmf(pmfUnd);
-        int homeGoals = favIsHome ? gFav : gUnd;
-        int awayGoals = favIsHome ? gUnd : gFav;
+        int homeGoals = mr.homeGoals();
+        int awayGoals = mr.awayGoals();
         if (firstLeg) {
-            clubAGoals1stLeg = (clubAGoals1stLeg == null ? homeGoals : clubAGoals1stLeg + homeGoals);
-            clubBGoals1stLeg = (clubBGoals1stLeg == null ? awayGoals : clubBGoals1stLeg + awayGoals);
+            clubAGoals1stLeg = (mr.inExtraTime() ? clubAGoals1stLeg + homeGoals : homeGoals);
+            clubBGoals1stLeg = (mr.inExtraTime() ? clubBGoals1stLeg + awayGoals : awayGoals);
         } else {
-            clubAGoals2ndLeg = (clubAGoals2ndLeg == null ? awayGoals : clubAGoals2ndLeg + awayGoals);
-            clubBGoals2ndLeg = (clubBGoals2ndLeg == null ? homeGoals : clubBGoals2ndLeg + homeGoals);
+            clubAGoals2ndLeg = (mr.inExtraTime() ? clubAGoals2ndLeg + awayGoals : awayGoals);
+            clubBGoals2ndLeg = (mr.inExtraTime() ? clubBGoals2ndLeg + homeGoals : homeGoals);
         }
     }
 
@@ -279,165 +233,7 @@ public abstract class Tie implements Serializable {
         return ThreadLocalRandom.current().nextDouble() < pHome;
     }
 
-    // ----------------- Probability primitives -----------------
-
-    // Poisson sampler (Knuth for small lambda, normal approximation for large)
-    private static int samplePoisson(double lambda) {
-        if (lambda <= 0)
-            return 0;
-        if (lambda < 30.0) {
-            double L = Math.exp(-lambda);
-            double p = 1.0;
-            int k = 0;
-            while (p > L) {
-                p *= ThreadLocalRandom.current().nextDouble();
-                k++;
-                if (k > 10000)
-                    break; // safety
-            }
-            return k - 1;
-        } else {
-            double std = Math.sqrt(lambda);
-            double val = Math.round(nextGaussianBM() * std + lambda);
-            return (int) Math.max(0, val);
-        }
-    }
-
-    // Gamma sampler (Marsaglia & Tsang)
-    private static double sampleGamma(double shape, double scale) {
-        if (shape <= 0)
-            throw new IllegalArgumentException("shape must be > 0");
-        if (shape < 1.0) {
-            double u = ThreadLocalRandom.current().nextDouble();
-            return sampleGamma(shape + 1.0, scale) * Math.pow(u, 1.0 / shape);
-        }
-        double d = shape - 1.0 / 3.0;
-        double c = 1.0 / Math.sqrt(9.0 * d);
-        while (true) {
-            double x = nextGaussianBM();
-            double v = 1.0 + c * x;
-            if (v <= 0)
-                continue;
-            v = v * v * v;
-            double u = ThreadLocalRandom.current().nextDouble();
-            double xsq = x * x;
-            if (u < 1.0 - 0.0331 * xsq * xsq)
-                return d * v * scale;
-            if (Math.log(u) < 0.5 * xsq + d * (1.0 - v + Math.log(v)))
-                return d * v * scale;
-        }
-    }
-
-    // Negative-binomial via Poisson-Gamma mixture (returns integer goals)
-    private static int sampleNegBinomial(double mean, double theta) {
-        if (theta <= 0)
-            return samplePoisson(mean);
-        double scale = mean / theta;
-        double lamPrime = sampleGamma(theta, scale);
-        return samplePoisson(lamPrime);
-    }
-
-    // Log-Gamma (Lanczos)
-    private static double logGamma(double x) {
-        double[] p = {
-                0.99999999999980993,
-                676.5203681218851,
-                -1259.1392167224028,
-                771.32342877765313,
-                -176.61502916214059,
-                12.507343278686905,
-                -0.13857109526572012,
-                9.9843695780195716e-6,
-                1.5056327351493116e-7
-        };
-        if (x < 0.5) {
-            return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * x)) - logGamma(1 - x);
-        }
-        x -= 1.0;
-        double a = p[0];
-        double t = x + 7.5;
-        for (int i = 1; i < p.length; i++)
-            a += p[i] / (x + i);
-        return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
-    }
-
-    // Negative-binomial pmf (k = 0..)
-    private static double negBinomPmf(int k, double mu, double theta) {
-        if (k < 0)
-            return 0.0;
-        if (theta <= 0)
-            return poissonPmf(k, mu);
-        double p = theta / (theta + mu);
-        double logCoef = logGamma(k + theta) - logGamma(theta) - logGamma(k + 1.0);
-        double logPmf = logCoef + k * Math.log(1 - p) + theta * Math.log(p);
-        return Math.exp(logPmf);
-    }
-
-    private static double poissonPmf(int k, double lambda) {
-        if (k < 0)
-            return 0.0;
-        double logP = -lambda + k * Math.log(lambda) - logGamma(k + 1.0);
-        return Math.exp(logP);
-    }
-
-    // Build pmf vector for k = 0..Gmax for negative-binomial (tail lumped at Gmax)
-    private static double[] negBinomPmfVector(double mu, double theta, int Gmax) {
-        double[] pmf = new double[Gmax + 1];
-        double sum = 0.0;
-        for (int k = 0; k <= Gmax; k++) {
-            pmf[k] = negBinomPmf(k, mu, theta);
-            sum += pmf[k];
-        }
-        if (sum < 1.0) {
-            pmf[Gmax] += (1.0 - sum);
-        }
-        return pmf;
-    }
-
-    // Sample from pmf vector (defensive normalisation)
-    private static int sampleFromPmf(double[] pmf) {
-        double s = 0.0;
-        for (double v : pmf)
-            s += v;
-        double u = ThreadLocalRandom.current().nextDouble() * s;
-        double c = 0.0;
-        for (int i = 0; i < pmf.length; i++) {
-            c += pmf[i];
-            if (u <= c)
-                return i;
-        }
-        return pmf.length - 1;
-    }
-
-    /**
-     * Generates a pseudo-random value drawn from the standard normal (Gaussian)
-     * distribution with mean 0 and variance 1, using the Box–Muller transform
-     * (trigonometric form).
-     *
-     * @return a standard normal deviate (mean 0, standard deviation 1)
-     * @implNote Uses ThreadLocalRandom as the uniform source and a thread-local
-     *           cache to store the spare sample from the Box–Muller pair.
-     */
-    private static double nextGaussianBM() {
-        GaussianCache gc = GAUSS_CACHE.get();
-        if (gc.has) {
-            gc.has = false;
-            return gc.spare;
-        }
-        double u1, u2;
-        // ensure u1 != 0 to avoid log(0)
-        do {
-            u1 = ThreadLocalRandom.current().nextDouble();
-        } while (u1 <= 1e-12);
-        u2 = ThreadLocalRandom.current().nextDouble();
-        double r = Math.sqrt(-2.0 * Math.log(u1));
-        double theta = 2.0 * Math.PI * u2;
-        double z0 = r * Math.cos(theta);
-        double z1 = r * Math.sin(theta);
-        gc.spare = z1;
-        gc.has = true;
-        return z0;
-    }
+    // (Probability primitives removed from Tie.)
 
     /**
      * Calculates the expected score for a team (A) against another team (B) based

@@ -43,7 +43,7 @@ public abstract class LeaguePhaseRound extends Round {
      * @param tournament the tournament for which this league phase round is
      *                   initialized.
      */
-    public LeaguePhaseRound(Tournament tournament) {
+    protected LeaguePhaseRound(Tournament tournament) {
         super(tournament, RoundType.LEAGUE_PHASE);
     }
 

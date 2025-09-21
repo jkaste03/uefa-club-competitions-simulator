@@ -1,13 +1,5 @@
-// Rounds
-//     roundsOfType.forEach(r -> r.play(clubEloDataLoader));
-//     Apply all temp ELO changes to the clubs.
-//     if (doubleLegged) {
-//         roundsOfType.forEach(r -> r.play(clubEloDataLoader));
-//         Apply all temp ELO changes to the clubs.
-//     }
+ClubIdWrapper: elo, uncommitedEloDelta;
 
-// QRound   LeaguePhaseRound   KoRound
-//     play()
+Map: Country -> Set<ClubIdWrapper>
 
-// SingleLeggedTie     DoubleLeggedTie
-//     After each match, update those two clubs' ELOs, and temp store the changed ELOs of all other clubs from their countries.
+Set<Country> countriesWithUncommitedEloDeltas;
