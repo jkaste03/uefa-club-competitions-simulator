@@ -242,7 +242,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                 List<ClubSlot> pool = potLists.get(s.targetPot);
                 int cnt = 0;
                 for (ClubSlot cand : pool) {
-                    if (cand.equals(s.owner))
+                    if (cand == s.owner)
                         continue;
                     if (assignedOpp.get(s.owner).contains(cand))
                         continue;
@@ -346,7 +346,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
                         List<ClubSlot> pool2 = potLists.get(s2.targetPot);
                         int ownersPot2 = s2.ownersPot;
                         for (ClubSlot cand2 : pool2) {
-                            if (cand2.equals(s2.owner))
+                            if (cand2 == s2.owner)
                                 continue;
                             if (assignedOpp.get(s2.owner).contains(cand2))
                                 continue;

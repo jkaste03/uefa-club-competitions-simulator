@@ -42,6 +42,7 @@ public class ClubRepository {
 
     /*
      ** Retrieves a club's id by its name from the static map of clubs.
+     * Returns -1 if no club with the specified name is found.
      */
     public static int getIdByName(String name) {
         return clubs.entrySet().stream()

@@ -8,7 +8,8 @@ import java.util.List;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
+import com.github.jkaste03.uefaccsim.service.ClubEloRatingsInitializer;
 import com.github.jkaste03.uefaccsim.service.JsonDataLoader;
 
 import java.util.EnumMap;
@@ -29,9 +30,11 @@ public class Rounds implements Serializable {
     // Index for fast lookup of rounds by RoundType (avoids repeated full scans)
     private final EnumMap<RoundType, List<Round>> roundsByType = new EnumMap<>(RoundType.class);
 
-    // ClubEloDataLoader instance is created here; init() is explicitly called in
-    // the Rounds constructor.
-    private final ClubEloDataLoader clubEloDataLoader = new ClubEloDataLoader();
+    /**
+     * This repository manages the state of clubs throughout an individual
+     * tournament simulation.
+     */
+    ClubSimStateRepository clubSimStateRepo = new ClubSimStateRepository();
 
     /**
      * Initializes the collection of UEFA competition rounds (Champions League,
@@ -87,11 +90,12 @@ public class Rounds implements Serializable {
                 uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP,
                 uclLP, uelLP, ueclLP));
 
-        // Initialize data for each round.
-        JsonDataLoader.loadDataForRounds(rounds);
+        // Load structural data for all rounds, and initialize club states from JSON
+        // file.
+        JsonDataLoader.loadDataForRounds(rounds, clubSimStateRepo);
 
-        // Initialize the ClubEloDataLoader to fetch club Elo ratings.
-        clubEloDataLoader.init();
+        // Initialize the ClubEloRatingsInitializer to fetch club Elo ratings.
+        ClubEloRatingsInitializer.initializeEloRatings(clubSimStateRepo);
 
         // Link rounds to define the progression flow.
         linkRounds();
@@ -303,17 +307,17 @@ public class Rounds implements Serializable {
      * The method performs the following steps:
      * <ol>
      * <li>Plays all Champions League (UCL) rounds.</li>
-     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
      * above.</li>
      * <li>Plays all Europa League (UEL) and Europa Conference League (UECL)
      * rounds.</li>
-     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
      * above.</li>
      * <li>Plays all UCL rounds that use double-legged ties.</li>
-     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
      * above.</li>
      * <li>Plays all UEL/UECL rounds that use double-legged ties.</li>
-     * <li>Applies temporary ELO changes to clubs of represented NAs in rounds
+     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
      * above.</li>
      * </ol>
      *
@@ -333,28 +337,28 @@ public class Rounds implements Serializable {
                 .toList();
 
         // 1. Play all UCL rounds
-        uclRounds.forEach(r -> r.play(clubEloDataLoader));
+        uclRounds.forEach(r -> r.play(clubSimStateRepo));
         // 2. Apply all temp ELO changes to the clubs of represented NAs.
-        clubEloDataLoader.applyAllUncommitedEloDeltas();
+        clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 3. Play all UEL/UECL rounds
-        uelUeclRounds.forEach(r -> r.play(clubEloDataLoader));
+        uelUeclRounds.forEach(r -> r.play(clubSimStateRepo));
         // 4. Apply all temp ELO changes to the clubs of represented NAs.
-        clubEloDataLoader.applyAllUncommitedEloDeltas();
+        clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 5. Play all double-legged UCL rounds
         uclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
-                .forEach(r -> r.play(clubEloDataLoader));
+                .forEach(r -> r.play(clubSimStateRepo));
         // 6. Apply all temp ELO changes to the clubs of represented NAs.
-        clubEloDataLoader.applyAllUncommitedEloDeltas();
+        clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 7. Play all double-legged UEL/UECL rounds
         uelUeclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
-                .forEach(r -> r.play(clubEloDataLoader));
+                .forEach(r -> r.play(clubSimStateRepo));
         // 8. Apply all temp ELO changes to the clubs of represented NAs.
-        clubEloDataLoader.applyAllUncommitedEloDeltas();
+        clubSimStateRepo.applyAllUncommittedEloDeltas();
     }
 
     /**
@@ -368,13 +372,14 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Returns a string representation of all rounds for logging and debugging
-     * purposes.
+     * Returns a human-readable representation of this Rounds instance, including
+     * the current collection of rounds and the associated clubSimStateRepo.
      *
-     * @return a string summarizing the rounds sequence in the simulation
+     * @return a string describing this Rounds, including its rounds and
+     *         clubSimStateRepo
      */
     @Override
     public String toString() {
-        return "Rounds [" + Arrays.toString(rounds.toArray()) + "]";
+        return "Rounds [rounds=" + Arrays.toString(rounds.toArray()) + ", clubSimStateRepo=" + clubSimStateRepo + "]";
     }
 }

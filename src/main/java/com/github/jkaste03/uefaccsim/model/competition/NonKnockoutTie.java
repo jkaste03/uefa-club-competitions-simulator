@@ -1,6 +1,6 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 /**
  * NonKnockoutTie is a specialized implementation of the Tie class that
@@ -19,30 +19,49 @@ public class NonKnockoutTie extends Tie {
     }
 
     /**
-     * Kjører én simulering av returkampen (eller simulerer begge ben hvis ingen
-     * ben er spilt) og setter clubAWinner = true/false.
+     * Plays a single non-knockout fixture.
      *
-     * Behaviour:
-     * - If first leg (clubAGoals) is null: simulate FIRST LEG (clubA home), THEN
-     * SECOND LEG (clubB home). Apply away-goals, then ET (in second leg), then
-     * penalties.
-     * - If first leg exists: treat that as first leg result (clubSlotA home),
-     * simulate return leg (clubSlotB home), compute aggregate, apply away-goals,
-     * then ET and penalties if needed.
+     * <p>
+     * <strong>Behavior</strong>
+     * </p>
+     * <ul>
+     * <li>Simulates one regular-season style match with Club A as the home
+     * side.</li>
+     * <li>Applies an Elo rating update for the result using a full K-factor.</li>
+     * </ul>
      *
-     * Note: Away-goals are applied before ET (common in many competitions). Adjust
-     * logic if your tournament rules differ.
+     * <p>
+     * <strong>Elo update</strong>
+     * </p>
+     * <ul>
+     * <li>Accounts for home advantage (home = Club A).</li>
+     * <li>Uses the configured K-factor ({@code PARAM_ELO_UPDATE_K}).</li>
+     * <li>Persists rating changes via the provided repository.</li>
+     * </ul>
+     *
+     * <p>
+     * <strong>Side effects</strong>
+     * </p>
+     * <ul>
+     * <li>Mutates this tie's simulated match state (e.g., goals and outcome).</li>
+     * <li>Updates the participating clubs’ Elo ratings through the repository.</li>
+     * </ul>
+     *
+     * @param clubSimStateRepo repository used to read and update club state and
+     *                         Elo ratings
+     * @see #simulateMatch(boolean)
+     * @see #updateEloForResult(int, int, boolean, double, ClubSimStateRepository)
      */
     @Override
-    public void play(ClubEloDataLoader clubEloDataLoader) {
-    // Single regular-season style match: clubSlotA is home
-    simulateMatch(true, clubEloDataLoader);
-    // Apply Elo update for the result (full K)
-    updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubEloDataLoader);
+    public void play(ClubSimStateRepository clubSimStateRepo) {
+        // Single regular-season style match: clubSlotA is home
+        simulateMatch(true);
+        // Apply Elo update for the result (full K)
+        updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubSimStateRepo);
     }
 
-    private void simulateMatch(boolean firstLeg, ClubEloDataLoader clubEloDataLoader) {
-        simulateMatch(firstLeg, false, clubEloDataLoader);
+    private void simulateMatch(boolean firstLeg) {
+        simulateMatch(firstLeg, false);
     }
 
     @Override

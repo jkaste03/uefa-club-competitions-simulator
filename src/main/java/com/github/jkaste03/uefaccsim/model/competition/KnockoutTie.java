@@ -1,7 +1,7 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 /**
  * Represents a knockout tie, supporting both single-legged and two-legged
@@ -58,14 +58,72 @@ public class KnockoutTie extends Tie {
         return clubAWinner;
     }
 
+    /**
+     * Plays or advances this knockout tie by simulating the next required phase and
+     * updating Elo ratings.
+     *
+     * <p>
+     * <strong>Behavior</strong>
+     * </p>
+     * <ul>
+     * <li>If no first-leg score exists, simulates the first leg with Club A at home
+     * and updates Elo using only first-leg goals. For a two-legged tie, the method
+     * returns immediately afterward to await the second leg.</li>
+     * <li>Otherwise (for a two-legged tie), simulates the second leg with Club A
+     * away
+     * and updates Elo using only second-leg goals.</li>
+     * <li>If the aggregate score is decisive at this point, sets the winner and
+     * returns.</li>
+     * <li>If still level on aggregate, simulates extra time (at the venue of the
+     * decisive leg),
+     * derives ET-only goals, and updates Elo with a reduced K-factor for ET.</li>
+     * <li>If still tied after extra time, determines the winner via a penalty
+     * shootout (same venue)
+     * and updates Elo by treating the shootout outcome as a reduced-weight 1–0
+     * result for Elo
+     * purposes only (does not alter match goals).</li>
+     * </ul>
+     *
+     * <p>
+     * <strong>Elo update policy</strong>
+     * </p>
+     * <ul>
+     * <li>Regulation-time goals of the leg being played use the full K-factor.</li>
+     * <li>Extra-time goals use {@code PARAM_ET_FACTOR * K}.</li>
+     * <li>Penalty shootout outcome uses {@code PARAM_PSO_FACTOR * K}.</li>
+     * </ul>
+     *
+     * <p>
+     * <strong>Side effects</strong>
+     * </p>
+     * <ul>
+     * <li>Mutates internal match state (leg scores, extra-time adjustments) and
+     * sets the winner flag.</li>
+     * <li>Updates clubs’ Elo ratings via the provided repository.</li>
+     * </ul>
+     *
+     * <p>
+     * <strong>Usage</strong>
+     * </p>
+     * <ul>
+     * <li><em>Two-legged ties:</em> Call once to simulate the first leg (method
+     * returns afterward),
+     * then call again to simulate the second leg and resolve the tie.</li>
+     * <li><em>Single-legged ties:</em> A single call fully resolves the tie
+     * (including ET and penalties if needed).</li>
+     * </ul>
+     *
+     * @param clubSimStateRepo repository used to read and persist club simulation
+     *                         state (e.g., Elo ratings) during updates
+     */
     @Override
-    public void play(ClubEloDataLoader clubEloDataLoader) {
+    public void play(ClubSimStateRepository clubSimStateRepo) {
         // If no score known -> simulate first leg
         if (clubAGoals1stLeg == null) {
             // Simulate first leg (club A at home)
-            simulateMatch(true, false, clubEloDataLoader);
+            simulateMatch(true, false);
             // Update Elo after first leg (only for first leg goals)
-            updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubEloDataLoader);
+            updateEloForResult(clubAGoals1stLeg, clubBGoals1stLeg, true, PARAM_ELO_UPDATE_K, clubSimStateRepo);
             // If two-legged, return now and wait for second leg to be played later.
             if (!singleLegged)
                 return;
@@ -73,9 +131,9 @@ public class KnockoutTie extends Tie {
         // If double-legged, simulate second leg
         else if (!singleLegged) {
             // Two-legged tie: simulate second leg
-            simulateMatch(false, false, clubEloDataLoader);
+            simulateMatch(false, false);
             // Update Elo after second leg (only for second leg goals)
-            updateEloForResult(clubAGoals2ndLeg, clubBGoals2ndLeg, false, PARAM_ELO_UPDATE_K, clubEloDataLoader);
+            updateEloForResult(clubAGoals2ndLeg, clubBGoals2ndLeg, false, PARAM_ELO_UPDATE_K, clubSimStateRepo);
         }
 
         // Check aggregate before potential ET/penalties
@@ -89,7 +147,7 @@ public class KnockoutTie extends Tie {
         int clubBGoalsPre90 = clubBGoals2ndLeg;
 
         // Simulate ET at the venue of the decisive leg
-        simulateMatch(singleLegged, true, clubEloDataLoader);
+        simulateMatch(singleLegged, true);
 
         // Goals scored in ET (for Elo update with reduced K)
         int clubAGoalsET = clubAGoals2ndLeg - clubAGoalsPre90;
@@ -97,7 +155,7 @@ public class KnockoutTie extends Tie {
 
         // Update Elo after ET (only for ET goals)
         updateEloForResult(clubAGoalsET, clubBGoalsET, singleLegged, PARAM_ET_FACTOR * PARAM_ELO_UPDATE_K,
-                clubEloDataLoader);
+                clubSimStateRepo);
 
         // Check aggregate after ET
         if (getClubAGoals() != getClubBGoals()) {
@@ -106,16 +164,16 @@ public class KnockoutTie extends Tie {
         }
 
         // Penalties at the venue of the decisive leg
-        clubAWinner = simulatePenaltyWinner(singleLegged, clubEloDataLoader);
+        clubAWinner = simulatePenaltyWinner(singleLegged);
 
         // Update Elo for penalty shootout outcome. We treat the winner as having scored
         // 1-0 (not actual match goals) for Elo purposes only, using a reduced K-factor.
         updateEloForResult(clubAWinner ? 1 : 0, clubAWinner ? 0 : 1, singleLegged,
-                PARAM_PSO_FACTOR * PARAM_ELO_UPDATE_K, clubEloDataLoader);
+                PARAM_PSO_FACTOR * PARAM_ELO_UPDATE_K, clubSimStateRepo);
     }
 
     @SuppressWarnings("unused")
-    private void simulateOutCome(ClubEloDataLoader clubEloDataLoader) {
+    private void simulateOutCome() {
         int clubAWinnerCount = 0;
         for (int i = 0; i < SIMS; i++) {
             clubAGoals1stLeg = null;
@@ -123,8 +181,8 @@ public class KnockoutTie extends Tie {
             clubAGoals2ndLeg = null;
             clubBGoals2ndLeg = null;
             clubAWinner = null;
-            simulateMatch(true, false, clubEloDataLoader);
-            simulateMatch(false, false, clubEloDataLoader);
+            simulateMatch(true, false);
+            simulateMatch(false, false);
 
             // System.out.println(clubAGoals + "-" + clubBGoals);
 
@@ -134,7 +192,7 @@ public class KnockoutTie extends Tie {
                 continue;
             }
 
-            simulateMatch(false, true, clubEloDataLoader);
+            simulateMatch(false, true);
 
             if (getClubAGoals() != getClubBGoals()) {
                 clubAWinner = getClubAGoals() > getClubBGoals();
@@ -145,7 +203,7 @@ public class KnockoutTie extends Tie {
             // Penalties in second leg
             // simulatePenaltyWinner expects (eloHome, eloAway) where home is venue of
             // penalties (clubB)
-            boolean clubAWinner = simulatePenaltyWinner(false, clubEloDataLoader);
+            boolean clubAWinner = simulatePenaltyWinner(false);
 
             clubAWinnerCount += clubAWinner ? 1 : 0;
         }

@@ -6,9 +6,11 @@ import java.io.Reader;
 import java.util.List;
 
 import com.github.jkaste03.uefaccsim.model.Club;
+import com.github.jkaste03.uefaccsim.model.competition.ClubSimState;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
 import com.github.jkaste03.uefaccsim.model.competition.Round;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -34,11 +36,19 @@ public class JsonDataLoader {
     private static final String DATA_FILE = "src/main/java/com/github/jkaste03/uefaccsim/data/data.json";
 
     /**
-     * Loads club data from the JSON file and assigns clubs to corresponding rounds.
+     * <p>
+     * Loads club data for the provided competition rounds from the JSON data source
+     * and
+     * populates each round with corresponding {@link ClubSlot} instances.
+     * </p>
      *
-     * @param rounds List of rounds to update with club data.
+     * @param rounds           the ordered list of competition rounds to populate;
+     *                         each round's name must correspond to a key in the
+     *                         JSON structure
+     * @param clubSimStateRepo repository used to create and track simulation state
+     *                         for each club
      */
-    public static void loadDataForRounds(List<Round> rounds) {
+    public static void loadDataForRounds(List<Round> rounds, ClubSimStateRepository clubSimStateRepo) {
         Gson gson = new Gson();
         try (Reader reader = new FileReader(DATA_FILE)) {
             JsonObject roundsData = JsonParser.parseReader(reader)
@@ -52,7 +62,8 @@ public class JsonDataLoader {
                     // Deserialize JSON into a Club instance.
                     // Note: Gson will bypass the Club constructor.
                     Club club = gson.fromJson(jsonElement, Club.class); // no-arg ctor runs automatically
-                    round.addClubSlot(new ClubSlot(club.getId()));
+                    ClubSimState w = clubSimStateRepo.create(club.getId());
+                    round.addClubSlot(new ClubSlot(w));
                 });
             }
         } catch (IOException e) {

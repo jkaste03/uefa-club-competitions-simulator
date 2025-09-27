@@ -1,5 +1,5 @@
-ClubIdWrapper: elo, uncommitedEloDelta;
+// ClubSimState: elo, uncommitedEloDelta;
 
-Map: Country -> Set<ClubIdWrapper>
+// Map: Country -> Set<ClubSimState>
 
-Set<Country> countriesWithUncommitedEloDeltas;
+// Set<Country> countriesWithUncommitedEloDeltas;

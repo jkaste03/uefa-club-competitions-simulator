@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 import com.github.jkaste03.uefaccsim.config.SimulationConfig;
 import com.github.jkaste03.uefaccsim.service.match.DefaultMatchSimulator;
 import com.github.jkaste03.uefaccsim.service.match.MatchSimulator;
@@ -151,29 +151,34 @@ public abstract class Tie implements Serializable {
     /**
      * Simulates the tie.
      * <p>
-     * Implementing methods should play the tie, update the results,
-     * and set the winner based on the tie outcome if it's a knockout tie.
+     * Implementing methods should play the next leg of the tie, update the results,
+     * update the Elo ratings, and if applicable, set the winner based on the tie
+     * outcome.
      */
-    public abstract void play(ClubEloDataLoader clubEloDataLoader);
+    public abstract void play(ClubSimStateRepository clubSimStateRepo);
 
     /**
-     * Simulates a football match between two clubs, updating the goals for each
-     * leg.
-     *
+     * Simulates a leg for this tie and writes the resulting goals into the
+     * appropriate leg fields.
      * <p>
-     * The simulation uses club Elo ratings to determine expected goals (lambdas)
-     * for home and away teams, adjusts for extra time (ET) if applicable, and
-     * samples goals using a negative binomial distribution. Draw inflation is
-     * applied for low goal counts to increase the probability of draws.
+     * The simulation is performed using a {@link MatchSimulator} (default:
+     * {@link DefaultMatchSimulator}) with
+     * {@link SimulationConfig#getDefault()}.
+     * <p>
+     * If the leg results in extra time, the method needs to be called again to
+     * account for the additional goals scored during that period.
      *
-     * @param firstLeg          true if simulating the first leg of the tie; false
-     *                          for the second leg
-     * @param ET                true if the match is in extra time; false otherwise
-     * @param clubEloDataLoader loader for retrieving club Elo ratings
+     * @param firstLeg whether to simulate the first leg or the
+     *                 second leg
+     * @param ET       whether to simulate extra time
+     * @see MatchSimulator
+     * @see DefaultMatchSimulator
+     * @see SimulationConfig
+     * @see MatchResult
      */
-    protected void simulateMatch(boolean firstLeg, boolean ET, ClubEloDataLoader clubEloDataLoader) {
-        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
-        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+    protected void simulateMatch(boolean firstLeg, boolean ET) {
+        double eloA = clubSlotA.getClubSimState().getElo();
+        double eloB = clubSlotB.getClubSimState().getElo();
         double eloHome = firstLeg ? eloA : eloB;
         double eloAway = firstLeg ? eloB : eloA;
 
@@ -183,6 +188,7 @@ public abstract class Tie implements Serializable {
 
         int homeGoals = mr.homeGoals();
         int awayGoals = mr.awayGoals();
+        // Update goals for the first or second leg
         if (firstLeg) {
             clubAGoals1stLeg = (mr.inExtraTime() ? clubAGoals1stLeg + homeGoals : homeGoals);
             clubBGoals1stLeg = (mr.inExtraTime() ? clubBGoals1stLeg + awayGoals : awayGoals);
@@ -192,11 +198,11 @@ public abstract class Tie implements Serializable {
         }
     }
 
-    // protected void simulateExtraTime(boolean firstLeg, ClubEloDataLoader
-    // clubEloDataLoader) {
-    // simulateExtraTime(firstLeg, clubEloDataLoader, PARAM_ET_FACTOR);
-    // double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
-    // double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+    // protected void simulateExtraTime(boolean firstLeg, ClubEloRatingsInitializer
+    // clubEloRatingsInitializer) {
+    // simulateExtraTime(firstLeg, clubEloRatingsInitializer, PARAM_ET_FACTOR);
+    // double eloA = clubSlotA.getClubSimState().getElo();
+    // double eloB = clubSlotB.getClubSimState().getElo();
 
     // if (firstLeg) {
     // double[] lambdas = eloToLambdas(eloA, eloB);
@@ -217,15 +223,12 @@ public abstract class Tie implements Serializable {
      * Simulates the outcome of a penalty shootout between two clubs based on their
      * Elo ratings.
      *
-     * @param firstLeg          Indicates if the simulation is for the first leg
-     *                          (true) or second leg (false) of the tie.
-     * @param clubEloDataLoader Loader providing Elo ratings for the clubs involved.
-     * @return {@code true} if the home club (determined by {@code firstLeg}) wins
-     *         the penalty shootout; {@code false} otherwise.
+     * @param firstLeg Indicates if the simulation is for the first leg or second
+     *                 leg of the tie.
      */
-    protected boolean simulatePenaltyWinner(boolean firstLeg, ClubEloDataLoader clubEloDataLoader) {
-        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
-        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+    protected boolean simulatePenaltyWinner(boolean firstLeg) {
+        double eloA = clubSlotA.getClubSimState().getElo();
+        double eloB = clubSlotB.getClubSimState().getElo();
 
         double dr = firstLeg ? eloA - eloB : eloB - eloA;
         double z = PARAM_PENALTY_BETA * dr / 400.0;
@@ -313,29 +316,32 @@ public abstract class Tie implements Serializable {
      * in the tie, considering whether the match is the first or second leg. The Elo
      * change is computed using the provided K-factor and the goals scored by each
      * club. The computed delta is then applied to both clubs using the
-     * {@link ClubEloDataLoader} without committing the changes immediately.
+     * {@link ClubSimStateRepository} without committing the changes immediately.
      *
-     * @param goalsA            the number of goals scored by club A
-     * @param goalsB            the number of goals scored by club B
-     * @param firstLeg          {@code true} if this is the first leg of the tie;
-     *                          {@code false} otherwise
-     * @param k                 the K-factor used in Elo calculation
-     * @param clubEloDataLoader the loader responsible for retrieving and updating
-     *                          club Elo ratings
+     * @param goalsA                 the number of goals scored by club A
+     * @param goalsB                 the number of goals scored by club B
+     * @param firstLeg               {@code true} if this is the first leg of the
+     *                               tie;
+     *                               {@code false} otherwise
+     * @param k                      the K-factor used in Elo calculation
+     * @param clubSimStateRepository the repository used to read and update club
+     *                               states
      */
     protected void updateEloForResult(int goalsA, int goalsB, boolean firstLeg,
-            double k, ClubEloDataLoader clubEloDataLoader) {
+            double k, ClubSimStateRepository clubSimStateRepo) {
         // Retrieve Elo ratings
-        double eloA = clubEloDataLoader.getElo(clubSlotA.getClubIdWrapper().id());
-        double eloB = clubEloDataLoader.getElo(clubSlotB.getClubIdWrapper().id());
+        double eloA = clubSlotA.getClubSimState().getElo();
+        double eloB = clubSlotB.getClubSimState().getElo();
 
         // Compute Elo delta for home club. Away club gets -delta.
         double deltaElo = firstLeg
                 ? computeEloDelta(eloA, eloB, goalsA, goalsB, k)
                 : computeEloDelta(eloB, eloA, goalsB, goalsA, k);
         // Update Elo without committing
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlotA.getClubIdWrapper().id(), firstLeg ? deltaElo : -deltaElo);
-        clubEloDataLoader.updateUncommitedEloDelta(clubSlotB.getClubIdWrapper().id(), firstLeg ? -deltaElo : deltaElo);
+        clubSimStateRepo.updateUncommittedEloDelta(clubSlotA.getClubSimState().getId(),
+                firstLeg ? deltaElo : -deltaElo);
+        clubSimStateRepo.updateUncommittedEloDelta(clubSlotB.getClubSimState().getId(),
+                firstLeg ? -deltaElo : deltaElo);
     }
 
     /**

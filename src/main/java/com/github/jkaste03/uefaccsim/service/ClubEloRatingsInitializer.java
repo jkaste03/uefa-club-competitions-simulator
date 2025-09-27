@@ -9,34 +9,46 @@ import java.util.*;
 import java.util.stream.StreamSupport;
 
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 /**
- * ClubEloDataLoader is responsible for managing the loading, updating, and
- * validation
- * of football club Elo ratings from a remote API and local CSV files.
  * <p>
- * Main responsibilities include:
- * <ul>
- * <li>Downloading the latest Elo ratings CSV from the ClubElo API for a
- * specified date.</li>
- * <li>Storing and managing Elo data in local files within a designated data
- * folder.</li>
- * <li>Loading Elo ratings into memory and mapping them to club IDs using the
- * ClubRepository.</li>
- * <li>Supporting pending (uncommitted) Elo deltas for clubs, allowing batch
- * updates before committing changes.</li>
- * <li>Validating that all clubs in the repository have corresponding Elo
- * ratings, ensuring data completeness.</li>
- * </ul>
- * <p>
- * <b>Note:</b> Club names in the local data.json must match those used by the
- * ClubElo API.
- * If a club is missing an Elo rating, update data.json accordingly.
+ * Utility class responsible for acquiring, caching, loading,
+ * and
+ * validating Club Elo ratings used in simulation logic.
  * </p>
  *
- * @author johan
+ * <p>
+ * Core responsibilities:
+ * </p>
+ * <ol>
+ * <li><strong>Download:</strong> Fetches the daily ClubElo CSV from
+ * <code>http://api.clubelo.com/{yyyy-MM-dd}</code>.</li>
+ * <li><strong>Replace:</strong> On successful download, deletes previously
+ * cached CSV files
+ * and stores only the current day's dataset under
+ * <code>src/main/java/com/github/jkaste03/uefaccsim/data/{date}.csv</code>.</li>
+ * <li><strong>Fallback:</strong> If the download (network / timeout / I/O)
+ * fails, automatically
+ * falls back to the most recent previously cached CSV (lexicographically latest
+ * date‑named file). If no prior file exists, it fails fast with an
+ * <code>IllegalStateException</code>.</li>
+ * <li><strong>Parse &amp; Load:</strong> Reads the CSV, maps API club names to
+ * internal club IDs via
+ * <code>ClubRepository.getIdByName(String)</code>, and injects Elo values into
+ * the
+ * corresponding <code>ClubSimState</code> instances held by
+ * <code>ClubSimStateRepository</code>.</li>
+ * <li><strong>Validate Completeness:</strong> Ensures every club known to
+ * <code>ClubRepository</code>
+ * has a resolved (non -1) Elo rating. Throws an
+ * <code>IllegalStateException</code>
+ * enumerating all missing clubs with guidance for fixing name mismatches in
+ * local
+ * <code>data.json</code> (never by editing downloaded CSV files).</li>
+ * </ol>
  */
-public class ClubEloDataLoader implements Serializable {
+public class ClubEloRatingsInitializer {
     /** URL for the club elo ratings API */
     private static final String BASE_URL = "http://api.clubelo.com/";
     /** Folder for storing downloaded data */
@@ -44,10 +56,6 @@ public class ClubEloDataLoader implements Serializable {
     private static final LocalDate date = LocalDate.now();
     /** File path for the current date's CSV file */
     private static String filePath = DATA_FOLDER + date + ".csv";
-    /** Map: clubId -> current Elo rating. */
-    private final Map<Integer, Double> eloMap = new HashMap<>();
-    /** Map: clubId -> pending uncommitted Elo delta. */
-    private final Map<Integer, Double> pendingDeltas = new HashMap<>();
 
     /**
      * Retrieves the file path of the latest CSV file in the data folder.
@@ -85,19 +93,23 @@ public class ClubEloDataLoader implements Serializable {
      * replaces the existing CSV(s).</li>
      * </ul>
      * </li>
-     * <li>Loads elo ratings from the CSV file into the {@link #eloDataMap}.</li>
+     * <li>Loads elo ratings from the CSV file into the corresponding
+     * {@code ClubSimState} within the provided {@link ClubSimStateRepository}.</li>
      * <li>Validates that every required club has an associated elo rating,
      * enforcing data completeness.</li>
      * </ol>
      * </p>
+     * 
+     * @param clubSimStateRepo the {@link ClubSimStateRepository} to populate with
+     *                         club simulation states (like elo ratings)
      */
-    public void init() {
+    public static void initializeEloRatings(ClubSimStateRepository clubSimStateRepo) {
         // Download file if it does not exist
         if (!Files.exists(Path.of(filePath))) {
             downloadAndReplaceCSV(date);
         }
-        loadEloRatings();
-        validateAllClubsHaveElo();
+        loadEloRatings(clubSimStateRepo);
+        validateAllClubsHaveElo(clubSimStateRepo);
     }
 
     /**
@@ -179,12 +191,14 @@ public class ClubEloDataLoader implements Serializable {
      * <li>Ignores any line with fewer than 5 columns.</li>
      * <li>Uses the 2nd column (index 1) as the club's name to resolve a club id via
      * {@link ClubRepository#getIdByName(String)}.</li>
+     * <li>Skips any club name that does not resolve to a valid id (i.e., returns
+     * -1).</li>
      * <li>Parses the 5th column (index 4) as a {@code double} Elo rating.</li>
-     * <li>Stores the Elo rating in {@code eloMap} keyed by the resolved club
-     * id</li>
+     * <li>Sets the Elo rating in the corresponding {@code ClubSimState} within the
+     * provided {@link ClubSimStateRepository}.</li>
      * </ul>
      */
-    private void loadEloRatings() {
+    private static void loadEloRatings(ClubSimStateRepository clubSimStateRepo) {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
             while ((line = br.readLine()) != null) {
@@ -193,8 +207,11 @@ public class ClubEloDataLoader implements Serializable {
                     continue;
                 String clubName = values[1].trim();
                 int clubid = ClubRepository.getIdByName(clubName);
+                // Skip if club name not found
+                if (clubid == -1)
+                    continue;
                 double elo = Double.parseDouble(values[4].trim());
-                eloMap.put(clubid, elo);
+                clubSimStateRepo.get(clubid).setElo(elo);
             }
         } catch (IOException e) {
             System.err.println("Could not read API data: " + e.getMessage());
@@ -202,74 +219,27 @@ public class ClubEloDataLoader implements Serializable {
     }
 
     /**
-     * Retrieves the Elo rating for the specified club id.
+     * Ensures that every club returned by {@code ClubRepository.getAllClubs()} has
+     * a valid (non -1)
+     * Elo rating stored in the provided {@link ClubSimStateRepository}. If any club
+     * is found with
+     * an Elo value of -1, an {@link IllegalStateException} is thrown that
+     * enumerates all offending
+     * clubs and provides guidance on how to correct the underlying data (i.e.,
+     * aligning names in
+     * the local {@code data.json} with the ClubElo API names as they appear in the
+     * dated CSV file).
      *
-     * @param clubId the id of the club whose Elo rating is requested
-     * @return the Elo rating for the club if available
+     * @param clubSimStateRepo the repository supplying per-club simulation state,
+     *                         expected to contain an entry for every club ID
+     *                         present in {@code ClubRepository}
+     * @throws IllegalStateException if one or more clubs have an Elo rating of -1
      */
-    public double getElo(int clubId) {
-        Double elo = eloMap.get(clubId);
-        return elo;
-    }
-
-    /**
-     * Updates the Elo rating for a specified club id.
-     *
-     * @param clubId   the id of the club whose elo rating is to be updated
-     * @param deltaElo the delta elo rating for the club
-     */
-    public void updateEloRating(int clubId, double deltaElo) {
-        double current = eloMap.get(clubId);
-        eloMap.put(clubId, current + deltaElo);
-    }
-
-    /**
-     * Retrieves the uncommitedEloDelta for the specified club id.
-     *
-     * @param clubId the id of the club
-     * @return the uncommitedEloDelta value
-     */
-    public double getUncommitedEloDelta(int clubId) {
-        return pendingDeltas.getOrDefault(clubId, 0.0);
-    }
-
-    /**
-     * Updates the uncommitedEloDelta for a specified club id.
-     *
-     * @param clubId                  the id of the club
-     * @param deltaUncommitedEloDelta the delta uncommitedEloDelta value
-     */
-    public void updateUncommitedEloDelta(int clubId, double deltaUncommitedEloDelta) {
-        double newVal = pendingDeltas.getOrDefault(clubId, 0.0) + deltaUncommitedEloDelta;
-        pendingDeltas.put(clubId, newVal);
-    }
-
-    /**
-     * Applies all uncommited elo adjustments to the current elo ratings
-     * for each club.
-     */
-    public void applyAllUncommitedEloDeltas() {
-        // Apply only the clubs that have a pending delta (O(k))
-        for (Map.Entry<Integer, Double> e : pendingDeltas.entrySet()) {
-            int clubId = e.getKey();
-            double delta = e.getValue();
-            double current = eloMap.get(clubId);
-            eloMap.put(clubId, current + delta);
-        }
-        pendingDeltas.clear();
-    }
-
-    /**
-     * Verifies that all clubs in {@link ClubRepository} have a loaded Elo value.
-     * Throws an IllegalStateException if one or more are missing.
-     *
-     * @throws IllegalStateException if any club is missing an elo rating
-     */
-    private void validateAllClubsHaveElo() {
+    private static void validateAllClubsHaveElo(ClubSimStateRepository clubSimStateRepo) {
         List<String> missing = new ArrayList<>();
         ClubRepository.getAllClubs().forEach(club -> {
             int id = club.getId();
-            if (!eloMap.containsKey(id)) {
+            if (clubSimStateRepo.get(id).getElo() == -1) {
                 missing.add(club.getName() + " (id=" + id + ")");
             }
         });
@@ -279,9 +249,6 @@ public class ClubEloDataLoader implements Serializable {
                             + "Unmatched clubs: " + String.join(", ", missing) + ". "
                             + "Update the local data.json so each club name matches the ClubElo API name (see "
                             + LocalDate.now() + ".csv). Do NOT edit the downloaded CSV; only adjust data.json.");
-
-            // TODO
-            // No elo for Beitar currently. Using Hapoel H. for now. Need to fix soon.
         }
     }
 }

@@ -139,7 +139,7 @@ public abstract class LeaguePhaseRound extends Round {
         // Check if the UCL winner is present in the club slots and move them to the top
         if (tournament == Tournament.CHAMPIONS_LEAGUE) {
             clubSlots.stream()
-                    .filter(c -> c.getClubIdWrapper().id() == ClubRepository.getLastUclWinnerId())
+                    .filter(c -> c.getClubSimState().getId() == ClubRepository.getLastUclWinnerId())
                     .findFirst()
                     .ifPresent(c -> {
                         Collections.swap(clubSlots, 0, clubSlots.indexOf(c));

@@ -5,7 +5,7 @@ import java.util.List;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
-import com.github.jkaste03.uefaccsim.service.ClubEloDataLoader;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -168,9 +168,9 @@ public abstract class Round implements Serializable {
     /**
      * Plays the round. This method is responsible for playing the round.
      */
-    public void play(ClubEloDataLoader clubEloDataLoader) {
+    public void play(ClubSimStateRepository clubSimStateRepo) {
         for (Tie tie : getTies()) {
-            tie.play(clubEloDataLoader);
+            tie.play(clubSimStateRepo);
         }
     }
 
