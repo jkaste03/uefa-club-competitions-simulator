@@ -42,7 +42,6 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         return POT_COUNT;
     }
 
-    // TODO: Missing javadoc
     @Override
     protected void draw() {
         if (pots.size() != POT_COUNT)
