@@ -100,7 +100,7 @@ public abstract class LeaguePhaseRound extends Round {
         seed();
         draw();
         schedule();
-        ties.forEach(t -> System.out.println(t.toCompactString()));
+        // ties.forEach(t -> System.out.println(t.toCompactString()));
     }
 
     /**
