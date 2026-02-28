@@ -187,7 +187,7 @@ public class Rounds implements Serializable {
         // List to hold QRounds of a specific type during iteration
         List<QRound> qRoundsOfType;
         // Execute seeding and draws for Q1 round type.
-        seedDrawRounds(getRoundsOfType(RoundType.Q1));
+        seedDrawScheduleRounds(getRoundsOfType(RoundType.Q1));
         for (int i = 0; roundTypes[i] != RoundType.LEAGUE_PHASE; i++) {
             // Filter rounds by the current round type.
             qRoundsOfType = getQRoundsOfType(roundTypes[i]);
@@ -246,27 +246,26 @@ public class Rounds implements Serializable {
     private void seedDrawQRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
             if (round instanceof QRound) {
-                ((QRound) round).seedDraw();
+                ((QRound) round).seedDrawSchedule();
             }
         });
     }
 
     /**
-     * Seeds and draws a collection of rounds.
+     * Seeds, draws and if relevant schedules matches of a collection of rounds.
      */
-    private void seedDrawRounds(List<Round> roundsOfType) {
+    private void seedDrawScheduleRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
-            // if (round.getTournament() == Tournament.CONFERENCE_LEAGUE
-            // && round.getRoundType() == RoundType.LEAGUE_PHASE) {
-            // long start = System.nanoTime();
-            // round.seedDraw();
-            // long elapsedNs = System.nanoTime() - start;
-            // System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
-            // Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
-            // } else {
-            // round.seedDraw();
-            // }
-            round.seedDraw();
+            if (round.getRoundType() == RoundType.LEAGUE_PHASE) {
+                long start = System.nanoTime();
+                round.seedDrawSchedule();
+                long elapsedNs = System.nanoTime() - start;
+                System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
+                        Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
+            } else {
+                round.seedDrawSchedule();
+            }
+            // round.seedDrawSchedule();
         });
     }
 
@@ -365,8 +364,8 @@ public class Rounds implements Serializable {
      * Executes the workflow for league phase rounds.
      */
     private void runLeagueRounds() {
-        // Execute seeding and draws for league phase rounds.
-        seedDrawRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
+        // Execute seeding, draws and match scheduling for league phase rounds.
+        seedDrawScheduleRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
         // Play the league phase rounds.
         // playRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
     }

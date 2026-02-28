@@ -2,6 +2,7 @@ package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
@@ -85,6 +86,15 @@ public class QRound extends Round {
     }
 
     /**
+     * Seeds and draws the ties. Scheduling isn't relevant for qualifying rounds.
+     */
+    @Override
+    public void seedDrawSchedule() {
+        seed();
+        draw();
+    }
+
+    /**
      * {@inheritDoc}
      * <p>
      * Seeds the clubSlots in the qualifying round.
@@ -165,7 +175,7 @@ public class QRound extends Round {
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded);
 
-        Random rng = new Random(System.nanoTime());
+        Random rng = ThreadLocalRandom.current();
 
         // Attempt multiple times (should almost always succeed first try if a valid
         // matching exists). If no valid matching is found after attempts, throw.

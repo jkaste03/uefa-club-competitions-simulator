@@ -132,12 +132,9 @@ public abstract class Round implements Serializable {
     }
 
     /**
-     * Seeds and draws the ties.
+     * Seeds, draws and if relevant schedules the matches.
      */
-    public void seedDraw() {
-        seed();
-        draw();
-    }
+    protected abstract void seedDrawSchedule();
 
     /**
      * Seeds the clubs for the round.
