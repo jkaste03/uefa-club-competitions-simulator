@@ -129,6 +129,7 @@ public class UefaCCSimTest {
             checkOpponentPotHomeAway(pots, clubSlots, ties);
             checkNoIllegalTies(lp, ties);
             checkNoClubMeetsCountryMoreThanTwice(clubSlots, ties);
+            checkExactlyOneMatchPerClubPerMatchDay(lp, ties);
 
             // NEW: additional consistency checks (non-overlapping with above)
             // - unique opponents per club (ensures correct count of distinct opponents)
@@ -312,6 +313,43 @@ public class UefaCCSimTest {
             for (Map.Entry<Country, Long> entry : opponentCountryCounts.entrySet()) {
                 assertTrue(entry.getValue() <= 2,
                         "ClubSlot " + clubSlot + " meets >2 clubs from " + entry.getKey() + " ties=" + ties);
+            }
+        }
+    }
+
+    /**
+     * Verifies that each match day in the scheduled league phase has exactly one
+     * appearance per club.
+     *
+     * @param lp   league phase round under test
+     * @param ties scheduled ties (ordered by match day groups)
+     */
+    private void checkExactlyOneMatchPerClubPerMatchDay(LeaguePhaseRound lp, List<NonKnockoutTie> ties) {
+        int clubsCount = lp.getClubSlots().size();
+        int tiesPerMatchDay = clubsCount / 2;
+
+        assertEquals(0, clubsCount % 2, "League phase club count must be even");
+        assertTrue(tiesPerMatchDay > 0, "tiesPerMatchDay must be > 0");
+        assertEquals(0, ties.size() % tiesPerMatchDay,
+                "Scheduled ties must split evenly into match days. ties=" + ties.size() + " tiesPerMatchDay="
+                        + tiesPerMatchDay);
+
+        int matchDayCount = ties.size() / tiesPerMatchDay;
+        for (int md = 0; md < matchDayCount; md++) {
+            int start = md * tiesPerMatchDay;
+            int end = start + tiesPerMatchDay;
+            Map<Integer, Long> appearanceCounts = ties.subList(start, end).stream()
+                    .flatMap(t -> java.util.stream.Stream.of(
+                            t.getClubSlotA().getClubSimState().getId(),
+                            t.getClubSlotB().getClubSimState().getId()))
+                    .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
+
+            assertEquals(clubsCount, appearanceCounts.size(),
+                    "Match day " + (md + 1) + " should include all clubs exactly once");
+            for (Map.Entry<Integer, Long> entry : appearanceCounts.entrySet()) {
+                assertEquals(1L, entry.getValue(),
+                        "Club id " + entry.getKey() + " appears " + entry.getValue() +
+                                " times on match day " + (md + 1));
             }
         }
     }
