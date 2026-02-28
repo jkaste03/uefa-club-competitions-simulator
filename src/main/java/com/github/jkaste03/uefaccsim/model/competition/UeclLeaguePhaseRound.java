@@ -490,8 +490,6 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         }
 
         ties = resultTies;
-
-        // ties.forEach(t -> System.out.println(t.toCompactString()));
     }
 
     // --- Gaussian elim over GF(2) helper ---

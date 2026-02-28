@@ -303,8 +303,9 @@ public abstract class Tie implements Serializable {
 
         double E = expectedScore(eloAeff, eloB);
         double G = marginMultiplier(goalsA, goalsB, eloAeff, eloB);
-        System.out.println(
-                "Elo delta for " + eloA + " vs " + eloB + " (" + goalsA + "-" + goalsB + "): " + (K * G * (S - E)));
+        // System.out.println(
+        // "Elo delta for " + eloA + " vs " + eloB + " (" + goalsA + "-" + goalsB + "):
+        // " + (K * G * (S - E)));
         return K * G * (S - E);
     }
 
