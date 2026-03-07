@@ -42,6 +42,16 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
         return POT_COUNT;
     }
 
+    /**
+     * Returns the number of matches each club plays in the league phase.
+     * 
+     * @return the number of matches per club, equal to the number of pots.
+     */
+    @Override
+    protected int getMatchesPerClub() {
+        return POT_COUNT; // each club plays against all clubs in other pots.
+    }
+
     @Override
     protected void draw() {
         if (pots.size() != POT_COUNT)

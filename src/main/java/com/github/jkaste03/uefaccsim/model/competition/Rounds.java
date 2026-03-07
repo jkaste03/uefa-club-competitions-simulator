@@ -29,12 +29,20 @@ public class Rounds implements Serializable {
     private final List<Round> rounds;
     // Index for fast lookup of rounds by RoundType (avoids repeated full scans)
     private final EnumMap<RoundType, List<Round>> roundsByType = new EnumMap<>(RoundType.class);
+    // Cached lookup for league phase rounds by tournament (built once)
+    private final EnumMap<Tournament, LeaguePhaseRound> leagueRoundsByTournament = new EnumMap<>(Tournament.class);
 
     /**
      * This repository manages the state of clubs throughout an individual
      * tournament simulation.
      */
     ClubSimStateRepository clubSimStateRepo = new ClubSimStateRepository();
+
+    /**
+     * The play order of tournaments in the league phase, grouped by day.
+     */
+    private static final List<List<Tournament>> leaguePhasePlayOrderGroupedByDay = JsonDataLoader
+            .loadLeaguePhasePlayOrderGroupedByDay();
 
     /**
      * Initializes the collection of UEFA competition rounds (Champions League,
@@ -102,6 +110,9 @@ public class Rounds implements Serializable {
 
         // Build index for quick RoundType -> List<Round> lookup.
         indexRoundsByType();
+
+        // Build cached lookup for league phase rounds by tournament.
+        indexLeagueRoundsByTournament();
     }
 
     public List<Round> getRounds() {
@@ -125,6 +136,20 @@ public class Rounds implements Serializable {
         // Freeze lists (defensive copy) to prevent external mutation.
         for (RoundType rt : roundsByType.keySet()) {
             roundsByType.put(rt, List.copyOf(roundsByType.get(rt)));
+        }
+    }
+
+    /**
+     * Builds a cached lookup of league phase rounds by tournament.
+     */
+    private void indexLeagueRoundsByTournament() {
+        leagueRoundsByTournament.clear();
+        for (Round round : getRoundsOfType(RoundType.LEAGUE_PHASE)) {
+            if (!(round instanceof LeaguePhaseRound)) {
+                throw new IllegalStateException("Expected LeaguePhaseRound, got: " + round.getClass().getSimpleName());
+            }
+            LeaguePhaseRound leagueRound = (LeaguePhaseRound) round;
+            leagueRoundsByTournament.put(leagueRound.getTournament(), leagueRound);
         }
     }
 
@@ -367,7 +392,40 @@ public class Rounds implements Serializable {
         // Execute seeding, draws and match scheduling for league phase rounds.
         seedDrawScheduleRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
         // Play the league phase rounds.
-        // playRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
+        playLeagueRounds();
+    }
+
+    /**
+     * Plays all league phase rounds organized by day.
+     * <p>
+     * This method iterates through each day's tournaments and executes their
+     * respective league phase rounds. After all matches for a particular day are
+     * completed, it applies any accumulated ELO rating deltas to update club
+     * ratings.
+     * <p>
+     * The method processes tournaments sequentially by day, ensuring that all
+     * matches on a given day are played before moving to the next day. ELO deltas
+     * are committed after each day's matches are complete.
+     * 
+     * @throws IllegalStateException if a tournament has no corresponding league
+     *                               phase round
+     */
+    private void playLeagueRounds() {
+        for (List<Tournament> tournamentsOnDay : leaguePhasePlayOrderGroupedByDay) {
+            for (Tournament tournament : tournamentsOnDay) {
+                LeaguePhaseRound leagueRound = leagueRoundsByTournament.get(tournament);
+                if (leagueRound == null) {
+                    throw new IllegalStateException("No league phase round found for tournament " + tournament);
+                }
+                System.out.printf("[%s] Playing league phase round %s%n", Thread.currentThread().getName(),
+                        leagueRound.getName());
+                leagueRound.play(clubSimStateRepo);
+            }
+            System.out.printf("[%s] Applying ELO deltas after match day with tournaments %s%n",
+                    Thread.currentThread().getName(),
+                    tournamentsOnDay);
+            clubSimStateRepo.applyAllUncommittedEloDeltas();
+        }
     }
 
     /**

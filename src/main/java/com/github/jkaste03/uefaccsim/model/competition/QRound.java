@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -353,6 +354,15 @@ public class QRound extends Round {
                 && roundType == RoundType.Q1
                 && pathType == PathType.CHAMPIONS_PATH) ? UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size() : 0;
         return noOfClubsToSkip;
+    }
+
+    /**
+     * Plays the round. This method is responsible for playing the round.
+     */
+    public void play(ClubSimStateRepository clubSimStateRepo) {
+        for (Tie tie : getTies()) {
+            tie.play(clubSimStateRepo);
+        }
     }
 
     @Override

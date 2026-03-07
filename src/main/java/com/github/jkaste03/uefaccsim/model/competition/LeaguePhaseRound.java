@@ -2,17 +2,15 @@ package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
+import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 /**
  * Class representing a league phase in the UEFA competitions.
@@ -22,6 +20,8 @@ import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 public abstract class LeaguePhaseRound extends Round {
     protected List<NonKnockoutTie> ties = new ArrayList<>();
     protected final List<Pot> pots = new ArrayList<>();
+    private int playedMatchDays = 0;
+    private int remainingUnplayedTies = 0;
 
     /**
      * Immutable container (Java record) representing a seeding pot in a league
@@ -81,6 +81,13 @@ public abstract class LeaguePhaseRound extends Round {
      * @return the number of pots
      */
     protected abstract int getPotCount();
+
+    /**
+     * Returns how many league-phase matches each club plays.
+     *
+     * @return matches per club
+     */
+    protected abstract int getMatchesPerClub();
 
     /**
      * Adds a new pot to the list of pots at the specified index with the given list
@@ -175,96 +182,37 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Schedules non-knockout ties across multiple match days (MD) to ensure
-     * balanced distribution.
-     * 
-     * This method organizes ties into match days such that:
-     * <ul>
-     * <li>Each club participates in the same number of matches across all match
-     * days</li>
-     * <li>No club plays more than once per match day</li>
-     * <li>All ties are distributed evenly across match days</li>
-     * </ul>
-     * 
-     * The scheduling algorithm uses a randomized greedy approach with restart
-     * logic:
-     * <ol>
-     * <li>Validates that all clubs have equal match counts and that ties can be
-     * evenly distributed</li>
-     * <li>For each match day, attempts to select ties greedily while avoiding club
-     * conflicts</li>
-     * <li>Shuffles remaining ties to introduce randomness and increase success
-     * rate</li>
-     * <li>Restarts the entire process if a match day cannot be filled within the
-     * attempt limit</li>
-     * <li>Continues until a valid schedule is generated or maximum restarts are
-     * exceeded</li>
-     * </ol>
-     * 
-     * The resulting scheduled ties are stored in place of the original unscheduled
-     * ties.
-     * 
-     * @throws IllegalStateException if clubs have unequal match counts, total ties
-     *                               cannot be
-     *                               evenly divided by matches per club, or a valid
-     *                               schedule
-     *                               cannot be generated within the restart limit
+     * Builds a valid matchday schedule for all drawn ties and applies it to
+     * {@code ties}.
+     * <p>
+     * The schedule guarantees that each tie is assigned once and that clubs do not
+     * play more than one tie per matchday.
+     *
+     * @throws IllegalStateException if no valid schedule can be generated
      */
-    private void schedule() {
-        int matchesPerClub = validateAndGetMatchesPerClub();
-        if (matchesPerClub <= 0)
-            return;
 
-        ScheduleConfig config = new ScheduleConfig(matchesPerClub, ties.size());
+    private void schedule() {
         List<NonKnockoutTie> original = new ArrayList<>(ties);
-        List<List<NonKnockoutTie>> mdGroups = buildSchedule(original, config);
+        List<List<NonKnockoutTie>> mdGroups = buildSchedule(original);
 
         applySchedule(mdGroups);
-    }
-
-    /**
-     * Validates that all clubs have equal match counts and returns the match count
-     * per club.
-     * 
-     * @return the number of matches per club
-     * @throws IllegalStateException if clubs have unequal match counts
-     */
-    private int validateAndGetMatchesPerClub() {
-        Map<Integer, Integer> occ = new HashMap<>();
-        for (NonKnockoutTie t : ties) {
-            int a = t.getClubSlotA().getClubSimState().getId();
-            int b = t.getClubSlotB().getClubSimState().getId();
-            occ.put(a, occ.getOrDefault(a, 0) + 1);
-            occ.put(b, occ.getOrDefault(b, 0) + 1);
-        }
-
-        int matchesPerClub = -1;
-        for (Map.Entry<Integer, Integer> e : occ.entrySet()) {
-            if (matchesPerClub == -1) {
-                matchesPerClub = e.getValue();
-            } else if (matchesPerClub != e.getValue()) {
-                throw new IllegalStateException("Unequal number of matches per club: " + e.getKey());
-            }
-        }
-        return matchesPerClub;
     }
 
     /**
      * Builds a valid schedule by attempting multiple times with restarts.
      * 
      * @param original the original list of ties
-     * @param config   the schedule configuration
      * @return a list of match day groups
      * @throws IllegalStateException if a valid schedule cannot be generated
      */
-    private List<List<NonKnockoutTie>> buildSchedule(List<NonKnockoutTie> original, ScheduleConfig config) {
+    private List<List<NonKnockoutTie>> buildSchedule(List<NonKnockoutTie> original) {
         final int MAX_RESTARTS = 200;
         int restarts = 0;
 
         while (restarts < MAX_RESTARTS) {
-            List<List<NonKnockoutTie>> mdGroups = attemptScheduleGeneration(original, config);
-            if (mdGroups != null && mdGroups.size() == config.mdCount() &&
-                    mdGroups.stream().mapToInt(List::size).sum() == config.totalTies()) {
+            List<List<NonKnockoutTie>> mdGroups = attemptScheduleGeneration(original);
+            if (mdGroups != null && mdGroups.size() == getMatchesPerClub() &&
+                    mdGroups.stream().mapToInt(List::size).sum() == ties.size()) {
                 return mdGroups;
             }
             restarts++;
@@ -277,16 +225,16 @@ public abstract class LeaguePhaseRound extends Round {
      * Attempts to generate a schedule for all match days.
      * 
      * @param original the original list of ties
-     * @param config   the schedule configuration
      * @return a list of match day groups, or null if generation failed
      */
-    private List<List<NonKnockoutTie>> attemptScheduleGeneration(List<NonKnockoutTie> original, ScheduleConfig config) {
+    private List<List<NonKnockoutTie>> attemptScheduleGeneration(List<NonKnockoutTie> original) {
         List<NonKnockoutTie> remaining = new ArrayList<>(original);
-        List<List<NonKnockoutTie>> mdGroups = new ArrayList<>(config.mdCount());
+        List<List<NonKnockoutTie>> mdGroups = new ArrayList<>(getMatchesPerClub());
         final int MAX_ATTEMPTS_PER_MD = 500;
 
-        for (int md = 0; md < config.mdCount(); md++) {
-            List<NonKnockoutTie> group = tryFillMatchDay(remaining, config.tiesPerMd(), MAX_ATTEMPTS_PER_MD);
+        for (int md = 0; md < getMatchesPerClub(); md++) {
+            List<NonKnockoutTie> group = tryFillMatchDay(remaining, ties.size() / getMatchesPerClub(),
+                    MAX_ATTEMPTS_PER_MD);
             if (group == null) {
                 return null;
             }
@@ -359,18 +307,113 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Configuration record for match day scheduling.
+     * Plays the next league-phase matchday for this round.
+     * <p>
+     * On each invocation, this method simulates only the ties belonging to the
+     * next unplayed matchday (not the full league phase at once). It keeps internal
+     * progress using {@code playedMatchDays} and {@code remainingUnplayedTies} so
+     * repeated calls advance the round one matchday at a time.
+     * <p>
+     * The number of ties played in the current call is chosen to keep the remaining
+     * ties distributable across the remaining matchdays.
+     *
+     * @param clubSimStateRepo repository used to persist and update club simulation
+     *                         state while each tie is played
+     * @throws IllegalStateException if there are no matchdays left to play, no
+     *                               unplayed ties remain, or the expected number of
+     *                               ties for the current matchday could not be
+     *                               played
      */
-    private static record ScheduleConfig(int mdCount, int totalTies) {
-        ScheduleConfig {
-            if (totalTies % mdCount != 0) {
-                throw new IllegalStateException(
-                        "Totalt antall ties (" + totalTies + ") må være delelig med matchesPerClub (" + mdCount + ")");
+    public void play(ClubSimStateRepository clubSimStateRepo) {
+        if (playedMatchDays == 0) {
+            this.remainingUnplayedTies = countUnplayedTies();
+        }
+
+        int remainingMatchDays = getMatchesPerClub() - playedMatchDays;
+        if (remainingMatchDays <= 0) {
+            throw new IllegalStateException(
+                    "No remaining match days, but play() was called again for " + getName() + ".");
+        }
+
+        if (remainingUnplayedTies <= 0) {
+            throw new IllegalStateException(
+                    "No unplayed ties remain, but play() was called again for " + getName() + ".");
+        }
+
+        int tiesToPlayNow = determineTiesToPlayThisMatchDay(
+                remainingMatchDays,
+                ties.size() / getMatchesPerClub());
+
+        int playedNow = 0;
+        for (NonKnockoutTie tie : ties) {
+            if (playedNow >= tiesToPlayNow) {
+                break;
+            }
+
+            if (isTiePlayed(tie)) {
+                continue;
+            }
+
+            tie.play(clubSimStateRepo);
+            System.out
+                    .println(tie.getClubAGoals1stLeg() + " " + tie.toCompactString() + " " + tie.getClubBGoals1stLeg());
+            playedNow++;
+        }
+
+        if (playedNow != tiesToPlayNow) {
+            throw new IllegalStateException(
+                    "Could not play expected number of ties for next match day in " + getName()
+                            + ": expected=" + tiesToPlayNow + ", played=" + playedNow + ".");
+        }
+        remainingUnplayedTies -= playedNow;
+        playedMatchDays++;
+    }
+
+    private int countUnplayedTies() {
+        int unplayed = 0;
+        for (NonKnockoutTie tie : ties) {
+            if (!isTiePlayed(tie)) {
+                unplayed++;
+            }
+        }
+        return unplayed;
+    }
+
+    private static boolean isTiePlayed(NonKnockoutTie tie) {
+        return tie.getClubAGoals1stLeg() != null && tie.getClubBGoals1stLeg() != null;
+    }
+
+    private int determineTiesToPlayThisMatchDay(int remainingMatchDays, int preferredTiesPerDay) {
+        if (remainingMatchDays <= 1) {
+            return remainingUnplayedTies;
+        }
+
+        int best = -1;
+        int bestDistance = Integer.MAX_VALUE;
+        int futureDays = remainingMatchDays - 1;
+
+        for (int candidate = 1; candidate <= remainingUnplayedTies; candidate++) {
+            int remainingAfterToday = remainingUnplayedTies - candidate;
+            if (remainingAfterToday % futureDays != 0) {
+                continue;
+            }
+
+            int distance = Math.abs(candidate - preferredTiesPerDay);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = candidate;
             }
         }
 
-        int tiesPerMd() {
-            return totalTies / mdCount;
+        if (best != -1) {
+            return best;
         }
+
+        int maxForFuture = remainingUnplayedTies - futureDays;
+        if (maxForFuture < 1) {
+            return 1;
+        }
+
+        return Math.max(1, Math.min(preferredTiesPerDay, maxForFuture));
     }
 }

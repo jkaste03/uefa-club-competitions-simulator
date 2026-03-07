@@ -3,8 +3,10 @@ package com.github.jkaste03.uefaccsim.service;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.Club;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSimState;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
@@ -23,13 +25,18 @@ import com.google.gson.JsonParser;
 public class JsonDataLoader {
 
     /**
-     * The root key in the JSON file that contains the rounds data.
+     * The rounds root key in the JSON file that contains the rounds data.
      */
-    private static final String DATA_MAIN_ROOT = "rounds";
+    private static final String ROUNDS_ROOT_KEY = "rounds";
     /**
      * The key in the JSON file that contains the previous Champions League winner.
      */
     private static final String PREVIOUS_UCL_WINNER = "previous_champions_league_winner";
+
+    /**
+     * JSON key for accessing the league phase play order grouped by day.
+     */
+    private static final String LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY = "league_phase_play_order_grouped_by_day";
     /**
      * The path to the JSON data file.
      */
@@ -53,7 +60,7 @@ public class JsonDataLoader {
         try (Reader reader = new FileReader(DATA_FILE)) {
             JsonObject roundsData = JsonParser.parseReader(reader)
                     .getAsJsonObject()
-                    .getAsJsonObject(DATA_MAIN_ROOT);
+                    .getAsJsonObject(ROUNDS_ROOT_KEY);
             for (Round round : rounds) {
                 JsonArray clubsJson = roundsData.getAsJsonArray(round.getName());
                 if (clubsJson == null)
@@ -86,6 +93,67 @@ public class JsonDataLoader {
             ClubRepository.setLastUclWinnerId(previousUclWinnerId);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Loads the league phase play order grouped by day from the JSON data file.
+     * 
+     * <p>
+     * This method reads the JSON data file and parses the league phase play order,
+     * which is organized as a nested array structure where each element represents
+     * a day containing a list of tournaments scheduled for that day.
+     * 
+     * @return a list of lists of {@link Tournament} objects, where each inner list
+     *         represents the tournaments scheduled for a specific day in the league
+     *         phase.
+     *         The returned list is immutable.
+     * 
+     * @throws IllegalStateException if the JSON data file cannot be read, if the
+     *                               required
+     *                               JSON array is missing from the data file, or if
+     *                               an invalid tournament name
+     *                               is encountered in the JSON data
+     * 
+     * @see Tournament
+     * @see JsonDataLoader#DATA_FILE
+     * @see JsonDataLoader#LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY
+     */
+    public static List<List<Tournament>> loadLeaguePhasePlayOrderGroupedByDay() {
+        try (Reader reader = new FileReader(DATA_FILE)) {
+            JsonObject jsonData = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonArray orderJson = jsonData.getAsJsonArray(LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY);
+            if (orderJson == null) {
+                throw new IllegalStateException(
+                        "Missing JSON array: " + LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY);
+            }
+
+            List<List<Tournament>> tournamentDays = new ArrayList<>(orderJson.size());
+            for (int dayIndex = 0; dayIndex < orderJson.size(); dayIndex++) {
+                JsonArray dayArray = orderJson.get(dayIndex).getAsJsonArray();
+                List<Tournament> tournamentsOnDay = new ArrayList<>(dayArray.size());
+
+                for (int tournamentIndex = 0; tournamentIndex < dayArray.size(); tournamentIndex++) {
+                    String tournamentName = dayArray.get(tournamentIndex).getAsString();
+                    try {
+                        tournamentsOnDay.add(Tournament.valueOf(tournamentName));
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException(
+                                "Invalid tournament in " + LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY
+                                        + " at day " + dayIndex
+                                        + ", index " + tournamentIndex + ": " + tournamentName,
+                                e);
+                    }
+                }
+
+                tournamentDays.add(List.copyOf(tournamentsOnDay));
+            }
+
+            return List.copyOf(tournamentDays);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Failed to load " + LEAGUE_PHASE_PLAY_ORDER_GROUPED_BY_DAY + " from JSON",
+                    e);
         }
     }
 }

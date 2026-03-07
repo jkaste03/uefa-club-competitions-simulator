@@ -26,6 +26,8 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     private static final int MAX_RECURSIVE_CALLS = 300;
     private static final int MAX_RESTARTS = 20;
 
+    private final static int MATCHES_PER_CLUB = POT_COUNT * 2;
+
     // Statistikk for siste draw() TODO: Clean mess
     public static final class DrawStats {
         public long recursiveCalls;
@@ -66,6 +68,16 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
     @Override
     protected int getPotCount() {
         return POT_COUNT;
+    }
+
+    /**
+     * Returns the number of matches each club plays in the league phase.
+     * 
+     * @return the number of matches per club in the league phase
+     */
+    @Override
+    protected int getMatchesPerClub() {
+        return MATCHES_PER_CLUB; // each club plays against all clubs in other pots, home and away
     }
 
     /**
@@ -162,7 +174,7 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
 
         // Prepare slots and quick access structures
         Map<ClubSlot, Slot[][]> slotsByClub = new HashMap<>(); // club -> [pot][home(0)/away(1)]
-        List<Slot> allSlots = new ArrayList<>(allClubs.size() * POT_COUNT * 2);
+        List<Slot> allSlots = new ArrayList<>(allClubs.size() * MATCHES_PER_CLUB);
 
         for (ClubSlot club : allClubs) {
             int ownersPot = clubToPot.get(club);

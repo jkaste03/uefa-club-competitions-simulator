@@ -165,11 +165,7 @@ public abstract class Round implements Serializable {
     /**
      * Plays the round. This method is responsible for playing the round.
      */
-    public void play(ClubSimStateRepository clubSimStateRepo) {
-        for (Tie tie : getTies()) {
-            tie.play(clubSimStateRepo);
-        }
-    }
+    protected abstract void play(ClubSimStateRepository clubSimStateRepo);
 
     /**
      * Attempts to resolve every {@link ClubSlot} in this round to a concrete club
