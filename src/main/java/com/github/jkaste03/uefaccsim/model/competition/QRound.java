@@ -7,7 +7,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
-import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,8 +14,7 @@ import java.util.Collections;
 /**
  * Class representing a qualifying round in the UEFA competitions.
  */
-public class QRound extends Round {
-    private List<KnockoutTie> ties = new ArrayList<>();
+public class QRound extends KnockoutRound {
     /**
      * Excluding rebalancing, the number of ties in the UCL Q1 CP round is 16. If
      * the number of ties is less than 16, losers of ties need to jump to the UECL
@@ -29,13 +27,12 @@ public class QRound extends Round {
      */
     private static final int MAX_DRAW_ATTEMPTS = 500;
 
+    /**
+     * Qualifying path for this round (for example, Champions Path or League Path).
+     */
     private final PathType pathType;
     private final List<ClubSlot> seeded = new ArrayList<>();
     private final List<ClubSlot> unseeded = new ArrayList<>();
-    /**
-     * Indicates if the ties in this qualifying round should be made single-legged.
-     */
-    private boolean isSingleLegged = false;
 
     /**
      * Constructs a qualifying round for the specified tournament, round type and
@@ -61,9 +58,8 @@ public class QRound extends Round {
      *                       single-legged.
      */
     public QRound(Tournament tournament, RoundType roundType, PathType pathType, boolean isSingleLegged) {
-        super(tournament, roundType);
+        super(tournament, roundType, isSingleLegged);
         this.pathType = pathType;
-        this.isSingleLegged = isSingleLegged;
     }
 
     /**
@@ -74,25 +70,7 @@ public class QRound extends Round {
      */
     @Override
     public String getName() {
-        return super.getName() + " " + roundType + " " + pathType;
-    }
-
-    @Override
-    public List<KnockoutTie> getTies() {
-        return ties;
-    }
-
-    public boolean isSingleLegged() {
-        return isSingleLegged;
-    }
-
-    /**
-     * Seeds and draws the ties. Scheduling isn't relevant for qualifying rounds.
-     */
-    @Override
-    public void seedDrawSchedule() {
-        seed();
-        draw();
+        return super.getName() + " " + pathType;
     }
 
     /**
@@ -150,29 +128,6 @@ public class QRound extends Round {
      */
     @Override
     public void draw() {
-        // if (tournament == Tournament.CHAMPIONS_LEAGUE
-        // && roundType == RoundType.Q1
-        // && pathType == PathType.CHAMPIONS_PATH
-        // && seeded.size() + unseeded.size() < UCL_Q1_CP_TIES_WITHOUT_REBALANCING * 2)
-        // {
-        // ties.add(createNewTie("Zalgiris Vilnius", "Hamrun"));
-        // ties.add(createNewTie("Kuopio", "Milsami Orhei"));
-        // ties.add(createNewTie("The New Saints", "Shkendija"));
-        // ties.add(createNewTie("Saburtalo", "Malmoe"));
-        // ties.add(createNewTie("FC Infonet", "RFS"));
-
-        // ties.add(createNewTie("Drita", "Differdang"));
-        // ties.add(createNewTie("Gota", "Lincoln"));
-        // ties.add(createNewTie("Egnatia", "Breidablik"));
-        // ties.add(createNewTie("Shelbourne", "Linfield"));
-        // ties.add(createNewTie("Steaua", "Escaldes"));
-
-        // ties.add(createNewTie("SS Virtus", "Zrinjski Mostar"));
-        // ties.add(createNewTie("Olimpija Ljubljana", "Kairat"));
-        // ties.add(createNewTie("Noah", "Podgorica"));
-        // ties.add(createNewTie("Razgrad", "Dinamo Minsk"));
-        // return;
-        // }
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded);
 
@@ -195,17 +150,6 @@ public class QRound extends Round {
                     "Could not construct a legal draw after " + MAX_DRAW_ATTEMPTS + " attempts.");
         }
     }
-
-    // private Tie createNewTie(String clubAName, String clubBName) {
-    // return newTie(clubSlots.stream()
-    // .filter(slot -> slot.toCompactString().equals(clubAName))
-    // .findFirst()
-    // .orElse(null),
-    // clubSlots.stream()
-    // .filter(slot -> slot.toCompactString().equals(clubBName))
-    // .findFirst()
-    // .orElse(null));
-    // }
 
     /**
      * Attempts to construct a complete one-to-one matching (set of Tie instances)
@@ -320,6 +264,7 @@ public class QRound extends Round {
      * </ul>
      * </p>
      */
+    @Override
     public void regTiesForNextRounds() {
         // If ties must skip the secondary round, shuffle the ties to randomize which
         // ties get to skip
@@ -356,18 +301,9 @@ public class QRound extends Round {
         return noOfClubsToSkip;
     }
 
-    /**
-     * Plays the round. This method is responsible for playing the round.
-     */
-    public void play(ClubSimStateRepository clubSimStateRepo) {
-        for (Tie tie : getTies()) {
-            tie.play(clubSimStateRepo);
-        }
-    }
-
     @Override
     public String toString() {
-        return "QRound [name=" + getName() + fieldsToString() + ", ties=" + ties + ", seeded=" + seeded + ", unseeded="
+        return "QRound [name=" + getName() + fieldsToString() + ", seeded=" + seeded + ", unseeded="
                 + unseeded + "]";
     }
 }
