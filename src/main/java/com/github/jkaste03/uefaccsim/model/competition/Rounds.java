@@ -282,11 +282,11 @@ public class Rounds implements Serializable {
     private void seedDrawScheduleRounds(List<Round> roundsOfType) {
         roundsOfType.forEach(round -> {
             if (round.getRoundType() == RoundType.LEAGUE_PHASE) {
-                long start = System.nanoTime();
+                // long start = System.nanoTime();
                 round.seedDrawSchedule();
-                long elapsedNs = System.nanoTime() - start;
-                System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
-                        Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
+                // long elapsedNs = System.nanoTime() - start;
+                // System.out.printf("[%s] Seed/Draw for league phase round %s took %.2f ms%n",
+                // Thread.currentThread().getName(), round.getName(), elapsedNs / 1_000_000.0);
             } else {
                 round.seedDrawSchedule();
             }
@@ -393,6 +393,8 @@ public class Rounds implements Serializable {
         seedDrawScheduleRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
         // Play the league phase rounds.
         playLeagueRounds();
+        // Calculate the final league standings after all matches have been played.
+        calcLeagueStandings();
     }
 
     /**
@@ -417,14 +419,32 @@ public class Rounds implements Serializable {
                 if (leagueRound == null) {
                     throw new IllegalStateException("No league phase round found for tournament " + tournament);
                 }
-                System.out.printf("[%s] Playing league phase round %s%n", Thread.currentThread().getName(),
-                        leagueRound.getName());
+                // System.out.printf("[%s] Playing league phase round %s%n",
+                // Thread.currentThread().getName(),
+                // leagueRound.getName());
                 leagueRound.play(clubSimStateRepo);
             }
-            System.out.printf("[%s] Applying ELO deltas after match day with tournaments %s%n",
-                    Thread.currentThread().getName(),
-                    tournamentsOnDay);
+            // System.out.printf("[%s] Applying ELO deltas after match day with tournaments
+            // %s%n",
+            // Thread.currentThread().getName(),
+            // tournamentsOnDay);
             clubSimStateRepo.applyAllUncommittedEloDeltas();
+        }
+    }
+
+    /**
+     * Calculates the league standings for all league phase rounds.
+     * <p>
+     * Iterates through all rounds of type {@link RoundType#LEAGUE_PHASE} and
+     * invokes
+     * the standings calculation for each {@link LeaguePhaseRound}.
+     * </p>
+     */
+    private void calcLeagueStandings() {
+        for (Round round : getRoundsOfType(RoundType.LEAGUE_PHASE)) {
+            if (round instanceof LeaguePhaseRound) {
+                ((LeaguePhaseRound) round).calcStandings();
+            }
         }
     }
 

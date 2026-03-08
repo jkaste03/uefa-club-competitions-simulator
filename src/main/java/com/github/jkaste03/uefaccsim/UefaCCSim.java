@@ -32,7 +32,7 @@ import com.github.jkaste03.uefaccsim.model.competition.Rounds;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 1;
+    private static final int SIMS = 2000;
 
     /**
      * Application entry point that performs a configurable number of independent

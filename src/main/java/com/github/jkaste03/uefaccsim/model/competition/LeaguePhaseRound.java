@@ -22,6 +22,7 @@ public abstract class LeaguePhaseRound extends Round {
     protected final List<Pot> pots = new ArrayList<>();
     private int playedMatchDays = 0;
     private int remainingUnplayedTies = 0;
+    private LeagueTable leagueTable;
 
     /**
      * Immutable container (Java record) representing a seeding pot in a league
@@ -101,13 +102,25 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Seeds, draws and schedules the ties.
+     * Seeds, draws and schedules the ties. The method also initializes the league
+     * table.
      */
     public void seedDrawSchedule() {
         seed();
         draw();
         schedule();
+        // Also, initialize the league table.
+        initTable();
         // ties.forEach(t -> System.out.println(t.toCompactString()));
+    }
+
+    /**
+     * Initializes the league table and records the opponent mapping from the drawn
+     * ties.
+     */
+    private void initTable() {
+        this.leagueTable = new LeagueTable(clubSlots);
+        this.leagueTable.recordOpponents(ties, getMatchesPerClub());
     }
 
     /**
@@ -174,11 +187,6 @@ public abstract class LeaguePhaseRound extends Round {
         // if present.
         clubSlots.subList(isUclWinnerHere[0] ? 1 : 0, clubSlots.size())
                 .sort((cA, cB) -> Float.compare(cA.getRanking(tournament), cB.getRanking(tournament)));
-    }
-
-    @Override
-    public String toString() {
-        return "LeaguePhaseRound [name=" + getName() + ", ties=" + ties + ", pots=" + pots + "]";
     }
 
     /**
@@ -316,6 +324,9 @@ public abstract class LeaguePhaseRound extends Round {
      * <p>
      * The number of ties played in the current call is chosen to keep the remaining
      * ties distributable across the remaining matchdays.
+     * <p>
+     * After simulating each tie for the current matchday, the league table is
+     * updated with the results.
      *
      * @param clubSimStateRepo repository used to persist and update club simulation
      *                         state while each tie is played
@@ -355,8 +366,11 @@ public abstract class LeaguePhaseRound extends Round {
             }
 
             tie.play(clubSimStateRepo);
-            System.out
-                    .println(tie.getClubAGoals1stLeg() + " " + tie.toCompactString() + " " + tie.getClubBGoals1stLeg());
+            // After playing the tie, we can update the league table with the result.
+            leagueTable.registerMatch(tie);
+            // System.out
+            // .println(tie.getClubAGoals1stLeg() + " " + tie.toCompactString() + " " +
+            // tie.getClubBGoals1stLeg());
             playedNow++;
         }
 
@@ -415,5 +429,20 @@ public abstract class LeaguePhaseRound extends Round {
         }
 
         return Math.max(1, Math.min(preferredTiesPerDay, maxForFuture));
+    }
+
+    /**
+     * Calculates the final league phase standings by delegating to the league
+     * table's sorting logic, which applies all tiebreakers (a–h) in order.
+     */
+    public void calcStandings() {
+        leagueTable.calcStandings();
+    }
+
+    @Override
+    public String toString() {
+        return "LeaguePhaseRound [name=" + getName() + ", ties=" + ties + ", pots=" + pots + ", playedMatchDays="
+                + playedMatchDays + ", remainingUnplayedTies=" + remainingUnplayedTies + ", leagueTable=" + leagueTable
+                + "]";
     }
 }
