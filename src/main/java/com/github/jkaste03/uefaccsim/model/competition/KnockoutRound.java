@@ -74,34 +74,10 @@ public abstract class KnockoutRound extends Round {
     }
 
     /**
-     * Registers all current ties (matchups) into their appropriate slots for the
+     * Registers all current ties (or clubs) into their appropriate slots for the
      * upcoming rounds in the competition structure.
-     * <p>
-     * Behavior:
-     * <ul>
-     * <li>Every tie is always added to the next primary round via
-     * {@code nextPrimaryRnd.addClubSlot(...)}.</li>
-     * <li>If a secondary round exists:
-     * <ul>
-     * <li>Every tie is added to the next secondary round via
-     * {@code nextSecondaryRnd.addClubSlot(...)}.</li>
-     * </ul>
-     * </li>
-     * </ul>
-     * </p>
      */
-    public void regTiesForNextRounds() {
-        // Add ties to the next primary round and the next secondary round if applicable
-        ties.forEach(tie -> {
-            // Add tie to the next primary round
-            this.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
-            // Add tie to the next secondary round if applicable
-            if (this.nextSecondaryRnd != null) {
-                // Add tie to the secondary round
-                this.nextSecondaryRnd.addClubSlot(new ClubSlot(tie));
-            }
-        });
-    }
+    protected abstract void regForNextRounds();
 
     /**
      * Plays the round. This method is responsible for playing the round.

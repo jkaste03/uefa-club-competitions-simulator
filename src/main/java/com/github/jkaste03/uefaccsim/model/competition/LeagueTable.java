@@ -95,6 +95,10 @@ public class LeagueTable {
         updateWins(idxA, goalsA, idxB, goalsB);
     }
 
+    public int getIdxByStanding(int standing) {
+        return standingsOrder[standing];
+    }
+
     /**
      * Awards 3 points for a win, 1 for a draw, and 0 for a loss to each club.
      *

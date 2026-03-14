@@ -50,14 +50,6 @@ public abstract class Round implements Serializable {
         return roundType;
     }
 
-    public Round getNextPrimaryRnd() {
-        return nextPrimaryRnd;
-    }
-
-    public Round getNextSecondaryRnd() {
-        return nextSecondaryRnd;
-    }
-
     public void setNextRounds(Round nextPrimaryRnd, Round nextSecondaryRnd) {
         this.nextPrimaryRnd = nextPrimaryRnd;
         this.nextSecondaryRnd = nextSecondaryRnd;
@@ -76,7 +68,7 @@ public abstract class Round implements Serializable {
      * 
      * @param clubSlot the club slot to add.
      */
-    public void addClubSlot(ClubSlot clubSlot) {
+    public final void addClubSlot(ClubSlot clubSlot) {
         clubSlots.add(clubSlot);
     }
 
@@ -84,30 +76,20 @@ public abstract class Round implements Serializable {
      * Determines whether pairing the two specified club slots is prohibited in this
      * round.
      * <p>
-     * For qualification (QRound) and league phase (LeaguePhaseRound) rounds, a tie
-     * is illegal if:
+     * A tie is illegal if:
      * <ul>
      * <li>The clubs share the same country (hasCommonCountry returns true), or</li>
      * <li>A political restriction applies (PoliticalTieRestrictions.isProhibited
      * returns true).</li>
      * </ul>
-     * For all other round types, only political restrictions are considered.
      *
      * @param clubSlotA the first club slot
      * @param clubSlotB the second club slot
      * @return true if the pairing is not allowed; false otherwise
      */
     public boolean isIllegalTie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
-        if (this instanceof QRound || this instanceof LeaguePhaseRound) {
-            // if (PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB)) {
-            // System.out.println("Political restriction between " +
-            // clubSlotA.toCompactString() + " and "
-            // + clubSlotB.toCompactString());
-            // }
-            return hasCommonCountry(clubSlotA, clubSlotB)
-                    || PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
-        }
-        return PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
+        return hasCommonCountry(clubSlotA, clubSlotB)
+                || PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
     }
 
     /**
@@ -122,13 +104,10 @@ public abstract class Round implements Serializable {
     }
 
     /**
-     * Prints the names of the clubs in the provided list of ClubSlot objects.
-     *
-     * @param clubSlotList the list of ClubSlot objects whose names are to be
-     *                     printed
+     * Prints the names of the clubs in the round.
      */
-    protected static void printClubSlotList(List<ClubSlot> clubSlotList) {
-        clubSlotList.forEach(clubSlot -> System.out.println(clubSlot.toCompactString()));
+    protected void printClubSlotList() {
+        clubSlots.forEach(clubSlot -> System.out.println(clubSlot.toCompactString()));
     }
 
     /**

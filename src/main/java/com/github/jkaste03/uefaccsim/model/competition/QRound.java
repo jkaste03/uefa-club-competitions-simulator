@@ -16,12 +16,6 @@ import java.util.Collections;
  */
 public class QRound extends KnockoutRound {
     /**
-     * Excluding rebalancing, the number of ties in the UCL Q1 CP round is 16. If
-     * the number of ties is less than 16, losers of ties need to jump to the UECL
-     * Q3 CP round.
-     */
-    private static final int UCL_Q1_CP_TIES_WITHOUT_REBALANCING = 16;
-    /**
      * Max number of full draw construction attempts before giving up (should be
      * plenty).
      */
@@ -31,6 +25,7 @@ public class QRound extends KnockoutRound {
      * Qualifying path for this round (for example, Champions Path or League Path).
      */
     private final PathType pathType;
+    // TODO: Maybe remove seeded/unseeded variables
     private final List<ClubSlot> seeded = new ArrayList<>();
     private final List<ClubSlot> unseeded = new ArrayList<>();
 
@@ -265,28 +260,31 @@ public class QRound extends KnockoutRound {
      * </p>
      */
     @Override
-    public void regTiesForNextRounds() {
+    public void regForNextRounds() {
         // If ties must skip the secondary round, shuffle the ties to randomize which
         // ties get to skip
         int noOfClubsToSkipSecondary = noOfClubsCanSkipSecondary();
         if (noOfClubsToSkipSecondary > 0) {
             Collections.shuffle(ties);
         }
+        final var nextPrimaryRound = this.nextPrimaryRnd;
+        final var nextSecondaryRound = this.nextSecondaryRnd;
         // Add ties to the next primary round and the next secondary round if applicable
-        ties.forEach(tie -> {
+        for (int i = 0; i < ties.size(); i++) {
+            KnockoutTie tie = ties.get(i);
             // Add tie to the next primary round
-            this.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
+            nextPrimaryRound.addClubSlot(new ClubSlot(tie));
             // Add tie to the next secondary round if applicable
-            if (this.nextSecondaryRnd != null) {
+            if (nextSecondaryRound != null) {
                 // Add tie to the next primary round of the secondary round if it can skip,
                 // otherwise add to the secondary round
-                if (ties.indexOf(tie) < noOfClubsToSkipSecondary) {
-                    this.nextSecondaryRnd.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
+                if (i < noOfClubsToSkipSecondary) {
+                    nextSecondaryRound.nextPrimaryRnd.addClubSlot(new ClubSlot(tie));
                 } else {
-                    this.nextSecondaryRnd.addClubSlot(new ClubSlot(tie));
+                    nextSecondaryRound.addClubSlot(new ClubSlot(tie));
                 }
             }
-        });
+        }
     }
 
     /**
@@ -297,7 +295,9 @@ public class QRound extends KnockoutRound {
     private int noOfClubsCanSkipSecondary() {
         int noOfClubsToSkip = (tournament == Tournament.CHAMPIONS_LEAGUE
                 && roundType == RoundType.Q1
-                && pathType == PathType.CHAMPIONS_PATH) ? UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size() : 0;
+                && pathType == PathType.CHAMPIONS_PATH)
+                        ? CompetitionFormatRules.UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size()
+                        : 0;
         return noOfClubsToSkip;
     }
 

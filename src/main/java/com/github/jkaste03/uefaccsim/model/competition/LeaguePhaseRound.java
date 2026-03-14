@@ -18,6 +18,7 @@ import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
  * format.
  */
 public abstract class LeaguePhaseRound extends Round {
+
     protected List<NonKnockoutTie> ties = new ArrayList<>();
     protected final List<Pot> pots = new ArrayList<>();
     private int playedMatchDays = 0;
@@ -432,11 +433,31 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Calculates the final league phase standings by delegating to the league
-     * table's sorting logic, which applies all tiebreakers (a–h) in order.
+     * Registers clubs for the next rounds.
+     * <p>
+     * This method first calculates the league standings by calling
+     * {@link leagueTable#calcStandings()}. After the standings are calculated, it
+     * determines which clubs qualify to advance to subsequent rounds and registers
+     * them accordingly.
      */
-    public void calcStandings() {
+    public void regClubsForNextRounds() {
+        // First, calculate the league standings based on the results of the played
+        // matches.
         leagueTable.calcStandings();
+        Round nextRound = this.nextPrimaryRnd;
+        Round nextNextRound = nextRound.nextPrimaryRnd;
+        int i = 0;
+        // Then, determine which clubs qualify for the next next round and register
+        // them.
+        for (; i < CompetitionFormatRules.KO_ROUND_PLAYOFF_CLUB_COUNT / 2; i++) {
+            int clubIdx = leagueTable.getIdxByStanding(i);
+            nextNextRound.addClubSlot(clubSlots.get(clubIdx));
+        }
+        // Finally, determine which clubs qualify for the next round and register them.
+        for (; i < CompetitionFormatRules.KO_ROUND_PLAYOFF_CLUB_COUNT * 1.5; i++) {
+            int clubIdx = leagueTable.getIdxByStanding(i);
+            nextRound.addClubSlot(clubSlots.get(clubIdx));
+        }
     }
 
     @Override

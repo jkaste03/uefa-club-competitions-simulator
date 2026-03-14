@@ -129,6 +129,6 @@ public class ClubSlot implements Serializable {
 
     @Override
     public String toString() {
-        return isTie() ? tie.toString() : clubSimState.toString();
+        return "ClubSlot [" + (isTie() ? tie.toString() : clubSimState.toString()) + "]";
     }
 }

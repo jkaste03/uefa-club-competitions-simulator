@@ -26,6 +26,8 @@ public class Rounds implements Serializable {
     private final QRound uelQ1MP, uelQ2MP, uelQ3MP, uelQ3CP, uelPo;
     private final QRound ueclQ1MP, ueclQ2MP, ueclQ2CP, ueclQ3MP, ueclQ3CP, ueclPoMP, ueclPoCP;
     private final LeaguePhaseRound uclLP, uelLP, ueclLP;
+    private final PostLeagueKnockoutRound uclKoRoPo, uelKoRoPo, ueclKoRoPo;
+    private final PostLeagueKnockoutRound uclRO16, uelRO16, ueclRO16;
     private final List<Round> rounds;
     // Index for fast lookup of rounds by RoundType (avoids repeated full scans)
     private final EnumMap<RoundType, List<Round>> roundsByType = new EnumMap<>(RoundType.class);
@@ -70,6 +72,8 @@ public class Rounds implements Serializable {
         uclPoCP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         uclPoLP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
         uclLP = new UclUelLeaguePhaseRound(Tournament.CHAMPIONS_LEAGUE);
+        uclKoRoPo = new PostLeagueKnockoutRound(Tournament.CHAMPIONS_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
+        uclRO16 = new PostLeagueKnockoutRound(Tournament.CHAMPIONS_LEAGUE, RoundType.ROUND_OF_16);
 
         // Create instances for Europa League qualifier rounds.
         uelQ1MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
@@ -78,6 +82,8 @@ public class Rounds implements Serializable {
         uelQ3CP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         uelPo = new QRound(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
         uelLP = new UclUelLeaguePhaseRound(Tournament.EUROPA_LEAGUE);
+        uelKoRoPo = new PostLeagueKnockoutRound(Tournament.EUROPA_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
+        uelRO16 = new PostLeagueKnockoutRound(Tournament.EUROPA_LEAGUE, RoundType.ROUND_OF_16);
 
         // Create instances for Conference League qualifier rounds.
         ueclQ1MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
@@ -88,6 +94,8 @@ public class Rounds implements Serializable {
         ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
         ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         ueclLP = new UeclLeaguePhaseRound();
+        ueclKoRoPo = new PostLeagueKnockoutRound(Tournament.CONFERENCE_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
+        ueclRO16 = new PostLeagueKnockoutRound(Tournament.CONFERENCE_LEAGUE, RoundType.ROUND_OF_16);
 
         // Aggregate all rounds into a list for streamlined processing (order is
         // chronological).
@@ -96,7 +104,9 @@ public class Rounds implements Serializable {
                 uclQ2CP, uclQ2LP, uelQ2MP, ueclQ2MP, ueclQ2CP,
                 uclQ3CP, uclQ3LP, uelQ3MP, uelQ3CP, ueclQ3MP, ueclQ3CP,
                 uclPoCP, uclPoLP, uelPo, ueclPoMP, ueclPoCP,
-                uclLP, uelLP, ueclLP));
+                uclLP, uelLP, ueclLP,
+                uclKoRoPo, uelKoRoPo, ueclKoRoPo,
+                uclRO16, uelRO16, ueclRO16));
 
         // Load structural data for all rounds, and initialize club states from JSON
         // file.
@@ -168,7 +178,9 @@ public class Rounds implements Serializable {
         uclQ3LP.setNextRounds(uclPoLP, uelLP);
         uclPoCP.setNextRounds(uclLP, uelLP);
         uclPoLP.setNextRounds(uclLP, uelLP);
-        uclLP.setNextRound(null);
+        uclLP.setNextRound(uclKoRoPo);
+        uclKoRoPo.setNextRound(uclRO16);
+        uclRO16.setNextRound(null);
 
         // Linking for Europa League
         uelQ1MP.setNextRounds(uelQ2MP, ueclQ2MP);
@@ -176,7 +188,9 @@ public class Rounds implements Serializable {
         uelQ3MP.setNextRounds(uelPo, ueclPoMP);
         uelQ3CP.setNextRounds(uelPo, ueclPoCP);
         uelPo.setNextRounds(uelLP, ueclLP);
-        uelLP.setNextRound(null);
+        uelLP.setNextRound(uelKoRoPo);
+        uelKoRoPo.setNextRound(uelRO16);
+        uelRO16.setNextRound(null);
 
         // Linking for Conference League (single next round linkage in some cases)
         ueclQ1MP.setNextRound(ueclQ2MP);
@@ -186,18 +200,23 @@ public class Rounds implements Serializable {
         ueclQ3CP.setNextRound(ueclPoCP);
         ueclPoMP.setNextRound(ueclLP);
         ueclPoCP.setNextRound(ueclLP);
-        ueclLP.setNextRound(null);
+        ueclLP.setNextRound(ueclKoRoPo);
+        ueclKoRoPo.setNextRound(ueclRO16);
+        ueclRO16.setNextRound(null);
     }
 
     /**
      * Initiates the simulation by executing all rounds in their respective order.
-     * This method drives the simulation from qualifiers through leagues.
+     * This method drives the simulation from qualifying rounds through the league
+     * phase and into the post-league knockout rounds.
      */
     public void run(String threadName) {
         // Start by processing the qualifying rounds.
         runQRounds();
         // Proceed to the league phase rounds.
         runLeagueRounds();
+        // Finally, run the post-league knockout rounds.
+        runPostLeagueKnockoutRounds();
     }
 
     /**
@@ -319,7 +338,7 @@ public class Rounds implements Serializable {
     private void regQRoundTiesForNextRounds(List<QRound> roundsOfType) {
         roundsOfType.forEach(round -> {
             if (round instanceof QRound) {
-                ((QRound) round).regTiesForNextRounds();
+                ((QRound) round).regForNextRounds();
             }
         });
     }
@@ -393,8 +412,8 @@ public class Rounds implements Serializable {
         seedDrawScheduleRounds(getRoundsOfType(RoundType.LEAGUE_PHASE));
         // Play the league phase rounds.
         playLeagueRounds();
-        // Calculate the final league standings after all matches have been played.
-        calcLeagueStandings();
+        // Register league phase clubs for the next rounds.
+        regLpRoundClubsForNextRounds();
     }
 
     /**
@@ -433,19 +452,23 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Calculates the league standings for all league phase rounds.
+     * Registers clubs from all rounds of type {@link RoundType#LEAGUE_PHASE} for
+     * their respective next rounds.
      * <p>
-     * Iterates through all rounds of type {@link RoundType#LEAGUE_PHASE} and
-     * invokes
-     * the standings calculation for each {@link LeaguePhaseRound}.
-     * </p>
+     * Iterates through all rounds classified as league phase rounds and invokes
+     * {@link LeaguePhaseRound#regClubsForNextRounds()} on each, ensuring that clubs
+     * are registered for subsequent rounds in the competition.
      */
-    private void calcLeagueStandings() {
+    private void regLpRoundClubsForNextRounds() {
         for (Round round : getRoundsOfType(RoundType.LEAGUE_PHASE)) {
             if (round instanceof LeaguePhaseRound) {
-                ((LeaguePhaseRound) round).calcStandings();
+                ((LeaguePhaseRound) round).regClubsForNextRounds();
             }
         }
+    }
+
+    private void runPostLeagueKnockoutRounds() {
+
     }
 
     /**
