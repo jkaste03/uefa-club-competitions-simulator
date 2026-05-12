@@ -447,14 +447,15 @@ public abstract class LeaguePhaseRound extends Round {
         Round nextRound = this.nextPrimaryRnd;
         Round nextNextRound = nextRound.nextPrimaryRnd;
         int i = 0;
+        int playoffClubs = ((KnockoutRoundPlayoff) nextRound).getExpectedClubCount();
         // Then, determine which clubs qualify for the next next round and register
         // them.
-        for (; i < CompetitionFormatRules.KO_ROUND_PLAYOFF_CLUB_COUNT / 2; i++) {
+        for (; i < playoffClubs / 2; i++) {
             int clubIdx = leagueTable.getIdxByStanding(i);
             nextNextRound.addClubSlot(clubSlots.get(clubIdx));
         }
         // Finally, determine which clubs qualify for the next round and register them.
-        for (; i < CompetitionFormatRules.KO_ROUND_PLAYOFF_CLUB_COUNT * 1.5; i++) {
+        for (; i < playoffClubs * 1.5; i++) {
             int clubIdx = leagueTable.getIdxByStanding(i);
             nextRound.addClubSlot(clubSlots.get(clubIdx));
         }

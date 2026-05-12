@@ -36,3 +36,7 @@ release.properties
 pom.xml.tag
 pom.xml.next
 pom.xml.versionsBackup
+
+temp
+gitleaks.exe
+gitleaks-report.json

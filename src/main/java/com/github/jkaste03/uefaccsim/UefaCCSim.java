@@ -32,7 +32,7 @@ import com.github.jkaste03.uefaccsim.model.competition.Rounds;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 1;
+    private static final int SIMS = 100;
 
     /**
      * Application entry point that performs a configurable number of independent
@@ -77,91 +77,6 @@ public class UefaCCSim {
 
         // printClubSeedingStats();
     }
-
-    // private static void printClubSeedingStats() {
-    // System.out.println("UECL Playoff draw seeding:");
-
-    // // Conditional table
-    // System.out.println("\nConditional probabilities (given participation in
-    // playoff draw):");
-    // System.out.println("-----------------------------------------------------------------------------------");
-    // System.out.printf("%-21s %14s %18s%n", "Club", "Cond. Seeded", "Cond.
-    // Unseeded");
-    // System.out.println("-----------------------------------------------------------------------------------");
-    // ClubRepository.getAllClubs().stream()
-    // .filter(club -> club.getRanking() != -1)
-    // .sorted((cA, cB) -> {
-    // int cASeeded = cA.getTimesSeeded();
-    // int cAUnseeded = cA.getTimesUnseeded();
-    // int cAParticipated = cASeeded + cAUnseeded;
-    // double cACondSeed = cAParticipated > 0 ? (double) cASeeded / cAParticipated :
-    // 0.0;
-    // double cACondUnseed = cAParticipated > 0 ? (double) cAUnseeded /
-    // cAParticipated : 0.0;
-
-    // int cBSeeded = cB.getTimesSeeded();
-    // int cBUnseeded = cB.getTimesUnseeded();
-    // int cBParticipated = cBSeeded + cBUnseeded;
-    // double cBCondSeed = cBParticipated > 0 ? (double) cBSeeded / cBParticipated :
-    // 0.0;
-    // double cBCondUnseed = cBParticipated > 0 ? (double) cBUnseeded /
-    // cBParticipated : 0.0;
-
-    // // Hvis begge har 0% seeded, sorter på unseeded
-    // if (cACondSeed == 0.0 && cBCondSeed == 0.0) {
-    // return Double.compare(cBCondUnseed, cACondUnseed);
-    // }
-    // return Double.compare(cBCondSeed, cACondSeed);
-    // })
-    // .forEach(club -> {
-    // int seededCount = club.getTimesSeeded();
-    // int unseededCount = club.getTimesUnseeded();
-    // int participated = seededCount + unseededCount;
-
-    // double condSeedPct = participated > 0
-    // ? seededCount * 100.0 / participated
-    // : 0.0;
-    // double condUnseedPct = participated > 0
-    // ? unseededCount * 100.0 / participated
-    // : 0.0;
-
-    // System.out.printf("%-21s %13.1f%% %17.1f%%%n",
-    // club.getName(),
-    // condSeedPct, condUnseedPct);
-    // });
-
-    // // Absolute table
-    // System.out.println("\nAbsolute probabilities (out of all simulations):");
-    // System.out.println("---------------------------------------------------------------");
-    // System.out.printf("%-21s %12s %16s%n", "Club", "Abs. Seeded", "Abs.
-    // Unseeded");
-    // System.out.println("---------------------------------------------------------------");
-    // ClubRepository.getAllClubs().stream()
-    // .filter(club -> club.getRanking() != -1)
-    // .sorted((cA, cB) -> {
-    // double cAAbsSeed = (double) cA.getTimesSeeded() / SIMS;
-    // double cBAbsSeed = (double) cB.getTimesSeeded() / SIMS;
-    // // Hvis begge har 0% seeded, sorter på unseeded
-    // if ((cAAbsSeed == 0.0 && cBAbsSeed == 0.0) ||
-    // (cAAbsSeed == 1.0 && cBAbsSeed == 1.0)) {
-    // double cAAbsUnseed = (double) cA.getTimesUnseeded() / SIMS;
-    // double cBAbsUnseed = (double) cB.getTimesUnseeded() / SIMS;
-    // return Double.compare(cBAbsUnseed, cAAbsUnseed);
-    // }
-    // return Double.compare(cBAbsSeed, cAAbsSeed);
-    // })
-    // .forEach(club -> {
-    // int seededCount = club.getTimesSeeded();
-    // int unseededCount = club.getTimesUnseeded();
-
-    // double absSeedPct = seededCount * 100.0 / SIMS;
-    // double absUnseedPct = unseededCount * 100.0 / SIMS;
-
-    // System.out.printf("%-21s %11.1f%% %15.1f%%%n",
-    // club.getName(),
-    // absSeedPct, absUnseedPct);
-    // });
-    // }
 
     /**
      * Creates a deep copy of the given object using serialization.

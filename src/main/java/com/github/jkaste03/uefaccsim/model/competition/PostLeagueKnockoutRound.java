@@ -4,7 +4,7 @@ import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
 
-public class PostLeagueKnockoutRound extends KnockoutRound {
+public abstract class PostLeagueKnockoutRound extends KnockoutRound {
 
     public PostLeagueKnockoutRound(Tournament tournament, RoundType roundType) {
         super(tournament, roundType);
@@ -16,14 +16,7 @@ public class PostLeagueKnockoutRound extends KnockoutRound {
 
     @Override
     protected void seed() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'seed'");
-    }
-
-    @Override
-    protected void draw() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'draw'");
+        // Intentionally no-op for post-league knockout rounds.
     }
 
     /**

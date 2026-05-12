@@ -72,8 +72,8 @@ public class Rounds implements Serializable {
         uclPoCP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         uclPoLP = new QRound(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF, PathType.LEAGUE_PATH);
         uclLP = new UclUelLeaguePhaseRound(Tournament.CHAMPIONS_LEAGUE);
-        uclKoRoPo = new PostLeagueKnockoutRound(Tournament.CHAMPIONS_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
-        uclRO16 = new PostLeagueKnockoutRound(Tournament.CHAMPIONS_LEAGUE, RoundType.ROUND_OF_16);
+        uclKoRoPo = new KnockoutRoundPlayoff(Tournament.CHAMPIONS_LEAGUE);
+        uclRO16 = new RoundOf16(Tournament.CHAMPIONS_LEAGUE);
 
         // Create instances for Europa League qualifier rounds.
         uelQ1MP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
@@ -82,8 +82,8 @@ public class Rounds implements Serializable {
         uelQ3CP = new QRound(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.CHAMPIONS_PATH);
         uelPo = new QRound(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
         uelLP = new UclUelLeaguePhaseRound(Tournament.EUROPA_LEAGUE);
-        uelKoRoPo = new PostLeagueKnockoutRound(Tournament.EUROPA_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
-        uelRO16 = new PostLeagueKnockoutRound(Tournament.EUROPA_LEAGUE, RoundType.ROUND_OF_16);
+        uelKoRoPo = new KnockoutRoundPlayoff(Tournament.EUROPA_LEAGUE);
+        uelRO16 = new RoundOf16(Tournament.EUROPA_LEAGUE);
 
         // Create instances for Conference League qualifier rounds.
         ueclQ1MP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.Q1, PathType.MAIN_PATH);
@@ -94,8 +94,8 @@ public class Rounds implements Serializable {
         ueclPoMP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH);
         ueclPoCP = new QRound(Tournament.CONFERENCE_LEAGUE, RoundType.PLAYOFF, PathType.CHAMPIONS_PATH);
         ueclLP = new UeclLeaguePhaseRound();
-        ueclKoRoPo = new PostLeagueKnockoutRound(Tournament.CONFERENCE_LEAGUE, RoundType.KO_ROUND_PLAYOFF);
-        ueclRO16 = new PostLeagueKnockoutRound(Tournament.CONFERENCE_LEAGUE, RoundType.ROUND_OF_16);
+        ueclKoRoPo = new KnockoutRoundPlayoff(Tournament.CONFERENCE_LEAGUE);
+        ueclRO16 = new RoundOf16(Tournament.CONFERENCE_LEAGUE);
 
         // Aggregate all rounds into a list for streamlined processing (order is
         // chronological).
@@ -468,7 +468,8 @@ public class Rounds implements Serializable {
     }
 
     private void runPostLeagueKnockoutRounds() {
-
+        // Execute seeding and draws for Q1 round type.
+        seedDrawScheduleRounds(getRoundsOfType(RoundType.KO_ROUND_PLAYOFF));
     }
 
     /**

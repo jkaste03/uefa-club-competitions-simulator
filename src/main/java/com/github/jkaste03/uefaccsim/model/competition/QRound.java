@@ -15,6 +15,13 @@ import java.util.Collections;
  * Class representing a qualifying round in the UEFA competitions.
  */
 public class QRound extends KnockoutRound {
+
+    /**
+     * Excluding rebalancing, the number of ties in the UCL Q1 CP round is 16. If
+     * the number of ties is less than 16, losers of ties need to jump to the UECL
+     * Q3 CP round.
+     */
+    public static final int UCL_Q1_CP_TIES_WITHOUT_REBALANCING = 16;
     /**
      * Max number of full draw construction attempts before giving up (should be
      * plenty).
@@ -296,7 +303,7 @@ public class QRound extends KnockoutRound {
         int noOfClubsToSkip = (tournament == Tournament.CHAMPIONS_LEAGUE
                 && roundType == RoundType.Q1
                 && pathType == PathType.CHAMPIONS_PATH)
-                        ? CompetitionFormatRules.UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size()
+                        ? UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size()
                         : 0;
         return noOfClubsToSkip;
     }
