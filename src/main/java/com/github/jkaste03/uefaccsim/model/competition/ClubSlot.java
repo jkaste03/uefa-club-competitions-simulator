@@ -109,14 +109,6 @@ public class ClubSlot implements Serializable {
         this.tie = null;
     }
 
-    public void incrementSeedingCounter(boolean isSeeded) {
-        if (isTie()) {
-            tie.incrementSeedingCounter(isSeeded);
-        } else if (isClub()) {
-            clubSimState.incrementSeedingCounter(isSeeded);
-        }
-    }
-
     /**
      * Returns a compact "ClubA vs ClubB" string for ties, or the club name if not a
      * tie.

@@ -1,7 +1,5 @@
 package com.github.jkaste03.uefaccsim.model;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.github.jkaste03.uefaccsim.enums.Country;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
@@ -15,8 +13,6 @@ public class Club {
     private String name;
     private Country country;
     private float ranking;
-    private AtomicInteger timesSeeded;
-    private AtomicInteger timesUnseeded;
 
     /**
      * No-arg constructor used by Gson. Initializes id, counters and registers the
@@ -25,8 +21,6 @@ public class Club {
      */
     public Club() {
         this.id = id_counter++;
-        this.timesSeeded = new AtomicInteger(0);
-        this.timesUnseeded = new AtomicInteger(0);
         ClubRepository.addClub(this);
     }
 
@@ -44,25 +38,6 @@ public class Club {
 
     public float getRanking() {
         return ranking;
-    }
-
-    // TODO: Needs changing
-    public int getTimesSeeded() {
-        return timesSeeded.get();
-    }
-
-    // TODO: Needs changing
-    public int getTimesUnseeded() {
-        return timesUnseeded.get();
-    }
-
-    // TODO: Needs changing
-    public void incrementSeedingCounter(boolean isSeeded) {
-        if (isSeeded) {
-            timesSeeded.incrementAndGet();
-        } else {
-            timesUnseeded.incrementAndGet();
-        }
     }
 
     @Override

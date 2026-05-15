@@ -6,16 +6,23 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
+import com.github.jkaste03.uefaccsim.enums.PathType;
+import com.github.jkaste03.uefaccsim.enums.RoundType;
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.competition.Rounds;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
 
 /**
  * Entry point class for running multiple independent UEFA club competition
  * simulations in parallel. A single baseline Rounds instance is created up
- * front
- * and deep-copied per simulation task to guarantee isolation of mutable state
- * while leveraging the Fork/Join common pool via a parallel IntStream.
+ * front, and deep-copied per simulation task to guarantee isolation of mutable
+ * state while leveraging the Fork/Join common pool via a parallel IntStream.
+ * The number of simulations is controlled by the fixed {@code SIMS} constant.
+ * Statistics are collected in thread-local aggregators and merged into a final
+ * aggregator after all simulation tasks complete.
  *
  * <p>
  * High-level workflow:
@@ -26,22 +33,27 @@ import com.github.jkaste03.uefaccsim.model.competition.Rounds;
  * <ul>
  * <li>Generate a task label (e.g., "Sim-3").</li>
  * <li>Deep copy the baseline Rounds to avoid shared mutation.</li>
+ * <li>Get the current thread's StatsAggregator from a ThreadLocal and attach it
+ * to the copied rounds instance.</li>
  * <li>Execute the simulation via {@code Rounds.run(taskName)}.</li>
  * </ul>
  * </li>
+ * <li>Merge all per-thread aggregators into one final StatsAggregator.</li>
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 100;
+    private static final int SIMS = 11;
 
     /**
-     * Application entry point that performs a configurable number of independent
+     * Application entry point that performs a fixed number of independent
      * tournament simulations in parallel using Java's Fork/Join common pool.
      *
      * Workflow:
      * <ol>
      * <li>Instantiate a baseline Rounds object that serves as the template for each
      * simulation.</li>
+     * <li>Create one ThreadLocal StatsAggregator per worker thread and keep all
+     * created instances in a concurrent collection for final merge.</li>
      * <li>Measure wall-clock execution time around the simulation phase.</li>
      * <li>Execute <code>IntStream.range(0, SIMS).parallel()</code> so each
      * simulation index is processed concurrently.</li>
@@ -50,10 +62,17 @@ public class UefaCCSim {
      * <li>Create an isolated deep copy of the baseline Rounds instance (to avoid
      * shared mutable state).</li>
      * <li>Assign a task name (e.g., "Sim-1") for traceability.</li>
+     * <li>Resolve the current thread's StatsAggregator via
+     * <code>ThreadLocal.get()</code>.</li>
+     * <li>Attach that aggregator to the copied Rounds instance.</li>
      * <li>Invoke <code>run(...)</code> on the copied Rounds.</li>
      * </ul>
      * </li>
+     * <li>Merge all per-thread aggregators into a final aggregator that is used for
+     * reporting.</li>
      * </ol>
+     *
+     * @param args currently unused
      */
     public static void main(String[] args) {
         // Create a new instance of Rounds
@@ -64,22 +83,69 @@ public class UefaCCSim {
 
         long startTime = System.currentTimeMillis();
 
+        // Thread-safe collection to hold all StatsAggregators created by worker
+        // threads.
+        ConcurrentLinkedQueue<StatsAggregator> threadAggregators = new ConcurrentLinkedQueue<>();
+        // ThreadLocal to provide each worker thread with its own StatsAggregator
+        // instance. Each instance is created on first access and added to the
+        // threadAggregators collection for later merging.
+        ThreadLocal<StatsAggregator> localAggregator = ThreadLocal.withInitial(() -> {
+            StatsAggregator statsAggregator = new StatsAggregator();
+            threadAggregators.add(statsAggregator);
+            return statsAggregator;
+        });
+
+        // Run simulations in parallel, each with its own deep copy of the baseline
+        // Rounds and its own StatsAggregator from the ThreadLocal.
         IntStream.range(0, SIMS)
                 .parallel()
                 .forEach(i -> {
                     String taskName = "Sim-" + (i + 1);
                     Rounds copiedRounds = deepCopy(rounds);
+
+                    StatsAggregator localStatsAggregator = localAggregator.get();
+
+                    copiedRounds.attachStatsAggregator(localStatsAggregator);
                     copiedRounds.run(taskName);
                 });
+
+        // Final stats aggregator that is populated with data from all worker threads.
+        StatsAggregator finalStatsAggregator = new StatsAggregator();
+
+        // Merge stats from all worker threads into the final aggregator.
+        threadAggregators.forEach(finalStatsAggregator::mergeFrom);
 
         long endTime = System.currentTimeMillis();
         System.out.println("Total time: " + (endTime - startTime) + " ms");
 
-        // printClubSeedingStats();
+        // Example of printing stats for a specific club and round after all simulations
+        // are complete.
+        finalStatsAggregator.printRoundStats(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF,
+                PathType.CHAMPIONS_PATH,
+                "Viking");
+
+        finalStatsAggregator.printRoundStats(Tournament.CHAMPIONS_LEAGUE, RoundType.Q2, PathType.LEAGUE_PATH,
+                "Bodoe Glimt");
+        finalStatsAggregator.printRoundStats(Tournament.CHAMPIONS_LEAGUE, RoundType.Q3, PathType.LEAGUE_PATH,
+                "Bodoe Glimt");
+        finalStatsAggregator.printRoundStats(Tournament.CHAMPIONS_LEAGUE, RoundType.PLAYOFF,
+                PathType.LEAGUE_PATH,
+                "Bodoe Glimt");
+
+        finalStatsAggregator.printRoundStats(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH,
+                "Lillestrom");
+
+        finalStatsAggregator.printRoundStats(Tournament.EUROPA_LEAGUE, RoundType.Q2, PathType.MAIN_PATH,
+                "Tromso");
+        finalStatsAggregator.printRoundStats(Tournament.EUROPA_LEAGUE, RoundType.Q3, PathType.MAIN_PATH,
+                "Tromso");
+        finalStatsAggregator.printRoundStats(Tournament.EUROPA_LEAGUE, RoundType.PLAYOFF, PathType.MAIN_PATH,
+                "Tromso");
     }
 
     /**
      * Creates a deep copy of the given object using serialization.
+     * The entire object graph must be serializable.
      *
      * @param <T>    The type of the object to be copied.
      * @param object The object to be copied.

@@ -84,11 +84,6 @@ public final class ClubSimState implements Serializable {
         return ClubRepository.getClub(id);
     }
 
-    // TODO: Needs changing
-    public void incrementSeedingCounter(boolean isSeeded) {
-        ClubRepository.getClub(id).incrementSeedingCounter(isSeeded);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o)

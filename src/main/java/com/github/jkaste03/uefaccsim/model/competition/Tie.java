@@ -143,11 +143,6 @@ public abstract class Tie implements Serializable {
                 : rB;
     }
 
-    public void incrementSeedingCounter(boolean isSeeded) {
-        clubSlotA.incrementSeedingCounter(isSeeded);
-        clubSlotB.incrementSeedingCounter(isSeeded);
-    }
-
     /**
      * Simulates the tie.
      * <p>

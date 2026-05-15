@@ -7,9 +7,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Class representing a qualifying round in the UEFA competitions.
@@ -32,9 +35,10 @@ public class QRound extends KnockoutRound {
      * Qualifying path for this round (for example, Champions Path or League Path).
      */
     private final PathType pathType;
-    // TODO: Maybe remove seeded/unseeded variables
-    private final List<ClubSlot> seeded = new ArrayList<>();
-    private final List<ClubSlot> unseeded = new ArrayList<>();
+    // Seeded club slots with O(1) lookup
+    private final Set<ClubSlot> seeded = new HashSet<>();
+    // Unseeded club slots with O(1) lookup
+    private final Set<ClubSlot> unseeded = new HashSet<>();
 
     /**
      * Constructs a qualifying round for the specified tournament, round type and
@@ -75,6 +79,21 @@ public class QRound extends KnockoutRound {
         return super.getName() + " " + pathType;
     }
 
+    public PathType getPathType() {
+        return pathType;
+    }
+
+    /**
+     * Seeds and draws the ties. Scheduling isn't relevant for knockout rounds.
+     * Seeding is also recorded for stats collection.
+     */
+    @Override
+    public void seedDrawSchedule() {
+        seed();
+        draw();
+        recordSeeding();
+    }
+
     /**
      * {@inheritDoc}
      * <p>
@@ -92,13 +111,6 @@ public class QRound extends KnockoutRound {
         int half = clubSlots.size() / 2;
         seeded.addAll(clubSlots.subList(0, half));
         unseeded.addAll(clubSlots.subList(half, clubSlots.size()));
-
-        incrementSeedingCounters();
-    }
-
-    private void incrementSeedingCounters() {
-        seeded.forEach(clubSlot -> clubSlot.incrementSeedingCounter(true));
-        unseeded.forEach(clubSlot -> clubSlot.incrementSeedingCounter(false));
     }
 
     /**
@@ -110,8 +122,8 @@ public class QRound extends KnockoutRound {
      * <li>Uses randomized backtracking with an MRV (Minimum Remaining Values)
      * heuristic to reduce bias and avoid dead ends while building a perfect
      * matching.</li>
-     * <li>Works on fresh copies of the original {@code seeded} and {@code unseeded}
-     * lists so their order and contents remain unchanged.</li>
+     * <li>Works on fresh list copies of the original {@code seeded} and
+     * {@code unseeded} so their order and contents remain unchanged.</li>
      * <li>Clears and repopulates {@code ties} with the successful set of
      * pairings.</li>
      * <li>May retry up to {@code MAX_DRAW_ATTEMPTS} times (normally succeeds on the
@@ -131,7 +143,7 @@ public class QRound extends KnockoutRound {
     @Override
     public void draw() {
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
-        List<ClubSlot> unseededCopy = new ArrayList<>(unseeded);
+        List<ClubSlot> unseededCopy = new ArrayList<>(unseeded); // Convert Set to List for shuffle
 
         Random rng = ThreadLocalRandom.current();
 
@@ -306,6 +318,37 @@ public class QRound extends KnockoutRound {
                         ? UCL_Q1_CP_TIES_WITHOUT_REBALANCING - ties.size()
                         : 0;
         return noOfClubsToSkip;
+    }
+
+    /**
+     * Records match-up statistics for the current qualifying round.
+     */
+    @Override
+    protected void recordMatchup() {
+        RoundKey roundKey = getRoundKey();
+        statsAggregator.recordRoundStats(roundKey, ties, seeded);
+    }
+
+    /**
+     * Records the seeding information for the current qualifying round.
+     */
+    private void recordSeeding() {
+        RoundKey roundKey = getRoundKey();
+        statsAggregator.recordSeeding(roundKey, seeded, unseeded);
+    }
+
+    /**
+     * Builds the statistics round key for this round.
+     *
+     * @return the round key for this round
+     * @throws IllegalStateException if no {@link StatsAggregator} is attached
+     */
+    private RoundKey getRoundKey() {
+        if (statsAggregator == null) {
+            throw new IllegalStateException("StatsAggregator has not been attached to " + getName());
+        }
+
+        return new RoundKey(tournament, roundType, pathType);
     }
 
     @Override

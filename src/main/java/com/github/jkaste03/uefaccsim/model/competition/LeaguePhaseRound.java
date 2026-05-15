@@ -112,7 +112,6 @@ public abstract class LeaguePhaseRound extends Round {
         schedule();
         // Also, initialize the league table.
         initTable();
-        // ties.forEach(t -> System.out.println(t.toCompactString()));
     }
 
     /**

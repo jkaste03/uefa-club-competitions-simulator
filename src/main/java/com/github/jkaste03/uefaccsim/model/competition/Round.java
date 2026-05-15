@@ -5,6 +5,8 @@ import java.util.List;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.io.Serializable;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 public abstract class Round implements Serializable {
     protected final Tournament tournament;
     protected final RoundType roundType;
+    protected transient StatsAggregator statsAggregator;
     // References to the next rounds
     protected Round nextPrimaryRnd;
     protected Round nextSecondaryRnd;
@@ -48,6 +51,15 @@ public abstract class Round implements Serializable {
 
     public RoundType getRoundType() {
         return roundType;
+    }
+
+    /**
+     * Attaches a stats aggregator used to record statistics for this round.
+     * 
+     * @param statsAggregator the stats aggregator to attach.
+     */
+    public void attachStatsAggregator(StatsAggregator statsAggregator) {
+        this.statsAggregator = statsAggregator;
     }
 
     public void setNextRounds(Round nextPrimaryRnd, Round nextSecondaryRnd) {
@@ -178,6 +190,24 @@ public abstract class Round implements Serializable {
         for (ClubSlot clubSlot : clubSlots) {
             clubSlot.resolveSlot(tournament);
         }
+    }
+
+    /**
+     * Records the round's matchup statistics via the attached aggregator.
+     * <p>
+     * Creates a round key from this round's tournament and round type, then
+     * delegates to the aggregator to record all ties as matchups.
+     * </p>
+     *
+     * @throws IllegalStateException if no stats aggregator has been attached
+     */
+    protected void recordMatchup() {
+        if (statsAggregator == null) {
+            throw new IllegalStateException("StatsAggregator has not been attached to " + getName());
+        }
+
+        RoundKey roundKey = new RoundKey(tournament, roundType, null);
+        statsAggregator.recordMatchup(roundKey, getTies());
     }
 
     @Override

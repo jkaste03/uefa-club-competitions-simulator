@@ -8,6 +8,7 @@ import java.util.List;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 import com.github.jkaste03.uefaccsim.service.ClubEloRatingsInitializer;
 import com.github.jkaste03.uefaccsim.service.JsonDataLoader;
@@ -45,6 +46,18 @@ public class Rounds implements Serializable {
      */
     private static final List<List<Tournament>> leaguePhasePlayOrderGroupedByDay = JsonDataLoader
             .loadLeaguePhasePlayOrderGroupedByDay();
+
+    /**
+     * Attaches a statistics aggregator to every managed round.
+     *
+     * @param statsAggregator the aggregator used to collect statistics from each
+     *                        round
+     */
+    public void attachStatsAggregator(StatsAggregator statsAggregator) {
+        for (Round round : rounds) {
+            round.attachStatsAggregator(statsAggregator);
+        }
+    }
 
     /**
      * Initializes the collection of UEFA competition rounds (Champions League,
@@ -345,7 +358,7 @@ public class Rounds implements Serializable {
 
     /**
      * Plays qualifying rounds for the provided list of {@link QRound}s, of a
-     * specific tournament type.
+     * specific round type.
      * <p>
      * The method performs the following steps:
      * <ol>
@@ -362,13 +375,14 @@ public class Rounds implements Serializable {
      * <li>Plays all UEL/UECL rounds that use double-legged ties.</li>
      * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
      * above.</li>
+     * <li>Records stats for the rounds.</li>
      * </ol>
      *
      * The reason for this complex workflow is to make sure the inter-league ELO
      * adjustments (point 2, 4, 6 and 8) are done in a realistic order.
      *
      * @param roundsOfType the list of qualifying rounds to be played, of a specific
-     *                     tournament type
+     *                     round type
      */
     private void playQRounds(List<QRound> roundsOfType) {
 
@@ -402,6 +416,9 @@ public class Rounds implements Serializable {
                 .forEach(r -> r.play(clubSimStateRepo));
         // 8. Apply all temp ELO changes to the clubs of represented NAs.
         clubSimStateRepo.applyAllUncommittedEloDeltas();
+
+        // 9. Record stats for all rounds of this type.
+        roundsOfType.forEach(r -> r.recordMatchup());
     }
 
     /**
@@ -449,6 +466,9 @@ public class Rounds implements Serializable {
             // tournamentsOnDay);
             clubSimStateRepo.applyAllUncommittedEloDeltas();
         }
+        // After all league phase matches are played, record stats for the league phase
+        // rounds.
+        getRoundsOfType(RoundType.LEAGUE_PHASE).forEach(r -> r.recordMatchup());
     }
 
     /**
