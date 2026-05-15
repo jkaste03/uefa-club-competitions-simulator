@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
@@ -42,7 +43,7 @@ import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 11;
+    private static final int SIMS = 1000;
 
     /**
      * Application entry point that performs a fixed number of independent
@@ -95,6 +96,11 @@ public class UefaCCSim {
             return statsAggregator;
         });
 
+        // Atomic counter to track completed simulations for progress reporting.
+        AtomicInteger completedSimulations = new AtomicInteger();
+        // Determine how often to print progress updates.
+        int progressStep = Math.max(1, SIMS / 50);
+
         // Run simulations in parallel, each with its own deep copy of the baseline
         // Rounds and its own StatsAggregator from the ThreadLocal.
         IntStream.range(0, SIMS)
@@ -107,6 +113,14 @@ public class UefaCCSim {
 
                     copiedRounds.attachStatsAggregator(localStatsAggregator);
                     copiedRounds.run(taskName);
+
+                    // Increment the completed simulations counter and print progress at defined
+                    // intervals.
+                    int completed = completedSimulations.incrementAndGet();
+                    if (completed % progressStep == 0 || completed == SIMS) {
+                        int percent = (completed * 100) / SIMS;
+                        System.out.printf("Progress: %d/%d (%d%%)%n", completed, SIMS, percent);
+                    }
                 });
 
         // Final stats aggregator that is populated with data from all worker threads.
