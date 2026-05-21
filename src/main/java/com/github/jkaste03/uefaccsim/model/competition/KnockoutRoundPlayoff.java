@@ -32,7 +32,7 @@ public class KnockoutRoundPlayoff extends PostLeagueKnockoutRound {
 
     @Override
     public void draw() {
-        long start = System.nanoTime();
+        // long start = System.nanoTime();
 
         if (clubSlots.size() != CLUB_COUNT) {
             throw new IllegalStateException(
@@ -106,11 +106,12 @@ public class KnockoutRoundPlayoff extends PostLeagueKnockoutRound {
             ClubSlot u = unseeded.get(assignment[i]);
             ties.add(new KnockoutTie(u, s, tournament, isSingleLegged));
         }
-        long end = System.nanoTime();
-        long duration = end - start;
-        System.out.println("Draw took: " + duration / 1_000_000 + " ms for " + getName() + " (alternative rules)");
-        printClubSlotList();
-        ties.forEach(t -> System.out.println(t.toCompactString()));
+        // long end = System.nanoTime();
+        // long duration = end - start;
+        // System.out.println("Draw took: " + duration / 1_000_000 + " ms for " +
+        // getName() + " (alternative rules)");
+        // printClubSlotList();
+        // ties.forEach(t -> System.out.println(t.toCompactString()));
     }
 
     private boolean tryDrawWithinDefaultBlocks(List<ClubSlot> seeded, List<ClubSlot> unseeded, int[] assignment) {
