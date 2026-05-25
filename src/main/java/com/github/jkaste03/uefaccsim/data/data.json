@@ -239,7 +239,6 @@
             { "name": "Bueyueksehir", "ranking": 103.0, "country": "TUR" },
             { "name": "Rijeka", "ranking": 109.0, "country": "CRO" },
             { "name": "CFR Cluj", "ranking": 117.0, "country": "ROM" },
-            { "_comment": "!", "name": "Famalicao", "ranking": 129.1, "country": "POR" },
             { "name": "HJK Helsinki", "ranking": 131.0, "country": "FIN" },
             { "name": "Zrinjski Mostar", "ranking": 139.0, "country": "BHZ" },
             { "name": "Brann", "ranking": 148.0, "country": "NOR" },
