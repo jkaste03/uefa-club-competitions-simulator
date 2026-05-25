@@ -490,6 +490,9 @@ public class Rounds implements Serializable {
     private void runPostLeagueKnockoutRounds() {
         // Execute seeding and draws for Q1 round type.
         seedDrawScheduleRounds(getRoundsOfType(RoundType.KO_ROUND_PLAYOFF));
+        // TODO: This needs changing once we have more than one post-league knockout
+        // round type:
+        getRoundsOfType(RoundType.KO_ROUND_PLAYOFF).forEach(r -> r.recordMatchup());
     }
 
     /**

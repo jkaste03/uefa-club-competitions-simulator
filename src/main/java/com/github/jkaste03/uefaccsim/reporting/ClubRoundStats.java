@@ -122,7 +122,7 @@ public class ClubRoundStats {
      *
      * @return total number of matchups
      */
-    public int getParticipationCount() {
+    public int getMatchupCount() {
         return matchupCounts.values().stream().mapToInt(Integer::intValue).sum();
     }
 
@@ -150,4 +150,12 @@ public class ClubRoundStats {
     public int getSeedingCount(boolean isSeeded) {
         return isSeeded ? seededCount : unseededCount;
     }
+
+    @Override
+    public String toString() {
+        return "ClubRoundStats [matchupCounts=" + matchupCounts + ", seededCount=" + seededCount + ", unseededCount="
+                + unseededCount + ", seededMatchupCounts=" + seededMatchupCounts + ", unseededMatchupCounts="
+                + unseededMatchupCounts + "]";
+    }
+
 }

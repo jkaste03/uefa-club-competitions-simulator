@@ -202,12 +202,29 @@ public abstract class Round implements Serializable {
      * @throws IllegalStateException if no stats aggregator has been attached
      */
     protected void recordMatchup() {
+        RoundKey roundKey = getRoundKey();
+        statsAggregator.recordMatchup(roundKey, getTies());
+    }
+
+    /**
+     * Builds the statistics round key for this round.
+     *
+     * @return the round key for this round
+     */
+    protected RoundKey getRoundKey() {
+        validateStatsAggregator();
+        return new RoundKey(tournament, roundType, null);
+    }
+
+    /**
+     * Validates that a stats aggregator has been attached to this round.
+     *
+     * @throws IllegalStateException if no stats aggregator has been attached
+     */
+    protected void validateStatsAggregator() {
         if (statsAggregator == null) {
             throw new IllegalStateException("StatsAggregator has not been attached to " + getName());
         }
-
-        RoundKey roundKey = new RoundKey(tournament, roundType, null);
-        statsAggregator.recordMatchup(roundKey, getTies());
     }
 
     @Override

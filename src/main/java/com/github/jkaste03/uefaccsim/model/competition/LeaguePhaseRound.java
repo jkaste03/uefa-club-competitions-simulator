@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
@@ -458,6 +459,19 @@ public abstract class LeaguePhaseRound extends Round {
             int clubIdx = leagueTable.getIdxByStanding(i);
             nextRound.addClubSlot(clubSlots.get(clubIdx));
         }
+    }
+
+    /**
+     * Records the round's matchup statistics via the attached aggregator.
+     * <p>
+     * Creates a round key, then delegates to the aggregator to record all ties as
+     * matchups.
+     * </p>
+     */
+    @Override
+    protected void recordMatchup() {
+        RoundKey roundKey = getRoundKey();
+        statsAggregator.recordLeaguePhaseMatchup(roundKey, getTies(), getMatchesPerClub());
     }
 
     @Override

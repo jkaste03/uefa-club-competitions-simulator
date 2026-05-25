@@ -14,9 +14,15 @@ import com.github.jkaste03.uefaccsim.model.competition.Tie;
  * Keys in the internal map are club IDs, while values are the club's aggregated
  * round statistics.
  * </p>
+ * matchesPerClub is used to store the number of matches each club plays in a
+ * league-phase round, which allows normalisation of total matchup entries for
+ * each club into participation counts.
  */
 public class RoundStats {
     private final Map<Integer, ClubRoundStats> statsByRound = new HashMap<>();
+    // For league-phase rounds we cache how many matches each club plays so we can
+    // normalise total matchup entries for each club into participation counts.
+    private int matchesPerClub = 0;
 
     /**
      * Merges statistics from another round stats instance into this one.
@@ -26,6 +32,12 @@ public class RoundStats {
     public void mergeFrom(RoundStats other) {
         other.statsByRound
                 .forEach((clubId, otherClubStats) -> getOrCreateClubRoundStats(clubId).mergeFrom(otherClubStats));
+        // Preserve matchesPerClub if not already set locally. This ensures that
+        // when merging per-thread aggregators the league-phase matches-per-club
+        // value is propagated into the final aggregator.
+        if (this.matchesPerClub == 0 && other.matchesPerClub > 0) {
+            this.matchesPerClub = other.matchesPerClub;
+        }
     }
 
     /**
@@ -125,15 +137,34 @@ public class RoundStats {
     }
 
     /**
-     * Returns total participation (number of recorded matchups) for the club in the
-     * round.
+     * Returns total participations for the club in the round.
      *
      * @param clubId club ID
      * @return number of recorded matchups
      */
     public int getParticipationCount(int clubId) {
-        ClubRoundStats clubRoundStats = getClubRoundStats(clubId);
-        return clubRoundStats.getParticipationCount();
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
+        int totalMatchups = clubRoundStats.getMatchupCount();
+        if (matchesPerClub > 0) {
+            // Normalize: total matchup entries per club are matchesPerClub * participations
+            return totalMatchups / matchesPerClub;
+        }
+        return totalMatchups;
+    }
+
+    /**
+     * Sets matchesPerClub if it has not been set yet.
+     *
+     * @param m matches per club for this round
+     */
+    public void setMatchesPerClubIfAbsent(int m) {
+        if (this.matchesPerClub == 0 && m > 0) {
+            this.matchesPerClub = m;
+        }
+    }
+
+    public int getMatchesPerClub() {
+        return matchesPerClub;
     }
 
     /**
@@ -144,7 +175,7 @@ public class RoundStats {
      * @return number of matchups in the selected seeding status
      */
     public int getPerSeedingParticipationCount(boolean isSeeded, int clubId) {
-        ClubRoundStats clubRoundStats = getClubRoundStats(clubId);
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
         return clubRoundStats.getPerSeedingParticipationCount(isSeeded);
     }
 
@@ -157,7 +188,7 @@ public class RoundStats {
      * @return number of occurrences for the selected seeding status
      */
     public int getSeedingCount(boolean isSeeded, int clubId) {
-        ClubRoundStats clubRoundStats = getClubRoundStats(clubId);
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
         return clubRoundStats.getSeedingCount(isSeeded);
     }
 
@@ -177,7 +208,7 @@ public class RoundStats {
      * @return map of opponent ID to matchup count
      */
     public Map<Integer, Integer> getMatchupCounts(int clubId) {
-        ClubRoundStats clubRoundStats = getClubRoundStats(clubId);
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
         return clubRoundStats.getMatchupCounts();
     }
 
@@ -190,23 +221,8 @@ public class RoundStats {
      * @return map of opponent ID to matchup count for the selected seeding status
      */
     public Map<Integer, Integer> getPerSeedingMatchupCounts(boolean isSeeded, int clubId) {
-        ClubRoundStats clubRoundStats = getClubRoundStats(clubId);
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
         return clubRoundStats.getPerSeedingMatchupCounts(isSeeded);
-    }
-
-    /**
-     * Returns club statistics for a given club ID.
-     *
-     * @param clubId club ID
-     * @return club's round statistics
-     * @throws IllegalArgumentException if the club is not found in the statistics
-     */
-    private ClubRoundStats getClubRoundStats(int clubId) {
-        ClubRoundStats clubRoundStats = statsByRound.get(clubId);
-        if (clubRoundStats == null) {
-            throw new IllegalArgumentException("Club ID " + clubId + " not found in stats.");
-        }
-        return clubRoundStats;
     }
 
     /**
@@ -216,6 +232,6 @@ public class RoundStats {
      */
     @Override
     public String toString() {
-        return "RoundStats [statsByRound=" + statsByRound + "]";
+        return "RoundStats [statsByRound=" + statsByRound + ", matchesPerClub=" + matchesPerClub + "]";
     }
 }

@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
+import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
 import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
 
 import java.util.ArrayList;
@@ -343,11 +344,9 @@ public class QRound extends KnockoutRound {
      * @return the round key for this round
      * @throws IllegalStateException if no {@link StatsAggregator} is attached
      */
-    private RoundKey getRoundKey() {
-        if (statsAggregator == null) {
-            throw new IllegalStateException("StatsAggregator has not been attached to " + getName());
-        }
-
+    @Override
+    protected RoundKey getRoundKey() {
+        validateStatsAggregator();
         return new RoundKey(tournament, roundType, pathType);
     }
 

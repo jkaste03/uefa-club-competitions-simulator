@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
@@ -37,7 +38,7 @@ public class StatsAggregator {
          */
         @Override
         public String toString() {
-            return tournament + " " + roundType + " " + pathType;
+            return pathType == null ? tournament + " " + roundType : tournament + " " + roundType + " " + pathType;
         }
     }
 
@@ -79,6 +80,20 @@ public class StatsAggregator {
      */
     public void recordMatchup(RoundKey roundKey, List<? extends Tie> ties) {
         RoundStats roundStats = getOrCreateRoundStats(roundKey);
+        roundStats.recordMatchup(ties);
+    }
+
+    /**
+     * Records matchup data for a league phase round and registers matches-per-club
+     * so participation counts can be found based on matchup counts.
+     *
+     * @param roundKey       round's key
+     * @param ties           ties to be recorded
+     * @param matchesPerClub number of league-phase matches each club plays
+     */
+    public void recordLeaguePhaseMatchup(RoundKey roundKey, List<? extends Tie> ties, int matchesPerClub) {
+        RoundStats roundStats = getOrCreateRoundStats(roundKey);
+        roundStats.setMatchesPerClubIfAbsent(matchesPerClub);
         roundStats.recordMatchup(ties);
     }
 
@@ -127,6 +142,18 @@ public class StatsAggregator {
     }
 
     /**
+     * Checks if the round has seeding statistics.
+     *
+     * @param roundKey round's key
+     * @return {@code true} if the round has seeding data
+     */
+    private boolean roundHasSeedingStats(RoundKey roundKey) {
+        return getRoundStats(roundKey).hasSeedingStats();
+    }
+
+    // TODO: Remove the below temporary methods
+
+    /**
      * Prints statistics for a club in a specific round.
      * <p>
      * If the round contains seeding data, an advanced display with seeding split is
@@ -140,86 +167,108 @@ public class StatsAggregator {
      */
     public void printRoundStats(Tournament tournament, RoundType roundType, PathType pathType,
             String clubName) {
+        System.out.print(buildRoundStatsReport(tournament, roundType, pathType, clubName));
+    }
+
+    /**
+     * Builds statistics for a club in a specific round as text.
+     * <p>
+     * If the round contains seeding data, an advanced display with seeding split
+     * returned, otherwise simple matchup display is returned.
+     *
+     * @param tournament tournament
+     * @param roundType  round type
+     * @param pathType   path (may be {@code null} for rounds without path)
+     * @param clubName   club name
+     * @return formatted statistics text
+     */
+    public String buildRoundStatsReport(Tournament tournament, RoundType roundType, PathType pathType,
+            String clubName) {
+        StringBuilder report = new StringBuilder();
         RoundKey roundKey = new RoundKey(tournament, roundType, pathType);
         int clubId = ClubRepository.getIdByName(clubName);
 
         if (roundHasSeedingStats(roundKey)) {
-            printQRoundMatchupCounts(roundKey, clubName, clubId);
+            appendQRoundMatchupCounts(report, roundKey, clubName, clubId);
         } else {
-            printLeaguePhaseMatchupCounts(roundKey, clubName, clubId);
+            appendLeaguePhaseMatchupCounts(report, roundKey, clubName, clubId);
         }
+
+        return report.toString();
     }
 
     /**
-     * Checks if the round has seeding statistics.
+     * Appends matchup percentages for rounds without seeding split (typically
+     * league phase rounds) to the report.
      *
-     * @param roundKey round's key
-     * @return {@code true} if the round has seeding data
-     */
-    private boolean roundHasSeedingStats(RoundKey roundKey) {
-        return getRoundStats(roundKey).hasSeedingStats();
-    }
-
-    /**
-     * Prints matchup percentages for rounds without seeding split (typically league
-     * phase rounds).
-     *
+     * @param report   target report buffer
      * @param roundKey round's key
      * @param clubName club name
      * @param clubId   club ID
      */
-    private void printLeaguePhaseMatchupCounts(RoundKey roundKey, String clubName, int clubId) {
+    private void appendLeaguePhaseMatchupCounts(StringBuilder report, RoundKey roundKey, String clubName,
+            int clubId) {
         RoundStats roundStats = getRoundStats(roundKey);
         Map<Integer, Integer> club2Map = roundStats.getMatchupCounts(clubId);
         if (club2Map.isEmpty()) {
-            System.out.println("No matchups recorded for " + roundKey);
             return;
         }
 
-        System.out.println("Matchup counts for " + clubName + " in " + roundKey + ":");
+        appendRoundHeader(report, roundKey);
+
+        report.append("=== Matchup probabilities").append(" ===\n");
         club2Map.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
                 .forEach(entry -> {
                     int club2Id = entry.getKey();
                     int count = entry.getValue();
                     float percentage = (count / (float) roundStats.getParticipationCount(clubId)) * 100;
-                    System.out.printf(
+                    report.append(String.format(Locale.US,
                             "%-21s: %5.2f%%%n",
                             ClubRepository.getClub(club2Id).getName(),
-                            percentage);
+                            percentage));
                 });
     }
 
     /**
-     * Prints round statistics with seeding perspective.
+     * Appends round statistics with seeding perspective to the report.
      *
+     * @param report   target report buffer
      * @param roundKey round's key
      * @param clubName club name
      * @param clubId   club ID
      */
-    private void printQRoundMatchupCounts(RoundKey roundKey, String clubName, int clubId) {
+    private void appendQRoundMatchupCounts(StringBuilder report, RoundKey roundKey, String clubName, int clubId) {
         int seededCount = getSeedingCount(roundKey, true, clubId);
         int unseededCount = getSeedingCount(roundKey, false, clubId);
+        RoundStats roundStats = getRoundStats(roundKey);
 
-        printSeedingProbability(roundKey, clubName, clubId);
-        printOverallMatchupProbabilities(roundKey, clubName, clubId);
+        if (!appendSeedingProbability(report, roundKey, clubName, clubId)) {
+            return;
+        }
+        appendOverallMatchupProbabilities(report, roundKey, clubName, clubId);
 
-        if (seededCount == 0 || unseededCount == 0) {
+        if (seededCount == 0 || unseededCount == 0
+                || (roundStats.getPerSeedingParticipationCount(true, clubId)
+                        + roundStats.getPerSeedingParticipationCount(false, clubId)) == 0) {
             return;
         }
 
-        printPerSeedingMatchupProbabilities(roundKey, true, clubName, clubId);
-        printPerSeedingMatchupProbabilities(roundKey, false, clubName, clubId);
+        appendPerSeedingMatchupProbabilities(report, roundKey, true, clubName, clubId);
+        appendPerSeedingMatchupProbabilities(report, roundKey, false, clubName, clubId);
     }
 
     /**
-     * Prints total matchup percentages regardless of seeding status.
+     * Appends to the report the total matchup percentages regardless of seeding
+     * status.
      *
+     * @param report   target report buffer
      * @param roundKey round's key
      * @param clubName club name
      * @param clubId   club ID
      */
-    private void printOverallMatchupProbabilities(RoundKey roundKey, String clubName, int clubId) {
+    private void appendOverallMatchupProbabilities(StringBuilder report, RoundKey roundKey, String clubName,
+            int clubId) {
         RoundStats roundStats = getRoundStats(roundKey);
         Map<Integer, Integer> seededMatchups = roundStats.getPerSeedingMatchupCounts(true, clubId);
         Map<Integer, Integer> unseededMatchups = roundStats.getPerSeedingMatchupCounts(false, clubId);
@@ -229,75 +278,98 @@ public class StatsAggregator {
         unseededMatchups.forEach((opponent, count) -> totalMatchups.merge(opponent, count, Integer::sum));
 
         if (totalMatchups.isEmpty()) {
-            System.out.println("No matchups recorded for " + clubName + " in " + roundKey);
+            report.append("\nNo matchups recorded\n");
             return;
         }
 
         int totalMatches = totalMatchups.values().stream().mapToInt(Integer::intValue).sum();
-        System.out.println("\n=== Overall Matchup Probabilities for " + clubName + " in " + roundKey + " ===");
+        report.append("\n=== Overall matchup probabilities ===\n");
         totalMatchups.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
                 .forEach(entry -> {
                     int opponentId = entry.getKey();
                     int count = entry.getValue();
                     float percentage = (count / (float) totalMatches) * 100;
-                    System.out.printf("%-21s: %5.2f%%%n", ClubRepository.getClub(opponentId).getName(),
-                            percentage);
+                    report.append(
+                            String.format(Locale.US, "%-21s: %5.2f%%%n", ClubRepository.getClub(opponentId).getName(),
+                                    percentage));
                 });
     }
 
     /**
-     * Prints the probability that the club was seeded.
+     * Appends the probability that the club was seeded to the report.
      *
+     * @param report   target report buffer
      * @param roundKey round's key
      * @param clubName club name
      * @param clubId   club ID
      */
-    private void printSeedingProbability(RoundKey roundKey, String clubName, int clubId) {
+    private boolean appendSeedingProbability(StringBuilder report, RoundKey roundKey, String clubName, int clubId) {
         int seededCount = getSeedingCount(roundKey, true, clubId);
         int unseededCount = getSeedingCount(roundKey, false, clubId);
         int totalCount = seededCount + unseededCount;
 
         if (totalCount == 0) {
-            System.out.println("No seeding data recorded for " + clubName + " in " + roundKey);
-            return;
+            return false;
         }
+        appendRoundHeader(report, roundKey);
 
         float seedingProbability = (seededCount / (float) totalCount) * 100;
-        System.out.println("\n=== Seeding Probability for " + clubName + " in " + roundKey + " ===");
-        System.out.printf("Seeded:   %5.2f%%%n", seedingProbability);
+        report.append("\n=== Seeding probability ===\n");
+        report.append(String.format(Locale.US, "Seeded:   %5.2f%%%n", seedingProbability));
+        return true;
     }
 
     /**
-     * Prints matchup percentages for a given seeding status.
+     * Appends a clear separator before each round block to the report.
      *
+     * @param report   target report buffer
+     * @param roundKey round's key
+     */
+    private void appendRoundHeader(StringBuilder report, RoundKey roundKey) {
+        report.append("\n\n==================================================\n").append(roundKey).append(":\n");
+    }
+
+    /**
+     * Appends matchup percentages for a given seeding status to the report.
+     *
+     * @param report   target report buffer
      * @param roundKey round's key
      * @param isSeeded {@code true} for seeded, {@code false} for unseeded
      * @param clubName club name
      * @param clubId   club ID
      */
-    private void printPerSeedingMatchupProbabilities(RoundKey roundKey, boolean isSeeded, String clubName,
+    private void appendPerSeedingMatchupProbabilities(StringBuilder report, RoundKey roundKey, boolean isSeeded,
+            String clubName,
             int clubId) {
         RoundStats roundStats = getRoundStats(roundKey);
         Map<Integer, Integer> matchups = roundStats.getPerSeedingMatchupCounts(isSeeded, clubId);
 
         if (matchups.isEmpty()) {
+            report.append("\nNo matchups recorded when ").append(isSeeded ? "seeded" : "unseeded").append("\n");
             return;
         }
 
         int totalMatches = roundStats.getPerSeedingParticipationCount(isSeeded, clubId);
 
-        String status = isSeeded ? "Seeded" : "Unseeded";
-        System.out.println(
-                "\n=== Matchup Probabilities when " + status + ": " + clubName + " in " + roundKey + " ===");
+        String status = isSeeded ? "seeded" : "unseeded";
+        report.append("\n=== Matchup probabilities when ").append(status).append(" ===\n");
         matchups.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
                 .forEach(entry -> {
                     int opponentId = entry.getKey();
                     int count = entry.getValue();
                     float percentage = (count / (float) totalMatches) * 100;
-                    System.out.printf("%-21s: %5.2f%%%n", ClubRepository.getClub(opponentId).getName(),
-                            percentage);
+                    report.append(
+                            String.format(Locale.US, "%-21s: %5.2f%%%n", ClubRepository.getClub(opponentId).getName(),
+                                    percentage));
                 });
+    }
+
+    // TODO: Remove the above temporary methods
+
+    @Override
+    public String toString() {
+        return "StatsAggregator [roundStatsByRound=" + roundStatsByRound + "]";
     }
 }
