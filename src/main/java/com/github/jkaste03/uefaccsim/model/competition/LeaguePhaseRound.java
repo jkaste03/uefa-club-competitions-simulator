@@ -144,9 +144,9 @@ public abstract class LeaguePhaseRound extends Round {
     @Override
     protected void seed() {
         // Ensure the number of clubSlots is divisible by getPotCount().
-        if (clubSlots == null || clubSlots.size() % getPotCount() != 0) {
-            throw new IllegalStateException(
-                    "ClubSlot count must be divisible by " + getPotCount() + " to seed properly.");
+        if (clubSlots.size() % getPotCount() != 0) {
+            throw new IllegalStateException("ClubSlot count (" + clubSlots.size() + ") must be divisible by "
+                    + getPotCount() + " to seed properly for " + getName() + ".");
         }
 
         sortClubSlots();

@@ -103,8 +103,9 @@ public class QRound extends KnockoutRound {
      */
     @Override
     public void seed() {
-        if (clubSlots == null || clubSlots.size() % 2 != 0) {
-            throw new IllegalArgumentException("The number of clubSlots must be even to seed them properly.");
+        if (clubSlots.size() % 2 != 0) {
+            throw new IllegalArgumentException("The number of clubSlots (" + clubSlots.size()
+                    + ") must be even to seed " + getName() + " properly.");
         }
 
         // Sort clubSlots by ranking descending
