@@ -327,7 +327,10 @@ public class StatsAggregator {
      * @param roundKey round's key
      */
     private void appendRoundHeader(StringBuilder report, RoundKey roundKey) {
-        report.append("\n\n==================================================\n").append(roundKey).append(":\n");
+        report.append("\n\n");
+        report.append("========================================\n");
+        report.append(roundKey).append('\n');
+        report.append("========================================\n\n");
     }
 
     /**
