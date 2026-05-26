@@ -45,8 +45,7 @@ public class JsonDataLoader {
     /**
      * <p>
      * Loads club data for the provided competition rounds from the JSON data source
-     * and
-     * populates each round with corresponding {@link ClubSlot} instances.
+     * and populates each round with corresponding {@link ClubSlot} instances.
      * </p>
      *
      * @param rounds           the ordered list of competition rounds to populate;
@@ -62,9 +61,18 @@ public class JsonDataLoader {
                     .getAsJsonObject()
                     .getAsJsonObject(ROUNDS_ROOT_KEY);
             for (Round round : rounds) {
-                JsonArray clubsJson = roundsData.getAsJsonArray(round.getName());
-                if (clubsJson == null)
+                // Attempt to retrieve the "clubs" array for the round from the JSON data.
+                JsonArray clubsJson = null;
+                try {
+                    // Access the JSON object for the current round using its name as the key.
+                    JsonObject roundData = roundsData.getAsJsonObject(round.getName());
+                    // Get the "clubs" array from the round's JSON object.
+                    clubsJson = roundData.getAsJsonArray("clubs");
+                } catch (NullPointerException e) {
+                    // If the round name is not found in the JSON or if the "clubs" array is
+                    // missing, skip this round.
                     continue;
+                }
                 clubsJson.forEach(jsonElement -> {
                     // Deserialize JSON into a Club instance.
                     // Note: Gson will bypass the Club constructor.
