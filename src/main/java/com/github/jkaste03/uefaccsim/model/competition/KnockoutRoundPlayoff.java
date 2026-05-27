@@ -31,7 +31,7 @@ public class KnockoutRoundPlayoff extends PostLeagueKnockoutRound {
     }
 
     @Override
-    public void draw() {
+    protected void draw() {
         // long start = System.nanoTime();
 
         if (clubSlots.size() != CLUB_COUNT) {

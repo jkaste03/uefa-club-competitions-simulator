@@ -7,13 +7,43 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
 import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
 import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
-import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
- * Abstract class representing a round in the UEFA competitions.
+ * Abstract base class representing a competition round (league or knockout) in
+ * the UEFA simulations.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ * <li>Maintain the set of {@link ClubSlot} instances participating in the
+ * round ({@code clubSlots}).</li>
+ * <li>Hold references to the next rounds in the competition graph
+ * ({@code nextPrimaryRnd}, {@code nextSecondaryRnd}).</li>
+ * <li>Expose the round lifecycle hooks used by the simulator: seeding,
+ * drawing and (when relevant) scheduling via {@link #seed()}, {@link #draw()}
+ * and {@link #seedDrawSchedule()}.</li>
+ * <li>Provide common helpers used by concrete round implementations, for
+ * example {@link #isIllegalTie(ClubSlot,ClubSlot)} and
+ * {@link #validateTieClubSlotsBelongToRound(Tie)}.</li>
+ * <li>Delegate tie storage and type-specific validation to subclasses which
+ * implement {@link #getTies()} and {@link #addTiePreSim(Tie)}.</li>
+ * <li>Support post-simulation tasks such as resolving slot dependencies
+ * ({@link #resolveClubSlots()}) and recording matchups to the attached
+ * {@code StatsAggregator}.</li>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * Usage notes:
+ * <ul>
+ * <li>Call {@link #addTiePreSim(Tie)} (or
+ * {@link #validateTieClubSlotsBelongToRound(Tie)}) only during the
+ * pre-simulation phase; implementations may perform relatively expensive
+ * validation.</li>
+ * </ul>
+ * </p>
  */
 public abstract class Round implements Serializable {
     protected final Tournament tournament;
@@ -151,12 +181,36 @@ public abstract class Round implements Serializable {
      *
      * @return a list of ties for this round
      */
-    protected abstract List<? extends Tie> getTies();
+    public abstract List<? extends Tie> getTies();
 
     /**
-     * Plays the round. This method is responsible for playing the round.
+     * Adds a tie to the round. The specific type of {@link Tie} accepted may vary
+     * depending on the implementation. Only call this method during the
+     * pre-simulation phase, as it performs slow validation checks.
+     * 
+     * @param tie the tie to add
      */
-    protected abstract void play(ClubSimStateRepository clubSimStateRepo);
+    public abstract void addTiePreSim(Tie tie);
+
+    /**
+     * Validates that both club slots in the given tie belong to this round. Only
+     * call this method during the pre-simulation phase, as it performs slow
+     * validation checks.
+     *
+     * @param tie the tie to validate
+     * @throws IllegalArgumentException if either club slot is not part of this
+     *                                  round's club slots
+     */
+    protected void validateTieClubSlotsBelongToRound(Tie tie) {
+        if (!clubSlots.contains(tie.getClubSlotA()) || !clubSlots.contains(tie.getClubSlotB())) {
+            throw new IllegalArgumentException(
+                    "Both club slots of the tie must be part of this round's club slots." + " Tie club slots: "
+                            + tie.getClubSlotA().toCompactString() + ", " + tie.getClubSlotB().toCompactString()
+                            + "; Round club slots: "
+                            + clubSlots.stream().map(ClubSlot::toCompactString)
+                                    .collect(java.util.stream.Collectors.joining(", ")));
+        }
+    }
 
     /**
      * Attempts to resolve every {@link ClubSlot} in this round to a concrete club

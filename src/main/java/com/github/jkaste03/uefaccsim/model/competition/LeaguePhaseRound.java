@@ -72,6 +72,26 @@ public abstract class LeaguePhaseRound extends Round {
         return ties;
     }
 
+    /**
+     * Adds a tie to this league phase round. Only NonKnockoutTie instances are
+     * allowed. Only call this method during the pre-simulation phase, as it
+     * performs slow validation checks.
+     * 
+     * @param tie the tie to add
+     * @throws IllegalArgumentException if the provided tie is not an instance of
+     *                                  NonKnockoutTie
+     */
+    @Override
+    public void addTiePreSim(Tie tie) {
+        if (!(tie instanceof NonKnockoutTie)) {
+            throw new IllegalArgumentException("Only NonKnockoutTie instances can be added to a LeaguePhaseRound.");
+        }
+        // Validate that both club slots of the tie are part of this round's club slots
+        validateTieClubSlotsBelongToRound(tie);
+        // If validation passes, add the tie to the list of ties
+        ties.add((NonKnockoutTie) tie);
+    }
+
     public List<Pot> getPots() {
         return pots;
     }
@@ -107,7 +127,7 @@ public abstract class LeaguePhaseRound extends Round {
      * Seeds, draws and schedules the ties. The method also initializes the league
      * table.
      */
-    public void seedDrawSchedule() {
+    protected void seedDrawSchedule() {
         seed();
         draw();
         schedule();

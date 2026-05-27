@@ -3,7 +3,6 @@ package com.github.jkaste03.uefaccsim.model.competition;
 import java.io.Serializable;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 import com.github.jkaste03.uefaccsim.config.SimulationConfig;
 import com.github.jkaste03.uefaccsim.service.match.DefaultMatchSimulator;
@@ -19,11 +18,6 @@ public abstract class Tie implements Serializable {
     protected Integer clubBGoals1stLeg;
     protected Integer clubAGoals2ndLeg;
     protected Integer clubBGoals2ndLeg;
-    /**
-     * The tournament this tie is part of. This is needed for qualifying rounds,
-     * where the tournament affects seeding in the next round.
-     */
-    protected final Tournament tournament;
 
     // ----------------- Play parameters (tunable) -----------------
     // These parameters control the simulation of matches in the tie model.
@@ -45,40 +39,43 @@ public abstract class Tie implements Serializable {
     protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
         this.clubSlotA = clubSlotA;
         this.clubSlotB = clubSlotB;
-        tournament = null;
-    }
-
-    /**
-     * Constructs a new Tie representing a pairing between two club slots. Order
-     * matters. Tournament is important in QRounds.
-     *
-     * @param clubSlotA  home participant first leg
-     * @param clubSlotB  away participant first leg
-     * @param tournament tournament
-     */
-    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Tournament tournament) {
-        this.clubSlotA = clubSlotA;
-        this.clubSlotB = clubSlotB;
-        this.tournament = tournament;
     }
 
     /**
      * Constructs a new Tie representing a pairing between two club slots with
-     * preset goals. Order matters. Tournament is important in QRounds.
+     * preset first leg goals. Order matters.
      *
      * @param clubSlotA        home participant first leg
      * @param clubSlotB        away participant first leg
      * @param clubAGoals1stLeg first leg goals for club A
      * @param clubBGoals1stLeg first leg goals for club B
-     * @param tournament       tournament
      */
-    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg,
-            Tournament tournament) {
+    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg) {
         this.clubSlotA = clubSlotA;
         this.clubSlotB = clubSlotB;
         this.clubAGoals1stLeg = clubAGoals1stLeg;
         this.clubBGoals1stLeg = clubBGoals1stLeg;
-        this.tournament = tournament;
+    }
+
+    /**
+     * Constructs a new Tie representing a pairing between two club slots with
+     * preset goals in both legs. Order matters.
+     *
+     * @param clubSlotA        home participant first leg
+     * @param clubSlotB        away participant first leg
+     * @param clubAGoals1stLeg first leg goals for club A
+     * @param clubBGoals1stLeg first leg goals for club B
+     * @param clubAGoals2ndLeg second leg goals for club A
+     * @param clubBGoals2ndLeg second leg goals for club B
+     */
+    protected Tie(ClubSlot clubSlotA, ClubSlot clubSlotB, Integer clubAGoals1stLeg, Integer clubBGoals1stLeg,
+            Integer clubAGoals2ndLeg, Integer clubBGoals2ndLeg) {
+        this.clubSlotA = clubSlotA;
+        this.clubSlotB = clubSlotB;
+        this.clubAGoals1stLeg = clubAGoals1stLeg;
+        this.clubBGoals1stLeg = clubBGoals1stLeg;
+        this.clubAGoals2ndLeg = clubAGoals2ndLeg;
+        this.clubBGoals2ndLeg = clubBGoals2ndLeg;
     }
 
     public ClubSlot getClubSlotA() {
@@ -122,35 +119,6 @@ public abstract class Tie implements Serializable {
     protected int getClubBGoals() {
         return (clubBGoals1stLeg == null ? 0 : clubBGoals1stLeg) + (clubBGoals2ndLeg == null ? 0 : clubBGoals2ndLeg);
     }
-
-    public Tournament getTournament() {
-        return tournament;
-    }
-
-    /**
-     * Computes this tie's effective ranking relative to a caller tournament by
-     * selecting one of the two underlying club rankings. If the caller tournament
-     * is at a worse level than this tie's tournament, the worst ranking is
-     * returned; otherwise, the best ranking is returned. Caller tournament may be
-     * null, because non-knockout ties may not need a tournament.
-     *
-     * @param callerTournament the tournament context requesting the ranking
-     * @return the ranking
-     */
-    public float getRanking(Tournament callerTournament) {
-        float rA = clubSlotA.getRanking(tournament), rB = clubSlotB.getRanking(tournament);
-        return ((tournament.compareTo(callerTournament == null ? tournament : callerTournament) > 0) ^ (rA < rB)) ? rA
-                : rB;
-    }
-
-    /**
-     * Simulates the tie.
-     * <p>
-     * Implementing methods should play the next leg of the tie, update the results,
-     * update the Elo ratings, and if applicable, set the winner based on the tie
-     * outcome.
-     */
-    public abstract void play(ClubSimStateRepository clubSimStateRepo);
 
     /**
      * Simulates a leg for this tie and writes the resulting goals into the
@@ -367,7 +335,6 @@ public abstract class Tie implements Serializable {
                 ", clubAGoals1stLeg=" + clubAGoals1stLeg +
                 ", clubBGoals1stLeg=" + clubBGoals1stLeg +
                 ", clubAGoals2ndLeg=" + clubAGoals2ndLeg +
-                ", clubBGoals2ndLeg=" + clubBGoals2ndLeg +
-                ", tournament=" + tournament;
+                ", clubBGoals2ndLeg=" + clubBGoals2ndLeg;
     }
 }

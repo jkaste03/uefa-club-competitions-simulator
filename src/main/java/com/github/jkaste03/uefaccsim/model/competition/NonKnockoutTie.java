@@ -52,7 +52,6 @@ public class NonKnockoutTie extends Tie {
      * @see #simulateMatch(boolean)
      * @see #updateEloForResult(int, int, boolean, double, ClubSimStateRepository)
      */
-    @Override
     public void play(ClubSimStateRepository clubSimStateRepo) {
         // Single regular-season style match: clubSlotA is home
         simulateMatch(true);

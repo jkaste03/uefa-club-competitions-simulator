@@ -89,7 +89,7 @@ public class QRound extends KnockoutRound {
      * Seeding is also recorded for stats collection.
      */
     @Override
-    public void seedDrawSchedule() {
+    protected void seedDrawSchedule() {
         seed();
         draw();
         recordSeeding();
@@ -102,7 +102,7 @@ public class QRound extends KnockoutRound {
      * Throws an IllegalArgumentException if the number of clubSlots is odd.
      */
     @Override
-    public void seed() {
+    protected void seed() {
         if (clubSlots.size() % 2 != 0) {
             throw new IllegalArgumentException("The number of clubSlots (" + clubSlots.size()
                     + ") must be even to seed " + getName() + " properly.");
@@ -130,8 +130,12 @@ public class QRound extends KnockoutRound {
      * pairings.</li>
      * <li>May retry up to {@code MAX_DRAW_ATTEMPTS} times (normally succeeds on the
      * first attempt if any legal matching exists).</li>
-     * <li>Randomness is sourced from a {@link java.util.Random} initialized with
-     * {@code System.nanoTime()}.</li>
+     * <li>Randomness is sourced from {@link ThreadLocalRandom}, which provides the
+     * shuffle and tie-orientation randomness for each attempt.</li>
+     * <li>If the draw is already complete, the method returns immediately without
+     * changing the current ties.</li>
+     * <li>If a partial draw already has been conducted, the method fails fast with
+     * an {@link IllegalStateException} rather than trying to rebuild it.</li>
      * </ul>
      * Failure:
      * <ul>
@@ -143,7 +147,14 @@ public class QRound extends KnockoutRound {
      *                               {@code MAX_DRAW_ATTEMPTS} attempts.
      */
     @Override
-    public void draw() {
+    protected void draw() {
+        if (ties.size() == clubSlots.size() / 2) {
+            return; // draw already conducted, do nothing (idempotent)
+        }
+        if (ties.size() > 0) {
+            throw new IllegalStateException(
+                    "Draw cannot be conducted in " + getName() + " : A partial draw has already been conducted.");
+        }
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded); // Convert Set to List for shuffle
 

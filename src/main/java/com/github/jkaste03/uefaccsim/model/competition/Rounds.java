@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.github.jkaste03.uefaccsim.enums.Leg;
 import com.github.jkaste03.uefaccsim.enums.PathType;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
@@ -357,32 +358,38 @@ public class Rounds implements Serializable {
     }
 
     /**
-     * Plays qualifying rounds for the provided list of {@link QRound}s, of a
-     * specific round type.
+     * Plays qualifying rounds for the provided list of {@link QRound}s (one
+     * round type at a time), invoking the round {@link QRound#play} method with
+     * explicit leg information.
+     *
      * <p>
-     * The method performs the following steps:
+     * Behavior and ordering:
      * <ol>
-     * <li>Plays all Champions League (UCL) rounds.</li>
-     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
-     * above.</li>
-     * <li>Plays all Europa League (UEL) and Europa Conference League (UECL)
+     * <li>Invoke {@code play(..., Leg.FIRST)} for all Champions League (UCL)
      * rounds.</li>
-     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
-     * above.</li>
-     * <li>Plays all UCL rounds that use double-legged ties.</li>
-     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
-     * above.</li>
-     * <li>Plays all UEL/UECL rounds that use double-legged ties.</li>
-     * <li>Applies all temporary ELO changes to clubs of represented NAs in rounds
-     * above.</li>
-     * <li>Records stats for the rounds.</li>
+     * <li>Commit all accumulated (temporary) ELO deltas to the repository.
+     * </li>
+     * <li>Invoke {@code play(..., Leg.FIRST)} for all Europa League (UEL) and
+     * Conference League (UECL) rounds.</li>
+     * <li>Commit accumulated ELO deltas.</li>
+     * <li>Invoke {@code play(..., Leg.SECOND)} for double-legged UCL rounds (skip
+     * single-legged rounds).</li>
+     * <li>Commit accumulated ELO deltas.</li>
+     * <li>Invoke {@code play(..., Leg.SECOND)} for double-legged UEL/UECL rounds
+     * (skip single-legged rounds).</li>
+     * <li>Commit accumulated ELO deltas.</li>
+     * <li>Record matchup statistics for all rounds in the provided list.</li>
      * </ol>
+     * </p>
      *
-     * The reason for this complex workflow is to make sure the inter-league ELO
-     * adjustments (point 2, 4, 6 and 8) are done in a realistic order.
+     * <p>
+     * The intermediate ELO commits (after first-leg groups and after the first
+     * second-leg group) ensure inter-league Elo adjustments are applied in the
+     * same chronological order as matches would occur in reality.
+     * </p>
      *
-     * @param roundsOfType the list of qualifying rounds to be played, of a specific
-     *                     round type
+     * @param roundsOfType the list of qualifying rounds to be played, of a
+     *                     specific round type
      */
     private void playQRounds(List<QRound> roundsOfType) {
 
@@ -394,26 +401,26 @@ public class Rounds implements Serializable {
                 .toList();
 
         // 1. Play all UCL rounds
-        uclRounds.forEach(r -> r.play(clubSimStateRepo));
+        uclRounds.forEach(r -> r.play(clubSimStateRepo, Leg.FIRST));
         // 2. Apply all temp ELO changes to the clubs of represented NAs.
         clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 3. Play all UEL/UECL rounds
-        uelUeclRounds.forEach(r -> r.play(clubSimStateRepo));
+        uelUeclRounds.forEach(r -> r.play(clubSimStateRepo, Leg.FIRST));
         // 4. Apply all temp ELO changes to the clubs of represented NAs.
         clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 5. Play all double-legged UCL rounds
         uclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
-                .forEach(r -> r.play(clubSimStateRepo));
+                .forEach(r -> r.play(clubSimStateRepo, Leg.SECOND));
         // 6. Apply all temp ELO changes to the clubs of represented NAs.
         clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 7. Play all double-legged UEL/UECL rounds
         uelUeclRounds.stream()
                 .filter(r -> !r.isSingleLegged())
-                .forEach(r -> r.play(clubSimStateRepo));
+                .forEach(r -> r.play(clubSimStateRepo, Leg.SECOND));
         // 8. Apply all temp ELO changes to the clubs of represented NAs.
         clubSimStateRepo.applyAllUncommittedEloDeltas();
 

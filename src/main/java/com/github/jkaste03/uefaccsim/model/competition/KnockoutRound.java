@@ -1,6 +1,8 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
+
+import com.github.jkaste03.uefaccsim.enums.Leg;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
@@ -8,7 +10,18 @@ import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 import java.util.ArrayList;
 
 /**
- * Class representing a knockout round in the UEFA competitions.
+ * Represents a knockout round in the UEFA competitions.
+ *
+ * <p>
+ * A knockout round owns the {@link KnockoutTie} pairings for the round,
+ * controls whether the round is played as single-legged or two-legged ties,
+ * and delegates leg-by-leg simulation to the contained ties.
+ * </p>
+ *
+ * <p>
+ * Subclasses are responsible for defining how ties are seeded, drawn, and
+ * registered for later rounds in the competition structure.
+ * </p>
  */
 public abstract class KnockoutRound extends Round {
     /**
@@ -60,6 +73,27 @@ public abstract class KnockoutRound extends Round {
         return ties;
     }
 
+    /**
+     * Adds a tie to this knockout round. Only KnockoutTie instances are allowed.
+     * Only call this method during the pre-simulation phase, as it performs slow
+     * validation checks.
+     * 
+     * @param tie the tie to add
+     * @throws IllegalArgumentException if the provided tie is not an instance of
+     *                                  KnockoutTie
+     */
+    @Override
+    public void addTiePreSim(Tie tie) {
+        // Validate that the provided tie is a KnockoutTie
+        if (!(tie instanceof KnockoutTie)) {
+            throw new IllegalArgumentException("Only KnockoutTie instances can be added to a KnockoutRound.");
+        }
+        // Validate that both club slots of the tie are part of this round's club slots
+        validateTieClubSlotsBelongToRound(tie);
+        // If validation passes, add the tie to the list of ties
+        ties.add((KnockoutTie) tie);
+    }
+
     public boolean isSingleLegged() {
         return isSingleLegged;
     }
@@ -68,7 +102,7 @@ public abstract class KnockoutRound extends Round {
      * Seeds and draws the ties. Scheduling isn't relevant for knockout rounds.
      */
     @Override
-    public void seedDrawSchedule() {
+    protected void seedDrawSchedule() {
         seed();
         draw();
     }
@@ -80,11 +114,11 @@ public abstract class KnockoutRound extends Round {
     protected abstract void regForNextRounds();
 
     /**
-     * Plays the round. This method is responsible for playing the round.
+     * Plays a leg of the round.
      */
-    public void play(ClubSimStateRepository clubSimStateRepo) {
-        for (Tie tie : getTies()) {
-            tie.play(clubSimStateRepo);
+    public void play(ClubSimStateRepository clubSimStateRepo, Leg leg) {
+        for (KnockoutTie tie : getTies()) {
+            tie.play(clubSimStateRepo, leg);
         }
     }
 

@@ -14,7 +14,7 @@ public class RoundOf16 extends PostLeagueKnockoutRound {
     }
 
     @Override
-    public void draw() {
+    protected void draw() {
         throw new UnsupportedOperationException("Round of 16 draw is not implemented yet");
     }
 }
