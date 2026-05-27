@@ -57,17 +57,6 @@ public abstract class KnockoutRound extends Round {
         this.isSingleLegged = isSingleLegged;
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Returns a string representation of the knockout round, including the
-     * tournament and round type.
-     */
-    @Override
-    public String getName() {
-        return super.getName() + " " + roundType;
-    }
-
     @Override
     public List<KnockoutTie> getTies() {
         return ties;

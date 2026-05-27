@@ -147,14 +147,14 @@
                 { "name": "Viktoria Plzen", "ranking": 51.0, "country": "CZE" },
                 { "name": "Midtjylland", "ranking": 52.0, "country": "DEN" },
                 { "name": "PAOK", "ranking": 53.0, "country": "GRE" },
+                { "name": "M Tel Aviv", "ranking": 69.0, "country": "ISR" },
                 { "name": "Anderlecht", "ranking": 72.0, "country": "BEL" },
                 { "_comment": "!", "name": "Paphos", "ranking": 83.0, "country": "CYP" },
                 { "name": "Besiktas", "ranking": 123.0, "country": "TUR" },
                 { "name": "Twente", "ranking": 136.0, "country": "NED" },
                 { "name": "Tromso", "ranking": 203.0, "country": "NOR" },
                 { "name": "StGallen", "ranking": 227.0, "country": "SUI" },
-                { "name": "Hammarby", "ranking": 247.0, "country": "SWE" },
-                { "_comment": "!", "name": "Beitar", "ranking": 256.0, "country": "ISR" }
+                { "name": "Hammarby", "ranking": 247.0, "country": "SWE" }
             ]
         },
         "EUROPA_LEAGUE Q3 MAIN_PATH": {
@@ -215,7 +215,7 @@
                 { "name": "Atletic Club Escaldes", "ranking": 291.0, "country": "AND" },
                 { "name": "St Josephs", "ranking": 292.0, "country": "GIB" },
                 { "name": "FC Spaeri", "ranking": 297.0, "country": "GEO", "wrong_team": true },
-                { "_comment": "!", "name": "Banants", "ranking": 298.0, "country": "ARM", "wrong_team": true },
+                { "name": "Banants", "ranking": 298.0, "country": "ARM", "wrong_team": true },
                 { "_comment": "!", "name": "Egnatia", "ranking": 310.0, "country": "ALB" },
                 { "name": "Torpedo Kutaisi", "ranking": 312.0, "country": "GEO" },
                 { "name": "Zeljeznicar", "ranking": 319.0, "country": "BHZ", "wrong_team": true },
@@ -252,7 +252,6 @@
                 { "name": "Ajax", "ranking": 41.0, "country": "NED" },
                 { "name": "FC Kobenhavn", "ranking": 47.0, "country": "DEN" },
                 { "_comment": "!", "name": "Gent", "ranking": 61.0, "country": "BEL" },
-                { "_comment": "!", "name": "M Tel Aviv", "ranking": 69.0, "country": "ISR" },
                 { "name": "Rapid Wien", "ranking": 74.0, "country": "AUT" },
                 { "name": "Panathinaikos", "ranking": 76.0, "country": "GRE" },
                 { "_comment": "!", "name": "Razgrad", "ranking": 78.0, "country": "BUL" },
@@ -285,6 +284,7 @@
                 { "name": "GAIS", "ranking": 254.2, "country": "SWE" },
                 { "name": "Goeteborg", "ranking": 254.3, "country": "SWE" },
                 { "name": "Varazdin", "ranking": 255.0, "country": "CRO" },
+                { "name": "Beitar", "ranking": 256.0, "country": "ISR" },
                 { "name": "H Tel Aviv", "ranking": 270.1, "country": "ISR" },
                 { "name": "Paksi", "ranking": 272.0, "country": "HUN" },
                 { "name": "Debrecen", "ranking": 273.0, "country": "HUN" },

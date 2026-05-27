@@ -70,6 +70,16 @@ public class QRound extends KnockoutRound {
     }
 
     /**
+     * Returns a JSON-friendly name for this round, combining the tournament, round
+     * type and path type.
+     * 
+     * @return a string representing the JSON key for this round.
+     */
+    public String getJsonName() {
+        return super.getJsonName() + " " + pathType.name();
+    }
+
+    /**
      * {@inheritDoc}
      * <p>
      * Returns a string representation of the qualifying round, including the

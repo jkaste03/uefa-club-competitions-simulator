@@ -56,17 +56,6 @@ public abstract class LeaguePhaseRound extends Round {
         super(tournament, RoundType.LEAGUE_PHASE);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Returns a string representation of the qualifying round, including the
-     * tournament and round type.
-     */
-    @Override
-    public String getName() {
-        return super.getName() + " " + RoundType.LEAGUE_PHASE;
-    }
-
     @Override
     public List<NonKnockoutTie> getTies() {
         return ties;

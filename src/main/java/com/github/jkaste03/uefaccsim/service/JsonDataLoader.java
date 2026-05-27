@@ -108,7 +108,7 @@ public class JsonDataLoader {
      * </p>
      *
      * @param rounds           the ordered list of competition rounds to populate;
-     *                         round names must exist as a key under the JSON
+     *                         round "json names" must exist as a key under the JSON
      *                         {@code rounds} object
      * @param clubSimStateRepo repository used to create and track simulation state
      *                         for each loaded club
@@ -126,9 +126,10 @@ public class JsonDataLoader {
         // Iterate through the provided rounds and attempt to load club and tie data for
         // each round from the JSON.
         for (Round round : rounds) {
-            // Attempt to access the JSON object for the round using its name as the key.
+            // Attempt to access the JSON object for the round using its "json name" as the
+            // key.
             JsonObject roundData = null;
-            roundData = roundsData.getAsJsonObject(round.getName());
+            roundData = roundsData.getAsJsonObject(round.getJsonName());
             // If no data is found for the round, skip it and continue to the next round.
             if (roundData == null) {
                 continue;

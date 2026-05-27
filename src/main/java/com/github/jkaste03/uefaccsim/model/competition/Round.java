@@ -67,12 +67,22 @@ public abstract class Round implements Serializable {
     }
 
     /**
-     * Returns the name of the round. Is overridden by subclasses.
+     * Returns a JSON-friendly name for this round, combining the tournament and
+     * round type.
+     * 
+     * @return a string representing the JSON key for this round.
+     */
+    public String getJsonName() {
+        return tournament.name() + " " + roundType.name();
+    }
+
+    /**
+     * Returns the name of the round.
      * 
      * @return the name of the round.
      */
     public String getName() {
-        return tournament + "";
+        return tournament + " " + roundType;
     }
 
     public Tournament getTournament() {
