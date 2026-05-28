@@ -1,6 +1,7 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -12,6 +13,7 @@ import com.github.jkaste03.uefaccsim.reporting.StatsAggregator.RoundKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -144,8 +146,8 @@ public class QRound extends KnockoutRound {
      * shuffle and tie-orientation randomness for each attempt.</li>
      * <li>If the draw is already complete, the method returns immediately without
      * changing the current ties.</li>
-     * <li>If a partial draw already has been conducted, the method fails fast with
-     * an {@link IllegalStateException} rather than trying to rebuild it.</li>
+     * <li>If a partial draw already has been conducted, the existing ties are
+     * preserved and the remaining clubs are drawn from the trimmed copies.</li>
      * </ul>
      * Failure:
      * <ul>
@@ -161,12 +163,13 @@ public class QRound extends KnockoutRound {
         if (ties.size() == clubSlots.size() / 2) {
             return; // draw already conducted, do nothing (idempotent)
         }
-        if (ties.size() > 0) {
-            throw new IllegalStateException(
-                    "Draw cannot be conducted in " + getName() + " : A partial draw has already been conducted.");
-        }
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded); // Convert Set to List for shuffle
+        if (!ties.isEmpty()) {
+            Set<ClubSlot> drawnClubSlots = collectDrawnClubSlots(ties);
+            seededCopy.removeAll(drawnClubSlots);
+            unseededCopy.removeAll(drawnClubSlots);
+        }
 
         Random rng = ThreadLocalRandom.current();
 
@@ -174,11 +177,6 @@ public class QRound extends KnockoutRound {
         // matching exists). If no valid matching is found after attempts, throw.
         boolean success = false;
         for (int attempt = 0; attempt < MAX_DRAW_ATTEMPTS && !success; attempt++) {
-            ties.clear();
-            if (attempt > 0) { // fresh copies each attempt
-                seededCopy = new ArrayList<>(seeded);
-                unseededCopy = new ArrayList<>(unseeded);
-            }
             success = buildMatching(seededCopy, unseededCopy, ties, rng);
         }
 
@@ -186,6 +184,21 @@ public class QRound extends KnockoutRound {
             throw new IllegalStateException(
                     "Could not construct a legal draw after " + MAX_DRAW_ATTEMPTS + " attempts.");
         }
+    }
+
+    /**
+     * Collects the club slots already present in the supplied ties.
+     *
+     * @param ties ties that have already been drawn
+     * @return all club slots used by those ties
+     */
+    private Set<ClubSlot> collectDrawnClubSlots(List<KnockoutTie> existingTies) {
+        Set<ClubSlot> drawnClubSlots = new HashSet<>(existingTies.size() * 2);
+        for (KnockoutTie tie : existingTies) {
+            drawnClubSlots.add(tie.getClubSlotA());
+            drawnClubSlots.add(tie.getClubSlotB());
+        }
+        return drawnClubSlots;
     }
 
     /**
@@ -222,7 +235,7 @@ public class QRound extends KnockoutRound {
         Collections.shuffle(remainingSeeded, rng);
 
         // (2) Build map of legal opponents and find MRV value
-        java.util.Map<ClubSlot, List<ClubSlot>> legalMap = new java.util.HashMap<>();
+        Map<ClubSlot, List<ClubSlot>> legalMap = new HashMap<>();
         int min = Integer.MAX_VALUE;
         for (ClubSlot s : remainingSeeded) {
             List<ClubSlot> legal = new ArrayList<>();
@@ -250,7 +263,7 @@ public class QRound extends KnockoutRound {
         ClubSlot nextSeeded = mrvCandidates.get(rng.nextInt(mrvCandidates.size()));
 
         // (4) Randomize opponents for the chosen seeded
-        List<ClubSlot> legalOpponentsForNext = new ArrayList<>(legalMap.get(nextSeeded));
+        List<ClubSlot> legalOpponentsForNext = legalMap.get(nextSeeded);
         Collections.shuffle(legalOpponentsForNext, rng);
 
         // (5) Try opponents, but use copies for recursion to avoid mutating & changing
