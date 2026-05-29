@@ -165,10 +165,15 @@ public class QRound extends KnockoutRound {
         }
         List<ClubSlot> seededCopy = new ArrayList<>(seeded);
         List<ClubSlot> unseededCopy = new ArrayList<>(unseeded); // Convert Set to List for shuffle
-        if (!ties.isEmpty()) {
-            Set<ClubSlot> drawnClubSlots = collectDrawnClubSlots(ties);
-            seededCopy.removeAll(drawnClubSlots);
-            unseededCopy.removeAll(drawnClubSlots);
+        for (Tie tie : ties) {
+            // Remove already drawn clubs from the copies to avoid modifying the original
+            // sets.
+            ClubSlot clubSlotA = tie.getClubSlotA();
+            ClubSlot clubSlotB = tie.getClubSlotB();
+            seededCopy.remove(clubSlotA);
+            seededCopy.remove(clubSlotB);
+            unseededCopy.remove(clubSlotA);
+            unseededCopy.remove(clubSlotB);
         }
 
         Random rng = ThreadLocalRandom.current();
@@ -184,21 +189,6 @@ public class QRound extends KnockoutRound {
             throw new IllegalStateException(
                     "Could not construct a legal draw after " + MAX_DRAW_ATTEMPTS + " attempts.");
         }
-    }
-
-    /**
-     * Collects the club slots already present in the supplied ties.
-     *
-     * @param ties ties that have already been drawn
-     * @return all club slots used by those ties
-     */
-    private Set<ClubSlot> collectDrawnClubSlots(List<KnockoutTie> existingTies) {
-        Set<ClubSlot> drawnClubSlots = new HashSet<>(existingTies.size() * 2);
-        for (KnockoutTie tie : existingTies) {
-            drawnClubSlots.add(tie.getClubSlotA());
-            drawnClubSlots.add(tie.getClubSlotB());
-        }
-        return drawnClubSlots;
     }
 
     /**

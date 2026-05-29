@@ -61,10 +61,15 @@ public abstract class LeaguePhaseRound extends Round {
         return ties;
     }
 
+    public List<Pot> getPots() {
+        return pots;
+    }
+
     /**
      * Adds a tie to this league phase round. Only NonKnockoutTie instances are
-     * allowed. Only call this method during the pre-simulation phase, as it
-     * performs slow validation checks.
+     * allowed.
+     * <p>
+     * This method is only intended to be called during the pre-simulation phase.
      * 
      * @param tie the tie to add
      * @throws IllegalArgumentException if the provided tie is not an instance of
@@ -75,14 +80,35 @@ public abstract class LeaguePhaseRound extends Round {
         if (!(tie instanceof NonKnockoutTie)) {
             throw new IllegalArgumentException("Only NonKnockoutTie instances can be added to a LeaguePhaseRound.");
         }
-        // Validate that both club slots of the tie are part of this round's club slots
-        validateTieClubSlotsBelongToRound(tie);
-        // If validation passes, add the tie to the list of ties
         ties.add((NonKnockoutTie) tie);
     }
 
-    public List<Pot> getPots() {
-        return pots;
+    /**
+     * Validates that all ties in this round have club slots that belong to this
+     * round.
+     * <p>
+     * This method should only be called in the pre-simulation phase after ties have
+     * been added to the round, as it performs slow validation checks. It ensures
+     * the integrity of the round's tie configuration and prevents issues during
+     * simulation caused by invalid tie setups.
+     * <p>
+     * The validation checks only include necessary checks to avoid completely
+     * unsensible tie configurations, like having the same club slot in both
+     * positions of a tie. <b>UEFA restrictions are not checked here</b> (such as
+     * "avoiding political ties"), as that is not the scope of this validation.
+     */
+    @Override
+    public void validateTiesPreSim() {
+        // For all ties...
+        for (Tie tie : ties) {
+            // ...validate that both club slots are part of this round's club slots
+            validateTieClubSlotsBelongToRound(tie);
+            // ...validate that the tie doesn't have the same club slot in both positions
+            if (tie.getClubSlotA().equals(tie.getClubSlotB())) {
+                throw new IllegalStateException("Tie with identical club slots found in " + getName()
+                        + ". Club slot: " + tie.getClubSlotA());
+            }
+        }
     }
 
     /**

@@ -12,7 +12,9 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.Club;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSimState;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
+import com.github.jkaste03.uefaccsim.model.competition.KnockoutRound;
 import com.github.jkaste03.uefaccsim.model.competition.KnockoutTie;
+import com.github.jkaste03.uefaccsim.model.competition.NonKnockoutTie;
 import com.github.jkaste03.uefaccsim.model.competition.Round;
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
@@ -186,8 +188,8 @@ public class JsonDataLoader {
      *
      * <p>
      * Each tie record is deserialized into a {@link TieDto}, resolved against the
-     * club-slot cache, and then converted into a {@link KnockoutTie} that is added
-     * to the round before simulation starts.
+     * club-slot cache, and then converted into a {@link KnockoutTie} or
+     * {@link NonKnockoutTie} that is added to the round before simulation starts.
      * </p>
      *
      * @param round     the round being populated
@@ -212,10 +214,22 @@ public class JsonDataLoader {
                     logger.error(msg);
                     throw new IllegalStateException(msg);
                 }
-                // Add a new KnockoutTie to the round using the data from the TieDto.
-                round.addTiePreSim(new KnockoutTie(clubSlotA, clubSlotB, dto.clubAGoals1stLeg,
-                        dto.clubBGoals1stLeg, dto.clubAGoals2ndLeg, dto.clubBGoals2ndLeg, round.getTournament(),
-                        dto.clubAWinner));
+                // If the round is a KnockoutRound
+                if (round instanceof KnockoutRound) {
+                    // Add a new KnockoutTie to the round using the data from the TieDto.
+                    round.addTiePreSim(new KnockoutTie(clubSlotA, clubSlotB, dto.clubAGoals1stLeg,
+                            dto.clubBGoals1stLeg, dto.clubAGoals2ndLeg, dto.clubBGoals2ndLeg, round.getTournament(),
+                            dto.clubAWinner));
+                } else {
+                    // Add a new NonKnockoutTie to the round using the data from the TieDto.
+                    round.addTiePreSim(
+                            new NonKnockoutTie(clubSlotA, clubSlotB, dto.clubAGoals1stLeg, dto.clubBGoals1stLeg));
+                }
+                // Validate that the round's ties are configured correctly. The validation
+                // checks only include necessary checks to avoid completely unsensible tie
+                // configurations, like having the same club slot in both positions of a tie.
+                // UEFA restrictions are not checked here.
+                round.validateTiesPreSim();
             });
         }
     }

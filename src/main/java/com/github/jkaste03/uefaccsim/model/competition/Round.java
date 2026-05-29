@@ -1,7 +1,6 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
-
 import com.github.jkaste03.uefaccsim.enums.RoundType;
 import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.rule.PoliticalTieRestrictions;
@@ -201,6 +200,21 @@ public abstract class Round implements Serializable {
      * @param tie the tie to add
      */
     public abstract void addTiePreSim(Tie tie);
+
+    /**
+     * Validates the ties in the round.
+     * <p>
+     * This method should only be called in the pre-simulation phase after ties have
+     * been added to the round, as it performs slow validation checks. It ensures
+     * the integrity of the round's tie configuration and prevents issues during
+     * simulation caused by invalid tie setups.
+     * <p>
+     * The validation checks only include necessary checks to avoid completely
+     * unsensible tie configurations, like having the same club slot in both
+     * positions of a tie. <b>UEFA restrictions are not checked here</b> (such as
+     * "avoiding political ties"), as that is not the scope of this validation.
+     */
+    public abstract void validateTiesPreSim();
 
     /**
      * Validates that both club slots in the given tie belong to this round. Only

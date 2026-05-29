@@ -1,6 +1,7 @@
 package com.github.jkaste03.uefaccsim.model.competition;
 
 import java.util.List;
+import java.util.Set;
 
 import com.github.jkaste03.uefaccsim.enums.Leg;
 import com.github.jkaste03.uefaccsim.enums.RoundType;
@@ -8,6 +9,7 @@ import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.repository.ClubSimStateRepository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * Represents a knockout round in the UEFA competitions.
@@ -64,8 +66,8 @@ public abstract class KnockoutRound extends Round {
 
     /**
      * Adds a tie to this knockout round. Only KnockoutTie instances are allowed.
-     * Only call this method during the pre-simulation phase, as it performs slow
-     * validation checks.
+     * <p>
+     * This method is only intended to be called during the pre-simulation phase.
      * 
      * @param tie the tie to add
      * @throws IllegalArgumentException if the provided tie is not an instance of
@@ -77,10 +79,54 @@ public abstract class KnockoutRound extends Round {
         if (!(tie instanceof KnockoutTie)) {
             throw new IllegalArgumentException("Only KnockoutTie instances can be added to a KnockoutRound.");
         }
-        // Validate that both club slots of the tie are part of this round's club slots
-        validateTieClubSlotsBelongToRound(tie);
-        // If validation passes, add the tie to the list of ties
         ties.add((KnockoutTie) tie);
+    }
+
+    /**
+     * Validates that all ties in this round have club slots that belong to this
+     * round, and that no club slot appears in more than one tie.
+     * <p>
+     * This method should only be called in the pre-simulation phase after ties have
+     * been added to the round, as it performs slow validation checks. It ensures
+     * the integrity of the round's tie configuration and prevents issues during
+     * simulation caused by invalid tie setups.
+     * <p>
+     * The validation checks only include necessary checks to avoid completely
+     * unsensible tie configurations, like having the same club slot in both
+     * positions of a tie. <b>UEFA restrictions are not checked here</b> (such as
+     * "avoiding political ties"), as that is not the scope of this validation.
+     */
+    @Override
+    public void validateTiesPreSim() {
+        // For all ties...
+        for (Tie tie : ties) {
+            // ...validate that both club slots are part of this round's club slots
+            validateTieClubSlotsBelongToRound(tie);
+        }
+        // Validate that no club slot appears in more than one tie in this round
+        validateNoDuplicateClubSlotsInTies();
+    }
+
+    /**
+     * Validates that the ties doesn't contain duplicate club slots. Only call this
+     * method during the pre-simulation phase, as it is a slow validation check.
+     */
+    private void validateNoDuplicateClubSlotsInTies() {
+        Set<ClubSlot> seenClubSlots = new HashSet<>();
+        for (KnockoutTie tie : ties) {
+            // If we have already seen either club slot in this tie, that means it's a
+            // duplicate and we should throw an exception
+            if (!seenClubSlots.add(tie.getClubSlotA())) {
+                throw new IllegalStateException(
+                        "Duplicate club slot found in " + getName() + ". Club slot: "
+                                + tie.getClubSlotA().toCompactString());
+            }
+            if (!seenClubSlots.add(tie.getClubSlotB())) {
+                throw new IllegalStateException(
+                        "Duplicate club slot found in " + getName() + ". Club slot: "
+                                + tie.getClubSlotB().toCompactString());
+            }
+        }
     }
 
     public boolean isSingleLegged() {

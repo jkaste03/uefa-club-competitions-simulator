@@ -19,6 +19,14 @@ public class NonKnockoutTie extends Tie {
     }
 
     /**
+     * Constructs a new non-knockout tie with the specified club slots and goals.
+     * Order matters.
+     */
+    public NonKnockoutTie(ClubSlot clubA, ClubSlot clubB, int clubAGoals1stLeg, int clubBGoals1stLeg) {
+        super(clubA, clubB, clubAGoals1stLeg, clubBGoals1stLeg);
+    }
+
+    /**
      * Plays a single non-knockout fixture.
      *
      * <p>
