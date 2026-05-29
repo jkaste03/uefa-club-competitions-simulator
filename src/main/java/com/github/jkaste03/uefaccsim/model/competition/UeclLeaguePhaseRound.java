@@ -54,10 +54,8 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
 
     @Override
     protected void draw() {
-        // If ties are already assigned, we assume the draw has been conducted and we
-        // just validate the count.
-        if (hasDrawBeenConducted()) {
-            validateTieCount(); // Ensure that all ties are assigned.
+        // If the draw has been conducted, we return.
+        if (!ties.isEmpty()) {
             return;
         }
         if (pots.size() != POT_COUNT) {

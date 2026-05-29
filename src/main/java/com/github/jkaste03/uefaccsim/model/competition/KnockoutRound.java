@@ -83,8 +83,7 @@ public abstract class KnockoutRound extends Round {
     }
 
     /**
-     * Validates that all ties in this round have club slots that belong to this
-     * round, and that no club slot appears in more than one tie.
+     * Runs structural pre-simulation validation for ties in this round.
      * <p>
      * This method should only be called in the pre-simulation phase after ties have
      * been added to the round, as it performs slow validation checks. It ensures
@@ -95,6 +94,17 @@ public abstract class KnockoutRound extends Round {
      * unsensible tie configurations, like having the same club slot in both
      * positions of a tie. <b>UEFA restrictions are not checked here</b> (such as
      * "avoiding political ties"), as that is not the scope of this validation.
+     * <p>
+     * The method performs three checks in order:
+     * <ol>
+     * <li>For each tie, verifies that both club slots belong to this round's slot
+     * pool ({@link #validateTieClubSlotsBelongToRound(Tie)}).</li>
+     * <li>Verifies across the entire round that each club slot appears in at most
+     * one tie ({@link #validateNoDuplicateClubSlotsInTies()}).</li>
+     * <li>If this is a {@link PostLeagueKnockoutRound}, verifies that a partial
+     * draw has not been completed, which is not allowed.</li>
+     * </ol>
+     * <p>
      */
     @Override
     public void validateTiesPreSim() {
@@ -105,6 +115,13 @@ public abstract class KnockoutRound extends Round {
         }
         // Validate that no club slot appears in more than one tie in this round
         validateNoDuplicateClubSlotsInTies();
+
+        // If this is a post-league knockout round, also validate that a partial draw
+        // has not already been completed.
+        if (this instanceof PostLeagueKnockoutRound) {
+            ((PostLeagueKnockoutRound) this).validateTieCount(); // This will throw if a partial draw has been
+                                                                 // completed, which is not allowed.
+        }
     }
 
     /**

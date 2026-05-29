@@ -225,13 +225,13 @@ public class JsonDataLoader {
                     round.addTiePreSim(
                             new NonKnockoutTie(clubSlotA, clubSlotB, dto.clubAGoals1stLeg, dto.clubBGoals1stLeg));
                 }
-                // Validate that the round's ties are configured correctly. The validation
-                // checks only include necessary checks to avoid completely unsensible tie
-                // configurations, like having the same club slot in both positions of a tie.
-                // UEFA restrictions are not checked here.
-                round.validateTiesPreSim();
             });
         }
+        // Validate that the round's ties are configured correctly. The validation
+        // checks only include necessary checks to avoid completely unsensible tie
+        // configurations, like having the same club slot in both positions of a tie.
+        // UEFA restrictions are not checked here.
+        round.validateTiesPreSim();
     }
 
     /**

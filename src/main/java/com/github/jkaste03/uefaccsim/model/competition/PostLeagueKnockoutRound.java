@@ -53,4 +53,14 @@ public abstract class PostLeagueKnockoutRound extends KnockoutRound {
     public boolean isIllegalTie(ClubSlot clubSlotA, ClubSlot clubSlotB) {
         return PoliticalTieRestrictions.isProhibited(clubSlotA, clubSlotB);
     }
+
+    /**
+     * Validates that a partial draw has not been completed.
+     */
+    protected void validateTieCount() {
+        if (!ties.isEmpty() && ties.size() != clubSlots.size() / 2) {
+            throw new IllegalStateException(
+                    "A partial draw in " + getName() + " has already been completed. Partial draws are not allowed.");
+        }
+    }
 }

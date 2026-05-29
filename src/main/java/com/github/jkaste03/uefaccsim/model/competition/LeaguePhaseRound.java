@@ -109,7 +109,6 @@ public abstract class LeaguePhaseRound extends Round {
                         + ". Club slot: " + tie.getClubSlotA());
             }
         }
-
         validateTieCount(); // This will throw if a partial draw has been completed, which is not allowed.
     }
 
@@ -153,28 +152,13 @@ public abstract class LeaguePhaseRound extends Round {
     }
 
     /**
-     * Checks if the draw has been conducted for this round.
-     *
-     * @return true if the draw has been conducted, false otherwise
-     */
-    protected boolean hasDrawBeenConducted() {
-        if (!ties.isEmpty()) {
-            return true; // Ties are already assigned. Draw is complete.
-        }
-        return false; // No ties assigned yet, draw is not completed.
-    }
-
-    /**
-     * Validates that the number of ties equals the total number of matches in the
-     * league phase.
+     * Validates that a partial draw has not been completed.
      */
     protected void validateTieCount() {
-        if (ties.size() == getMatchesPerClub() * clubSlots.size() / 2) {
-            return; // Ties are already assigned, but they are in the expected quantity. No draw
-                    // needed.
+        if (!ties.isEmpty() && ties.size() != getMatchesPerClub() * clubSlots.size() / 2) {
+            throw new IllegalStateException(
+                    "A partial draw in " + getName() + " has already been completed. Partial draws are not allowed.");
         }
-        throw new IllegalStateException(
-                "A partial draw in " + getName() + " has already been completed. Partial draws are not allowed.");
     }
 
     /**
