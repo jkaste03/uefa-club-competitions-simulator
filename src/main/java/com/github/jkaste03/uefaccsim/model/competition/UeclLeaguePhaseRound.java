@@ -54,8 +54,15 @@ public class UeclLeaguePhaseRound extends LeaguePhaseRound {
 
     @Override
     protected void draw() {
-        if (pots.size() != POT_COUNT)
+        // If ties are already assigned, we assume the draw has been conducted and we
+        // just validate the count.
+        if (hasDrawBeenConducted()) {
+            validateTieCount(); // Ensure that all ties are assigned.
+            return;
+        }
+        if (pots.size() != POT_COUNT) {
             throw new IllegalStateException("Expected " + POT_COUNT + " pots before draw()");
+        }
 
         // --- bygg indeks/mapper ---
         List<ClubSlot> allClubs = pots.stream().flatMap(p -> p.clubs().stream()).collect(Collectors.toList());

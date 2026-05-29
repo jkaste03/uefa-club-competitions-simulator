@@ -90,6 +90,12 @@ public class UclUelLeaguePhaseRound extends LeaguePhaseRound {
      */
     @Override
     protected void draw() {
+        // If ties are already assigned, we assume the draw has been conducted and we
+        // just validate the count.
+        if (hasDrawBeenConducted()) {
+            validateTieCount(); // Ensure that all ties are assigned.
+            return;
+        }
         lastDrawStats = new DrawStats();
         // Build list of all clubs and mapping from club to its pot index.
         final List<ClubSlot> allClubs = new ArrayList<>();
