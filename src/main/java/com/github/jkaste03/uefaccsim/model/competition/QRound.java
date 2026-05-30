@@ -350,9 +350,23 @@ public class QRound extends KnockoutRound {
      * Records match-up statistics for the current qualifying round.
      */
     @Override
-    protected void recordMatchup() {
+    protected void recordMatchups() {
         RoundKey roundKey = getRoundKey();
-        statsAggregator.recordRoundStats(roundKey, ties, seeded);
+        statsAggregator.recordPerSeedingMatchups(roundKey, ties, seeded);
+    }
+
+    /**
+     * Records the "would have been" match-up statistics for the current qualifying
+     * round.
+     * <p>
+     * "Would have been" matchups refer to matchups that would have happened had not
+     * clubs been eliminated in the previous round. This is relevant for certain
+     * statistics that consider the potential matchups, even if those matchups did
+     * not actually occur due to eliminations.
+     */
+    protected void recordWouldHaveBeenMatchups() {
+        RoundKey roundKey = getRoundKey();
+        statsAggregator.recordPerSeedingWouldHaveBeenMatchups(roundKey, ties, seeded);
     }
 
     /**

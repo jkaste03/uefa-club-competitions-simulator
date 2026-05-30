@@ -15,19 +15,14 @@ import java.util.Map;
  * </ul>
  */
 public class ClubRoundStats {
-    /*
-     * Map of opponent club ID to the number of matchups against that opponent.
+    /**
+     * Map of opponent club ID to matchup counters. This allows tracking how many
+     * times the club faced each opponent, as well as seeding context for those
+     * matchups.
      */
-    private final Map<Integer, Integer> matchupCounts = new HashMap<>();
-
+    private final Map<Integer, ClubRoundCounters> opponentCounters = new HashMap<>();
     private int seededCount;
     private int unseededCount;
-
-    /*
-     * Maps of opponent club ID to matchup counts for seeded and unseeded matchups.
-     */
-    private final Map<Integer, Integer> seededMatchupCounts = new HashMap<>();
-    private final Map<Integer, Integer> unseededMatchupCounts = new HashMap<>();
 
     /**
      * Records a single matchup against an opponent.
@@ -35,7 +30,7 @@ public class ClubRoundStats {
      * @param toClubId opponent club ID
      */
     public void recordMatchup(int toClubId) {
-        matchupCounts.merge(toClubId, 1, Integer::sum);
+        getOrCreateOpponentCounters(toClubId).incrementMatchups();
     }
 
     /**
@@ -59,9 +54,29 @@ public class ClubRoundStats {
      */
     public void recordPerSeedingMatchup(boolean isFromClubSeeded, int toClubId) {
         if (isFromClubSeeded) {
-            seededMatchupCounts.merge(toClubId, 1, Integer::sum);
+            getOrCreateOpponentCounters(toClubId).incrementSeededMatchups();
         } else {
-            unseededMatchupCounts.merge(toClubId, 1, Integer::sum);
+            getOrCreateOpponentCounters(toClubId).incrementUnseededMatchups();
+        }
+    }
+
+    /**
+     * Records a "would have been" matchup with seeding context.
+     * <p>
+     * A "Would have been" matchup refer to a matchup that would have happened had
+     * not the club been eliminated in the previous round. This is relevant for
+     * certain statistics that consider such potential matchups, even if those
+     * matchups did not actually occur due to elimination.
+     * <p>
+     *
+     * @param isFromClubSeeded {@code true} if the club was seeded in the matchup
+     * @param toClubId         opponent club ID
+     */
+    public void recordPerSeedingWouldHaveBeenMatchup(boolean isFromClubSeeded, int toClubId) {
+        if (isFromClubSeeded) {
+            getOrCreateOpponentCounters(toClubId).incrementWouldHaveBeenSeededMatchups();
+        } else {
+            getOrCreateOpponentCounters(toClubId).incrementWouldHaveBeenUnseededMatchups();
         }
     }
 
@@ -71,40 +86,28 @@ public class ClubRoundStats {
      * @param other source statistics to merge in
      */
     public void mergeFrom(ClubRoundStats other) {
-        mergeCounts(matchupCounts, other.matchupCounts);
-        mergeCounts(seededMatchupCounts, other.seededMatchupCounts);
-        mergeCounts(unseededMatchupCounts, other.unseededMatchupCounts);
+        other.opponentCounters.forEach((id, counters) -> getOrCreateOpponentCounters(id).mergeFrom(counters));
         seededCount += other.seededCount;
         unseededCount += other.unseededCount;
     }
 
     /**
-     * Helper method that sums values from a source map into a target map.
+     * Returns existing opponent counters or creates a new one if needed.
      *
-     * @param targetCounts map to be updated
-     * @param sourceCounts map with values to add
+     * @param opponentId opponent club ID
+     * @return existing or newly created opponent counters
      */
-    private void mergeCounts(Map<Integer, Integer> targetCounts, Map<Integer, Integer> sourceCounts) {
-        sourceCounts.forEach((id, count) -> targetCounts.merge(id, count, Integer::sum));
+    private ClubRoundCounters getOrCreateOpponentCounters(int opponentId) {
+        return opponentCounters.computeIfAbsent(opponentId, id -> new ClubRoundCounters());
     }
 
     /**
-     * Returns an immutable copy of total matchup counts per opponent.
+     * Returns an immutable copy of matchup counts per opponent.
      *
-     * @return map of opponent ID to matchup count
+     * @return map of opponent ID to matchup counts
      */
-    public Map<Integer, Integer> getMatchupCounts() {
-        return Map.copyOf(matchupCounts);
-    }
-
-    /**
-     * Returns an immutable copy of matchup counts for the selected seeding status.
-     *
-     * @param isSeeded {@code true} for seeded, {@code false} for unseeded
-     * @return map of opponent ID to matchup count for the selected seeding status
-     */
-    public Map<Integer, Integer> getPerSeedingMatchupCounts(boolean isSeeded) {
-        return isSeeded ? Map.copyOf(seededMatchupCounts) : Map.copyOf(unseededMatchupCounts);
+    public Map<Integer, ClubRoundCounters> getOpponentCounts() {
+        return Map.copyOf(opponentCounters);
     }
 
     /**
@@ -113,8 +116,7 @@ public class ClubRoundStats {
      * @return {@code true} if seeding data exists
      */
     public boolean hasSeedingData() {
-        return seededCount > 0 || unseededCount > 0 || !seededMatchupCounts.isEmpty()
-                || !unseededMatchupCounts.isEmpty();
+        return seededCount > 0 || unseededCount > 0;
     }
 
     /**
@@ -123,7 +125,7 @@ public class ClubRoundStats {
      * @return total number of matchups
      */
     public int getMatchupCount() {
-        return matchupCounts.values().stream().mapToInt(Integer::intValue).sum();
+        return opponentCounters.values().stream().mapToInt(ClubRoundCounters::getMatchups).sum();
     }
 
     /**
@@ -134,9 +136,9 @@ public class ClubRoundStats {
      */
     public int getPerSeedingParticipationCount(boolean isSeeded) {
         if (isSeeded) {
-            return seededMatchupCounts.values().stream().mapToInt(Integer::intValue).sum();
+            return opponentCounters.values().stream().mapToInt(ClubRoundCounters::getSeededMatchups).sum();
         } else {
-            return unseededMatchupCounts.values().stream().mapToInt(Integer::intValue).sum();
+            return opponentCounters.values().stream().mapToInt(ClubRoundCounters::getUnseededMatchups).sum();
         }
     }
 
@@ -153,9 +155,7 @@ public class ClubRoundStats {
 
     @Override
     public String toString() {
-        return "ClubRoundStats [matchupCounts=" + matchupCounts + ", seededCount=" + seededCount + ", unseededCount="
-                + unseededCount + ", seededMatchupCounts=" + seededMatchupCounts + ", unseededMatchupCounts="
-                + unseededMatchupCounts + "]";
+        return "ClubRoundStats [opponentCounters=" + opponentCounters + ", seededCount=" + seededCount
+                + ", unseededCount=" + unseededCount + "]";
     }
-
 }

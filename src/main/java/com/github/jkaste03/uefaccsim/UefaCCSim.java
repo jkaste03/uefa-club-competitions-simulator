@@ -1,26 +1,19 @@
 package com.github.jkaste03.uefaccsim;
 
+import java.nio.file.Paths;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
-import com.github.jkaste03.uefaccsim.enums.RoundType;
-import com.github.jkaste03.uefaccsim.model.Club;
-import com.github.jkaste03.uefaccsim.model.competition.QRound;
-import com.github.jkaste03.uefaccsim.model.competition.Round;
 import com.github.jkaste03.uefaccsim.model.competition.Rounds;
+import com.github.jkaste03.uefaccsim.reporting.ClubReportWriter;
 import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
-import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
 /**
  * Entry point class for running multiple independent UEFA club competition
@@ -50,11 +43,6 @@ import com.github.jkaste03.uefaccsim.repository.ClubRepository;
  */
 public class UefaCCSim {
     private static final int SIMS = 10;
-
-    /*
-     * This is a temporary path for outputting club reports.
-     */
-    private static final Path REPORT_ROOT = Paths.get("temp", "club-reports");
 
     /**
      * Application entry point that performs a fixed number of independent
@@ -143,79 +131,8 @@ public class UefaCCSim {
         long endTime = System.currentTimeMillis();
         System.out.println("Total time: " + (endTime - startTime) + " ms");
 
-        // TODO: Remove the below temporary method call once we have a more complete set
-        // of statistics and reporting in place.
-        writeClubReports(finalStatsAggregator, rounds);
-    }
-
-    // TODO: Remove the below temporary method once we have a more complete
-    // set of statistics and reporting in place. The method is just for quick
-    // testing and demonstration of the simulation framework.
-    /**
-     * Writes individual plain-text reports for each club to the
-     * {@code temp/club-reports}
-     * directory.
-     *
-     * <p>
-     * The method iterates over all clubs from
-     * {@link com.github.jkaste03.uefaccsim.repository.ClubRepository}
-     * and builds a report for each club by retrieving per-round statistics from
-     * the supplied {@code finalStatsAggregator}. For each club a subdirectory is
-     * created for the club's national association (country). File and directory
-     * names are sanitized via {@link #sanitizeFileName(String)}. Reports are
-     * written using UTF-8 encoding.
-     * </p>
-     *
-     * @param finalStatsAggregator aggregator containing aggregated simulation
-     *                             statistics
-     * @param rounds               the rounds configuration used to assemble report
-     *                             content
-     * @throws RuntimeException if directories or files cannot be created or written
-     */
-    private static void writeClubReports(StatsAggregator finalStatsAggregator, Rounds rounds) {
-        try {
-            Files.createDirectories(REPORT_ROOT);
-
-            for (Club club : ClubRepository.getAllClubs()) {
-                String countryName = club.getCountry() != null ? club.getCountry().getCountryName() : "Unknown";
-                Path countryDirectory = REPORT_ROOT.resolve(sanitizeFileName(countryName));
-                Files.createDirectories(countryDirectory);
-
-                StringBuilder report = new StringBuilder();
-                report.append("Club: ").append(club.getName()).append(System.lineSeparator());
-                report.append("National association: ").append(countryName).append(System.lineSeparator());
-
-                for (Round round : rounds.getRounds()) {
-                    if (round.getRoundType() == RoundType.ROUND_OF_16) {
-                        break;
-                    }
-                    if (round instanceof QRound qRound) {
-                        report.append(finalStatsAggregator.buildRoundStatsReport(round.getTournament(),
-                                round.getRoundType(), qRound.getPathType(), club.getName()));
-                    } else {
-                        report.append(finalStatsAggregator.buildRoundStatsReport(round.getTournament(),
-                                round.getRoundType(), null, club.getName()));
-                    }
-                }
-
-                Path reportFile = countryDirectory.resolve(sanitizeFileName(club.getName()) + ".txt");
-                Files.write(reportFile, report.toString().getBytes(StandardCharsets.UTF_8));
-            }
-
-            System.out.println("Club reports written to: " + REPORT_ROOT.toAbsolutePath());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write club reports", e);
-        }
-    }
-
-    /*
-     * Sanitizes a string to be safely used as a file or directory name by replacing
-     * illegal characters with underscores and trimming whitespace. This helps
-     * prevent issues when creating files/directories based on club or country
-     * names that may contain characters not allowed in file systems.
-     */
-    private static String sanitizeFileName(String value) {
-        return value.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+        // Write club reports based on the aggregated statistics.
+        new ClubReportWriter(Paths.get("temp", "club-reports")).writeClubReports(finalStatsAggregator, rounds);
     }
 
     /**

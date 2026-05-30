@@ -425,7 +425,7 @@ public class Rounds implements Serializable {
         clubSimStateRepo.applyAllUncommittedEloDeltas();
 
         // 9. Record stats for all rounds of this type.
-        roundsOfType.forEach(r -> r.recordMatchup());
+        roundsOfType.forEach(r -> r.recordMatchups());
     }
 
     /**
@@ -475,7 +475,7 @@ public class Rounds implements Serializable {
         }
         // After all league phase matches are played, record stats for the league phase
         // rounds.
-        getRoundsOfType(RoundType.LEAGUE_PHASE).forEach(r -> r.recordMatchup());
+        getRoundsOfType(RoundType.LEAGUE_PHASE).forEach(r -> r.recordMatchups());
     }
 
     /**
@@ -499,7 +499,7 @@ public class Rounds implements Serializable {
         seedDrawScheduleRounds(getRoundsOfType(RoundType.KO_ROUND_PLAYOFF));
         // TODO: This needs changing once we have more than one post-league knockout
         // round type:
-        getRoundsOfType(RoundType.KO_ROUND_PLAYOFF).forEach(r -> r.recordMatchup());
+        getRoundsOfType(RoundType.KO_ROUND_PLAYOFF).forEach(r -> r.recordMatchups());
     }
 
     /**

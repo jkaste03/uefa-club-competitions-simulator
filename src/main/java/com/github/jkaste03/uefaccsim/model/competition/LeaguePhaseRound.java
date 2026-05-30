@@ -515,7 +515,7 @@ public abstract class LeaguePhaseRound extends Round {
      * </p>
      */
     @Override
-    protected void recordMatchup() {
+    protected void recordMatchups() {
         RoundKey roundKey = getRoundKey();
         statsAggregator.recordLeaguePhaseMatchup(roundKey, getTies(), getMatchesPerClub());
     }
