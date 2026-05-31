@@ -241,10 +241,14 @@ public abstract class Round implements Serializable {
      * (if possible).
      *
      * <p>
-     * Before resolving slots, {@link QRound} instances record a "would have been"
-     * matchup statistic. That captures the matchups that would have happened if
-     * clubs had not been eliminated in the previous round, which is a
-     * stat that is used for qualifying-round reporting.
+     * Before resolving slots, {@link QRound} instances record a "would-have-been"
+     * matchup statistic.
+     * <p>
+     * "Would-have-been matchups" are matchups that would have occurred had clubs
+     * not advanced from the previous round of a higher-ranked tournament or been
+     * eliminated in the previous round of the same tournament. This is relevant for
+     * certain statistics that consider the potential matchups, even if those
+     * matchups did not actually occur.
      *
      * <p>
      * For each slot:
@@ -265,18 +269,19 @@ public abstract class Round implements Serializable {
      *
      * <p>
      * The tournament argument passed to {@code ClubSlot#resolveSlot} is this
-     * round's {@link Tournament}, allowing the
-     * slot logic to determine whether it should take the winner or loser based on
-     * tournament hierarchy.
+     * round's {@link Tournament}, allowing the slot logic to determine whether it
+     * should take the winner or loser based on tournament hierarchy.
      * </p>
      */
     public void resolveClubSlots() {
         if (this instanceof QRound) {
-            // For QRounds, we want to record the "would have been" matchups before
-            // resolving slots. "Would have been" matchups refer to matchups that would have
-            // happened had not clubs been eliminated in the previous round. This is
-            // relevant for certain statistics that consider the potential matchups, even if
-            // those matchups did not actually occur due to eliminations.
+            // For QRounds, we want to record the "would-have-been" matchups before
+            // resolving slots.
+            // "Would-have-been matchups" are matchups that would have occurred had clubs
+            // not advanced from the previous round of a higher-ranked tournament or been
+            // eliminated in the previous round of the same tournament. This is relevant for
+            // certain statistics that consider the potential matchups, even if those
+            // matchups did not actually occur.
             ((QRound) this).recordWouldHaveBeenMatchups();
         }
         for (ClubSlot clubSlot : clubSlots) {

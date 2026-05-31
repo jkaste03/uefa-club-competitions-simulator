@@ -42,6 +42,20 @@ public final class ClubReportWriter {
 
     /**
      * Creates a new instance of {@code ClubReportWriter} with the specified report
+     * root directory and total number of simulations. The total number of
+     * simulations is used to configure the {@link RoundStatsReportFormatter} for
+     * accurate percentage calculations in the reports.
+     * 
+     * @param reportRoot       the root directory where club reports will be written
+     * @param totalSimulations the total number of simulations, used for percentage
+     *                         calculations in the formatter
+     */
+    public ClubReportWriter(Path reportRoot, int totalSimulations) {
+        this(reportRoot, new RoundStatsReportFormatter(totalSimulations));
+    }
+
+    /**
+     * Creates a new instance of {@code ClubReportWriter} with the specified report
      * root directory and formatter.
      * 
      * @param reportRoot the root directory where club reports will be written
@@ -70,8 +84,6 @@ public final class ClubReportWriter {
                 String countryName = club.getCountry() != null ? club.getCountry().getCountryName() : "Unknown";
                 Path countryDirectory = reportRoot.resolve(sanitizeFileName(countryName));
                 Files.createDirectories(countryDirectory);
-
-                // Create the report content.
                 StringBuilder report = new StringBuilder();
                 // Basic club info.
                 report.append("Club: ").append(club.getName()).append(System.lineSeparator());
@@ -79,7 +91,8 @@ public final class ClubReportWriter {
 
                 // Append sections for each round the club participated in. We iterate through
                 // all rounds.
-                for (Round round : rounds.getRounds()) {
+                for (int roundIndex = 0; roundIndex < rounds.getRounds().size(); roundIndex++) {
+                    Round round = rounds.getRounds().get(roundIndex);
                     // For now, we only report up to the Round of 16.
                     if (round.getRoundType() == RoundType.ROUND_OF_16) {
                         break;
@@ -92,10 +105,27 @@ public final class ClubReportWriter {
                                     qRound.getPathType())
                             : new StatsAggregator.RoundKey(round.getTournament(), round.getRoundType(), null);
 
+                    int clubId = ClubRepository.getIdByName(club.getName());
+                    Round previousRound = findPreviousRelevantRound(rounds.getRounds(), roundIndex, round, clubId,
+                            finalStatsAggregator);
+                    RoundStats previousRoundStats = null;
+                    StatsAggregator.RoundKey previousRoundKey = null;
+                    if (previousRound != null) {
+                        previousRoundKey = previousRound instanceof QRound previousQRound
+                                ? new StatsAggregator.RoundKey(previousRound.getTournament(),
+                                        previousRound.getRoundType(), previousQRound.getPathType())
+                                : new StatsAggregator.RoundKey(previousRound.getTournament(),
+                                        previousRound.getRoundType(), null);
+                        previousRoundStats = finalStatsAggregator.getRoundStatsOrThrow(previousRoundKey);
+                    }
+
                     // Append the report section for this round.
                     report.append(formatter.format(roundKey,
                             finalStatsAggregator.getRoundStatsOrThrow(roundKey),
+                            previousRoundKey,
+                            previousRoundStats,
                             club.getName()));
+
                 }
 
                 // Write the report to a file named after the club, within the country
@@ -121,5 +151,43 @@ public final class ClubReportWriter {
      */
     private static String sanitizeFileName(String value) {
         return value.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+    }
+
+    private Round findPreviousRelevantRound(java.util.List<Round> rounds, int currentIndex, Round currentRound,
+            int clubId, StatsAggregator finalStatsAggregator) {
+        if (!(currentRound instanceof QRound)) {
+            return null;
+        }
+
+        int previousRoundTypeOrdinal = currentRound.getRoundType().ordinal() - 1;
+        if (previousRoundTypeOrdinal < 0) {
+            return null;
+        }
+        RoundType previousRoundType = RoundType.values()[previousRoundTypeOrdinal];
+
+        for (int index = currentIndex - 1; index >= 0; index--) {
+            Round candidate = rounds.get(index);
+            if (!(candidate instanceof QRound)) {
+                continue;
+            }
+            if (candidate.getRoundType() != previousRoundType) {
+                continue;
+            }
+            if (candidate.getTournament().compareTo(currentRound.getTournament()) < 0) {
+                continue;
+            }
+            StatsAggregator.RoundKey candidateKey = candidate instanceof QRound candidateQRound
+                    ? new StatsAggregator.RoundKey(candidate.getTournament(), candidate.getRoundType(),
+                            candidateQRound.getPathType())
+                    : new StatsAggregator.RoundKey(candidate.getTournament(), candidate.getRoundType(), null);
+            RoundStats candidateStats = finalStatsAggregator.getRoundStatsOrThrow(candidateKey);
+            if (candidateStats.getSeedingCount(true, clubId) == 0
+                    && candidateStats.getSeedingCount(false, clubId) == 0) {
+                continue;
+            }
+            return candidate;
+        }
+
+        return null;
     }
 }

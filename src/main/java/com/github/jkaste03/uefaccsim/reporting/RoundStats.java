@@ -1,11 +1,11 @@
 package com.github.jkaste03.uefaccsim.reporting;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.github.jkaste03.uefaccsim.enums.Tournament;
 import com.github.jkaste03.uefaccsim.model.competition.ClubSlot;
 import com.github.jkaste03.uefaccsim.model.competition.KnockoutTie;
 import com.github.jkaste03.uefaccsim.model.competition.Tie;
@@ -128,68 +128,62 @@ public class RoundStats {
     }
 
     /**
-     * Records "would have been" matchup statistics for non-winning clubs on each
-     * side of a knockout tie.
-     * <p>
-     * "Would have been" matchups refer to matchups that would have happened had not
-     * clubs been eliminated in the previous round. This is relevant for certain
-     * statistics that consider the potential matchups, even if those matchups did
-     * not actually occur due to elimination.
-     * <p>
-     * For side of the tie, the method finds the final winner, collects every
-     * club contained recursively in that side, removes the winner, and records one
-     * would-have-been matchup for each remaining club against the winner on the
+     * For each tie, records "would-have-been" matchup statistics between the
+     * alternative participant (if available) and the actual participant from the
      * opposite side.
+     * <p>
+     * "Would-have-been matchups" are matchups that would have occurred had clubs
+     * not advanced from the previous round of a higher-ranked tournament or been
+     * eliminated in the previous round of the same tournament. This is relevant for
+     * certain statistics that consider the potential matchups, even if those
+     * matchups did not actually occur.
+     * <p>
+     * For each side of a tie-backed slot, if the alternative participant from the
+     * previous round exists, we record a "would-have-been" matchup against the
+     * actual participant from the opposite side.
      * </p>
      *
-     * @param ties   ties that were drawn/played in the round
+     * @param ties   ties that were drawn in the round
      * @param seeded set of slots that were seeded in the draw; this determines
      *               whether the source side is counted as seeded or unseeded
      */
     public void recordPerSeedingWouldHaveBeenMatchups(List<KnockoutTie> ties, Set<ClubSlot> seeded) {
-        // Walk each tie and count every non-winning club recursively on both sides.
+        //
         for (KnockoutTie tie : ties) {
             ClubSlot slotA = tie.getClubSlotA();
             ClubSlot slotB = tie.getClubSlotB();
 
-            Integer winnerA = resolveWinnerId(slotA);
-            Integer winnerB = resolveWinnerId(slotB);
-            Set<Integer> nonWinningA = resolveNonWinningClubIds(slotA, winnerA);
-            Set<Integer> nonWinningB = resolveNonWinningClubIds(slotB, winnerB);
+            Integer actualA = resolveActualParticipantId(slotA, tie.getTournament());
+            Integer alternativeA = resolveAlternativeParticipantId(slotA, tie.getTournament());
+            Integer actualB = resolveActualParticipantId(slotB, tie.getTournament());
+            Integer alternativeB = resolveAlternativeParticipantId(slotB, tie.getTournament());
 
             boolean isSlotASeeded = seeded.contains(slotA);
             boolean isSlotBSeeded = seeded.contains(slotB);
 
-            // From each non-winning club in A to winner of B
-            if (winnerB != null) {
-                for (Integer nonWinnerAId : nonWinningA) {
-                    getOrCreateClubRoundStats(nonWinnerAId)
-                            .recordPerSeedingWouldHaveBeenMatchup(isSlotASeeded, winnerB);
-                }
+            // Only tie-backed slots have an alternative participant from the previous
+            // round. Record that alternative against the actual participant from the
+            // opposite side.
+            if (slotA.isTie() && alternativeA != null && actualB != null) {
+                getOrCreateClubRoundStats(alternativeA)
+                        .recordPerSeedingWouldHaveBeenMatchup(isSlotASeeded, actualB);
             }
-
-            // From each non-winning club in B to winner of A
-            if (winnerA != null) {
-                for (Integer nonWinnerBId : nonWinningB) {
-                    getOrCreateClubRoundStats(nonWinnerBId)
-                            .recordPerSeedingWouldHaveBeenMatchup(isSlotBSeeded, winnerA);
-                }
+            if (slotB.isTie() && alternativeB != null && actualA != null) {
+                getOrCreateClubRoundStats(alternativeB)
+                        .recordPerSeedingWouldHaveBeenMatchup(isSlotBSeeded, actualA);
             }
         }
     }
 
     /**
-     * Resolves the concrete winner club id for a slot.
-     * <p>
-     * If the slot is already a concrete club, that club id is returned directly.
-     * If the slot represents a tie, the method returns the final winner of that
-     * nested tie if it has already been decided.
-     * </p>
+     * Resolves the participant id for a slot based on whether they are the winner
+     * or not.
      *
-     * @param slot slot that may represent a concrete club or an unresolved tie
-     * @return winner club id, or {@code null} if winner is not decided yet
+     * @param slot   slot that may represent a concrete club or an unresolved tie
+     * @param winner whether to resolve for the winner or loser
+     * @return participant id, or {@code null} if not decided yet
      */
-    private Integer resolveWinnerId(ClubSlot slot) {
+    private Integer resolveToId(ClubSlot slot, boolean winner) {
         if (slot.isClub()) {
             return slot.getClubSimState().getId();
         }
@@ -198,58 +192,36 @@ public class RoundStats {
         if (aWinner == null) {
             return null;
         }
-        return aWinner ? tie.getClubSlotA().getClubSimState().getId()
+        return aWinner == winner ? tie.getClubSlotA().getClubSimState().getId()
                 : tie.getClubSlotB().getClubSimState().getId();
     }
 
     /**
-     * Collects every club id contained recursively in a slot, then removes the
-     * eventual winner.
-     * <p>
-     * This is used to support nested ties where more than one club can be part of
-     * the path leading to the final winner. All clubs except the final winner are
-     * treated as non-winning clubs for the purpose of "would have been"
-     * statistics.
-     * </p>
+     * Resolves the actual participant represented by a slot in the current round.
      *
-     * @param slot     slot that may represent a concrete club or a nested tie
-     * @param winnerId resolved winner club id for the slot, or {@code null} if
-     *                 unresolved
-     * @return all recursive club ids in the slot except the resolved winner
+     * For tie-backed slots, whether winner or loser advances is determined by
+     * tournament hierarchy, mirroring ClubSlot.resolveSlot(tournament).
      */
-    private Set<Integer> resolveNonWinningClubIds(ClubSlot slot, Integer winnerId) {
-        Set<Integer> allClubIds = collectAllClubIds(slot);
-        if (winnerId != null) {
-            allClubIds.remove(winnerId);
-        }
-        return allClubIds;
-    }
-
-    /**
-     * Collects all concrete club ids contained recursively within a slot.
-     *
-     * @param slot slot to traverse
-     * @return set of all club ids contained in the slot tree
-     */
-    private Set<Integer> collectAllClubIds(ClubSlot slot) {
-        Set<Integer> clubIds = new HashSet<>();
-        collectAllClubIds(slot, clubIds);
-        return clubIds;
-    }
-
-    /**
-     * Recursively adds all club ids from a slot tree into the supplied set.
-     *
-     * @param slot slot to traverse
-     * @param out  destination set for club ids
-     */
-    private void collectAllClubIds(ClubSlot slot, Set<Integer> out) {
+    private Integer resolveActualParticipantId(ClubSlot slot, Tournament currentRoundTournament) {
         if (slot.isClub()) {
-            out.add(slot.getClubSimState().getId());
-            return;
+            return slot.getClubSimState().getId();
         }
-        collectAllClubIds(slot.getTie().getClubSlotA(), out);
-        collectAllClubIds(slot.getTie().getClubSlotB(), out);
+        Tournament sourceTournament = slot.getTie().getTournament();
+        boolean sourceIsHigherLevel = sourceTournament.compareTo(currentRoundTournament) > 0;
+        return sourceIsHigherLevel ? resolveToId(slot, false) : resolveToId(slot, true);
+    }
+
+    /**
+     * Resolves the non-selected (alternative) participant represented by a slot in
+     * the current round.
+     */
+    private Integer resolveAlternativeParticipantId(ClubSlot slot, Tournament currentRoundTournament) {
+        if (!slot.isTie()) {
+            return null;
+        }
+        Tournament sourceTournament = slot.getTie().getTournament();
+        boolean sourceIsHigherLevel = sourceTournament.compareTo(currentRoundTournament) > 0;
+        return sourceIsHigherLevel ? resolveToId(slot, true) : resolveToId(slot, false);
     }
 
     /**
@@ -326,6 +298,23 @@ public class RoundStats {
      */
     public boolean hasSeedingStats() {
         return statsByRound.values().stream().anyMatch(ClubRoundStats::hasSeedingData);
+    }
+
+    /**
+     * Checks if the club has recorded "would-have-been" matchups.
+     * <p>
+     * "Would-have-been matchups" are matchups that would have occurred had clubs
+     * not advanced from the previous round of a higher-ranked tournament or been
+     * eliminated in the previous round of the same tournament. This is relevant for
+     * certain statistics that consider the potential matchups, even if those
+     * matchups did not actually occur.
+     * 
+     * @param clubId club ID
+     * @return {@code true} if the club has "would-have-been" matchups
+     */
+    public boolean clubHasWouldHaveBeenStats(int clubId) {
+        ClubRoundStats clubRoundStats = getOrCreateClubRoundStats(clubId);
+        return clubRoundStats.hasWouldHaveBeenSeedingData();
     }
 
     /**

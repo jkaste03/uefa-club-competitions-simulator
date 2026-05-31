@@ -356,13 +356,14 @@ public class QRound extends KnockoutRound {
     }
 
     /**
-     * Records the "would have been" match-up statistics for the current qualifying
+     * Records the "would-have-been" match-up statistics for the current qualifying
      * round.
      * <p>
-     * "Would have been" matchups refer to matchups that would have happened had not
-     * clubs been eliminated in the previous round. This is relevant for certain
-     * statistics that consider the potential matchups, even if those matchups did
-     * not actually occur due to eliminations.
+     * A "would-have-been matchup" is a matchup that would have occurred had the
+     * club not advanced from the previous round of a higher-ranked tournament or
+     * been eliminated in the previous round of the same tournament. This is
+     * relevant for certain statistics that consider potential matchups, even if
+     * those matchups did not actually occur.
      */
     protected void recordWouldHaveBeenMatchups() {
         RoundKey roundKey = getRoundKey();

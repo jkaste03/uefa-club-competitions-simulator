@@ -3,20 +3,23 @@ package com.github.jkaste03.uefaccsim.reporting;
 /**
  * Holds matchup counters for a specific club against a specific opponent within
  * a round. This includes total matchups, seeded/unseeded breakdowns, and
- * "would have been" matchup counts that consider potential matchups had the
- * club not been eliminated in the previous round.
+ * "would-have-been" matchup counts that consider potential matchups had the
+ * club not advanced from the previous round of a higher-ranked tournament or
+ * been eliminated in the previous round of the same tournament. That is
+ * relevant for certain statistics that consider the potential matchups, even if
+ * those matchups did not actually occur.
  */
 public class ClubRoundCounters {
     private int matchups;
     private int seededMatchups;
     private int unseededMatchups;
 
-    // These represent counters for matchups that would happen had the club not been
-    // eliminated in the previous round.
-    // "Would have been" matchups refer to matchups that would have happened had not
-    // the club been eliminated in the previous round. This is relevant for certain
-    // statistics that consider such potential matchups, even if those matchups did
-    // not actually occur due to elimination.
+    // These represent counters for matchups that would happen, but didn't.
+    // "Would-have-been matchups" are matchups that would have occurred had the club
+    // not advanced from the previous round of a higher-ranked tournament or been
+    // eliminated in the previous round of the same tournament. This is relevant for
+    // certain statistics that consider the potential matchups, even if those
+    // matchups did not actually occur.
     private int wouldHaveBeenSeededMatchups;
     private int wouldHaveBeenUnseededMatchups;
 

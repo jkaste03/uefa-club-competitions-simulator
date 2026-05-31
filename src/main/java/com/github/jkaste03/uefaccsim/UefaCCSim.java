@@ -42,7 +42,7 @@ import com.github.jkaste03.uefaccsim.reporting.StatsAggregator;
  * </ol>
  */
 public class UefaCCSim {
-    private static final int SIMS = 10;
+    private static final int SIMS = 100;
 
     /**
      * Application entry point that performs a fixed number of independent
@@ -132,7 +132,7 @@ public class UefaCCSim {
         System.out.println("Total time: " + (endTime - startTime) + " ms");
 
         // Write club reports based on the aggregated statistics.
-        new ClubReportWriter(Paths.get("temp", "club-reports")).writeClubReports(finalStatsAggregator, rounds);
+        new ClubReportWriter(Paths.get("temp", "club-reports"), SIMS).writeClubReports(finalStatsAggregator, rounds);
     }
 
     /**

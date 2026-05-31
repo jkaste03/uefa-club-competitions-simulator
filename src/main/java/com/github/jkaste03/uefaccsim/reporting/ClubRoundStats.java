@@ -61,13 +61,14 @@ public class ClubRoundStats {
     }
 
     /**
-     * Records a "would have been" matchup with seeding context.
+     * Records a "would-have-been" matchup with seeding context.
      * <p>
-     * A "Would have been" matchup refer to a matchup that would have happened had
-     * not the club been eliminated in the previous round. This is relevant for
-     * certain statistics that consider such potential matchups, even if those
-     * matchups did not actually occur due to elimination.
-     * <p>
+     * A "would-have-been matchup" is a matchup that would have occurred had the
+     * club
+     * not advanced from the previous round of a higher-ranked tournament or been
+     * eliminated in the previous round of the same tournament. This is relevant for
+     * certain statistics that consider potential matchups, even if those matchups
+     * did not actually occur.
      *
      * @param isFromClubSeeded {@code true} if the club was seeded in the matchup
      * @param toClubId         opponent club ID
@@ -117,6 +118,23 @@ public class ClubRoundStats {
      */
     public boolean hasSeedingData() {
         return seededCount > 0 || unseededCount > 0;
+    }
+
+    /**
+     * Checks if there are recorded "would-have-been" matchup data.
+     * <p>
+     * "Would-have-been matchups" are matchups that would have occurred had the
+     * club not advanced from the previous round of a higher-ranked tournament or
+     * been eliminated in the previous round of the same tournament. This is
+     * relevant for certain statistics that consider potential matchups, even if
+     * those matchups did not actually occur.
+     *
+     * @return {@code true} if "would-have-been" matchup data exists
+     */
+    public boolean hasWouldHaveBeenSeedingData() {
+        return opponentCounters.values().stream()
+                .anyMatch(counters -> counters.getWouldHaveBeenSeededMatchups() > 0
+                        || counters.getWouldHaveBeenUnseededMatchups() > 0);
     }
 
     /**

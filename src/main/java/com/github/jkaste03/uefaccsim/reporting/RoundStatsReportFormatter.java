@@ -6,6 +6,9 @@ import java.util.Map;
 
 import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 
+// TODO: Long-term: Remove class.
+// TODO: Short-tetm: Clean up the mess of the class.
+
 /**
  * Formats {@link RoundStats} into human-readable report text for one club and
  * one round.
@@ -23,6 +26,22 @@ import com.github.jkaste03.uefaccsim.repository.ClubRepository;
 public final class RoundStatsReportFormatter {
 
     /**
+     * Total number of simulations represented by the aggregated statistics.
+     * When this value is positive, the formatter can suppress "given ..."
+     * qualifiers
+     * for sections where a club participates in every simulation.
+     */
+    private final int totalSimulations;
+
+    public RoundStatsReportFormatter() {
+        this(0);
+    }
+
+    public RoundStatsReportFormatter(int totalSimulations) {
+        this.totalSimulations = totalSimulations;
+    }
+
+    /**
      * Creates a formatted report for one club in one round.
      *
      * @param roundKey   identifies tournament, round type and optional path
@@ -31,12 +50,33 @@ public final class RoundStatsReportFormatter {
      * @return formatted report text (possibly empty if no relevant data exists)
      */
     public String format(StatsAggregator.RoundKey roundKey, RoundStats roundStats, String clubName) {
+        return format(roundKey, roundStats, null, null, clubName);
+    }
+
+    /**
+     * Creates a formatted report for one club in one round, optionally using the
+     * previous round's statistics to decide whether "would-have-been" sections are
+     * meaningful.
+     *
+     * @param roundKey              identifies tournament, round type and optional
+     *                              path
+     * @param roundStats         aggregated statistics for the selected round
+     * @param previousRoundKey    key for the immediately preceding round, or
+     *                           {@code null} if unavailable
+     * @param previousRoundStats  aggregated statistics for the immediately
+     *                           preceding round, or {@code null} if unavailable
+     * @param clubName           club name used to resolve club id and headings
+     * @return formatted report text (possibly empty if no relevant data exists)
+     */
+    public String format(StatsAggregator.RoundKey roundKey, RoundStats roundStats, StatsAggregator.RoundKey previousRoundKey,
+            RoundStats previousRoundStats, String clubName) {
         int clubId = ClubRepository.getIdByName(clubName);
         StringBuilder report = new StringBuilder();
 
         // Branch output style based on whether this round has seeding dimensions.
         if (roundStats.hasSeedingStats()) {
-            appendQRoundMatchupCounts(report, roundKey, roundStats, clubName, clubId);
+            appendQRoundMatchupCounts(report, roundKey, roundStats, previousRoundKey, previousRoundStats, clubName,
+                    clubId);
         } else {
             appendLeaguePhaseMatchupCounts(report, roundKey, roundStats, clubName, clubId);
         }
@@ -65,7 +105,10 @@ public final class RoundStatsReportFormatter {
 
         appendRoundHeader(report, roundKey);
 
-        report.append("=== Matchup probabilities ===\n");
+        boolean includeGiven = shouldIncludeGiven(roundStats.getParticipationCount(clubId));
+        report.append("=== Matchup probabilities")
+                .append(participatesInRoundSuffix(clubId, includeGiven))
+                .append(" ===\n");
         club2Map.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getValue().getMatchups(), e1.getValue().getMatchups()))
                 .forEach(entry -> {
@@ -88,22 +131,35 @@ public final class RoundStatsReportFormatter {
      * @param clubId     resolved club id for {@code clubName}
      */
     private void appendQRoundMatchupCounts(StringBuilder report, StatsAggregator.RoundKey roundKey,
-            RoundStats roundStats, String clubName, int clubId) {
+            RoundStats roundStats, StatsAggregator.RoundKey previousRoundKey, RoundStats previousRoundStats,
+            String clubName, int clubId) {
         int seededCount = roundStats.getSeedingCount(true, clubId);
         int unseededCount = roundStats.getSeedingCount(false, clubId);
+        boolean includeGivenRound = shouldIncludeGiven(roundStats.getPerSeedingParticipationCount(true, clubId)
+                + roundStats.getPerSeedingParticipationCount(false, clubId));
+        boolean includeGivenDraw = shouldIncludeGiven(seededCount + unseededCount);
 
         if (!appendSeedingProbability(report, roundKey, seededCount, unseededCount)) {
             return;
         }
 
-        appendQRoundOverallMatchupProbabilities(report, roundKey, roundStats, clubId);
+        if (shouldAppendWouldHaveBeenMatchups(roundKey, roundStats, previousRoundKey, previousRoundStats, clubId)) {
+            if (seededCount != 0 && unseededCount != 0) {
+                appendQRoundWouldHaveBeenMatchupProbabilities(report, roundKey, roundStats, clubId, includeGivenDraw);
+                appendPerSeedingWouldHaveBeenMatchupProbabilities(report, roundKey, roundStats, true, clubId,
+                        includeGivenDraw);
+                appendPerSeedingWouldHaveBeenMatchupProbabilities(report, roundKey, roundStats, false, clubId,
+                        includeGivenDraw);
+            }
+        }
+        appendQRoundMatchupProbabilities(report, roundKey, roundStats, clubId, includeGivenRound);
 
         if (seededCount == 0 || unseededCount == 0) {
             return;
         }
 
-        appendPerSeedingMatchupProbabilities(report, roundKey, roundStats, true, clubName, clubId);
-        appendPerSeedingMatchupProbabilities(report, roundKey, roundStats, false, clubName, clubId);
+        appendPerSeedingMatchupProbabilities(report, roundKey, roundStats, true, clubId, includeGivenRound);
+        appendPerSeedingMatchupProbabilities(report, roundKey, roundStats, false, clubId, includeGivenRound);
     }
 
     /**
@@ -116,27 +172,118 @@ public final class RoundStatsReportFormatter {
      * @param roundStats source statistics for the selected round
      * @param clubId     resolved club id
      */
-    private void appendQRoundOverallMatchupProbabilities(StringBuilder report, StatsAggregator.RoundKey roundKey,
-            RoundStats roundStats, int clubId) {
+    private void appendQRoundMatchupProbabilities(StringBuilder report, StatsAggregator.RoundKey roundKey,
+            RoundStats roundStats, int clubId, boolean includeGiven) {
         Map<Integer, ClubRoundCounters> opponentCounts = new HashMap<>(roundStats.getOpponentCounts(clubId));
 
-        Map<Integer, Integer> totalMatchups = new HashMap<>();
+        Map<Integer, Integer> matchups = new HashMap<>();
         opponentCounts.forEach(
-                (opponent, counters) -> totalMatchups.merge(opponent, counters.getSeededMatchups(), Integer::sum));
+                (opponent, counters) -> matchups.merge(opponent, counters.getSeededMatchups(), Integer::sum));
         opponentCounts.forEach(
-                (opponent, counters) -> totalMatchups.merge(opponent, counters.getUnseededMatchups(), Integer::sum));
+                (opponent, counters) -> matchups.merge(opponent, counters.getUnseededMatchups(), Integer::sum));
 
-        totalMatchups.entrySet().removeIf(entry -> entry.getValue() == 0);
-        if (totalMatchups.isEmpty()) {
-            report.append("\nNo matchups recorded\n");
+        matchups.entrySet().removeIf(entry -> entry.getValue() == 0);
+        if (matchups.isEmpty()) {
+            report.append("\nNo matchups recorded")
+                    .append(participatesInRoundSuffix(clubId, includeGiven))
+                    .append("\n");
             return;
         }
 
         // Normalize each opponent's count by total matchup occurrences for the club.
-        int totalMatches = totalMatchups.values().stream().mapToInt(Integer::intValue).sum();
-        report.append("\n=== Overall matchup probabilities ===\n");
-        totalMatchups.entrySet().stream()
+        int totalMatches = matchups.values().stream().mapToInt(Integer::intValue).sum();
+        report.append("\n=== Matchup probabilities")
+                .append(participatesInRoundSuffix(clubId, includeGiven))
+                .append(" ===\n");
+        matchups.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
+                .forEach(entry -> {
+                    int opponentId = entry.getKey();
+                    int count = entry.getValue();
+                    float percentage = (count / (float) totalMatches) * 100;
+                    report.append(String.format(Locale.US, "%-21s: %5.2f%%%n",
+                            ClubRepository.getClub(opponentId).getName(), percentage));
+                });
+    }
+
+    private void appendQRoundWouldHaveBeenMatchupProbabilities(StringBuilder report, StatsAggregator.RoundKey roundKey,
+            RoundStats roundStats, int clubId, boolean includeGiven) {
+        Map<Integer, ClubRoundCounters> opponentCounts = new HashMap<>(roundStats.getOpponentCounts(clubId));
+
+        Map<Integer, Integer> drawnMatchups = new HashMap<>();
+        opponentCounts.forEach(
+                (opponent, counters) -> drawnMatchups.merge(opponent,
+                        counters.getSeededMatchups() + counters.getUnseededMatchups()
+                                + counters.getWouldHaveBeenSeededMatchups()
+                                + counters.getWouldHaveBeenUnseededMatchups(),
+                        Integer::sum));
+
+        drawnMatchups.entrySet().removeIf(entry -> entry.getValue() == 0);
+        if (drawnMatchups.isEmpty()) {
+            report.append("\nNo matchups")
+                    .append(participatesInDrawSuffix(clubId, includeGiven))
+                    .append(" recorded – Regardless of whether ")
+                    .append(ClubRepository.getClub(clubId).getName())
+                    .append(" reaches the round ===\n");
+            return;
+        }
+
+        // Normalize each opponent's count by total matchup occurrences for the club.
+        int totalMatches = drawnMatchups.values().stream().mapToInt(Integer::intValue).sum();
+        report.append("\n=== Matchup probabilities")
+                .append(participatesInDrawSuffix(clubId, includeGiven))
+                .append(" – Regardless of whether ")
+                .append(ClubRepository.getClub(clubId).getName())
+                .append(" reaches the round ===\n");
+        drawnMatchups.entrySet().stream()
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue()))
+                .forEach(entry -> {
+                    int opponentId = entry.getKey();
+                    int count = entry.getValue();
+                    float percentage = (count / (float) totalMatches) * 100;
+                    report.append(String.format(Locale.US, "%-21s: %5.2f%%%n",
+                            ClubRepository.getClub(opponentId).getName(), percentage));
+                });
+    }
+
+    private void appendPerSeedingWouldHaveBeenMatchupProbabilities(StringBuilder report,
+            StatsAggregator.RoundKey roundKey,
+            RoundStats roundStats, boolean isSeeded, int clubId, boolean includeGiven) {
+        Map<Integer, ClubRoundCounters> opponentCounts = new HashMap<>(roundStats.getOpponentCounts(clubId));
+
+        Map<Integer, Integer> drawnMatchupsSeedingFiltered = new HashMap<>();
+        opponentCounts.forEach(
+                (opponent, counters) -> drawnMatchupsSeedingFiltered.merge(opponent, isSeeded
+                        ? counters.getSeededMatchups() + counters.getWouldHaveBeenSeededMatchups()
+                        : counters.getUnseededMatchups() + counters.getWouldHaveBeenUnseededMatchups(),
+                        Integer::sum));
+
+        drawnMatchupsSeedingFiltered.entrySet().removeIf(entry -> entry.getValue() == 0);
+
+        String status = isSeeded ? "seeded" : "unseeded";
+        if (drawnMatchupsSeedingFiltered.isEmpty()) {
+            report.append("\nNo matchups recorded")
+                    .append(participatesInDrawSuffix(clubId, includeGiven))
+                    .append(" when ")
+                    .append(status)
+                    .append(" – Regardless of whether ")
+                    .append(ClubRepository.getClub(clubId).getName())
+                    .append(" reaches the round ===\n");
+            return;
+        }
+        int totalMatches = drawnMatchupsSeedingFiltered.values().stream().mapToInt(Integer::intValue).sum();
+
+        report.append("\n=== Matchup probabilities")
+                .append(participatesInDrawSuffix(clubId, includeGiven))
+                .append(" when ")
+                .append(status)
+                .append(" – Regardless of whether ")
+                .append(ClubRepository.getClub(clubId).getName())
+                .append(" reaches the round ===\n");
+        drawnMatchupsSeedingFiltered.entrySet().stream()
+                .sorted((e1, e2) -> Integer.compare(
+                        isSeeded ? e2.getValue() : e2.getValue(),
+                        isSeeded ? e1.getValue() : e1.getValue()))
                 .forEach(entry -> {
                     int opponentId = entry.getKey();
                     int count = entry.getValue();
@@ -195,11 +342,10 @@ public final class RoundStatsReportFormatter {
      * @param roundStats source statistics for the selected round
      * @param isSeeded   {@code true} for seeded perspective, {@code false} for
      *                   unseeded perspective
-     * @param clubName   club name (kept for symmetry with sibling helpers)
      * @param clubId     resolved club id
      */
     private void appendPerSeedingMatchupProbabilities(StringBuilder report, StatsAggregator.RoundKey roundKey,
-            RoundStats roundStats, boolean isSeeded, String clubName, int clubId) {
+            RoundStats roundStats, boolean isSeeded, int clubId, boolean includeGiven) {
         Map<Integer, ClubRoundCounters> opponentCounts = new HashMap<>(roundStats.getOpponentCounts(clubId));
 
         String status = isSeeded ? "seeded" : "unseeded";
@@ -208,14 +354,19 @@ public final class RoundStatsReportFormatter {
             return isSeeded ? counters.getSeededMatchups() == 0 : counters.getUnseededMatchups() == 0;
         });
         if (opponentCounts.isEmpty()) {
-            report.append("\nNo matchups recorded when ").append(status).append("\n");
+            report.append("\nNo matchups recorded")
+                    .append(participatesInRoundSuffix(clubId, includeGiven))
+                    .append(" when ").append(status).append("\n");
             return;
         }
 
         // Use the seeding-specific participation count as denominator for percentages.
         int totalMatches = roundStats.getPerSeedingParticipationCount(isSeeded, clubId);
 
-        report.append("\n=== Matchup probabilities when ").append(status).append(" ===\n");
+        report.append("\n=== Matchup probabilities")
+                .append(" when ").append(status)
+                .append(participatesInRoundSuffix(clubId, includeGiven))
+                .append(" ===\n");
         opponentCounts.entrySet().stream()
                 .sorted((e1, e2) -> Integer.compare(
                         isSeeded ? e2.getValue().getSeededMatchups() : e2.getValue().getUnseededMatchups(),
@@ -228,5 +379,49 @@ public final class RoundStatsReportFormatter {
                     report.append(String.format(Locale.US, "%-21s: %5.2f%%%n",
                             ClubRepository.getClub(opponentId).getName(), percentage));
                 });
+    }
+
+    private boolean shouldIncludeGiven(int participationCount) {
+        return totalSimulations <= 0 || participationCount < totalSimulations;
+    }
+
+    private boolean shouldAppendWouldHaveBeenMatchups(StatsAggregator.RoundKey currentRoundKey, RoundStats roundStats,
+            StatsAggregator.RoundKey previousRoundKey, RoundStats previousRoundStats, int clubId) {
+        if (!roundStats.clubHasWouldHaveBeenStats(clubId)) {
+            return false;
+        }
+
+        int currentSeededCount = roundStats.getSeedingCount(true, clubId);
+        int currentUnseededCount = roundStats.getSeedingCount(false, clubId);
+        if (currentSeededCount == 0 || currentUnseededCount == 0) {
+            return false;
+        }
+
+        if (previousRoundStats == null || previousRoundKey == null) {
+            return true;
+        }
+
+        int previousSeededCount = previousRoundStats.getSeedingCount(true, clubId);
+        int previousUnseededCount = previousRoundStats.getSeedingCount(false, clubId);
+        boolean previousWasHigherTournament = previousRoundKey.tournament().compareTo(currentRoundKey.tournament()) > 0;
+
+        if (previousWasHigherTournament) {
+            return previousSeededCount > 0;
+        }
+        return previousUnseededCount > 0;
+    }
+
+    private String participatesInRoundSuffix(int clubId, boolean includeGiven) {
+        if (!includeGiven) {
+            return "";
+        }
+        return " – Given " + ClubRepository.getClub(clubId).getName() + " reaches the round";
+    }
+
+    private String participatesInDrawSuffix(int clubId, boolean includeGiven) {
+        if (!includeGiven) {
+            return "";
+        }
+        return " (given " + ClubRepository.getClub(clubId).getName() + " participates in draw)";
     }
 }

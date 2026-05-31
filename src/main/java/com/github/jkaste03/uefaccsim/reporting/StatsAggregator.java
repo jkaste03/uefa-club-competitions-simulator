@@ -108,12 +108,13 @@ public class StatsAggregator {
     }
 
     /**
-     * Records "would have been" matchup data for a round with seeding context.
+     * Records "would-have-been" matchup data for a round with seeding context.
      * <p>
-     * "Would have been" matchups refer to matchups that would have happened had not
-     * clubs been eliminated in the previous round. This is relevant for certain
-     * statistics that consider the potential matchups, even if those matchups did
-     * not actually occur due to eliminations.
+     * "Would-have-been matchups" are matchups that would have occurred had clubs
+     * not advanced from the previous round of a higher-ranked tournament or been
+     * eliminated in the previous round of the same tournament. This is relevant for
+     * certain statistics that consider the potential matchups, even if those
+     * matchups did not actually occur.
      *
      * @param roundKey
      * @param ties
