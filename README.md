@@ -1,194 +1,206 @@
 # UEFA Club Competitions Simulator
 
-Work in progress: This project is under active development.
+A Java 22 / Maven project that simulates UEFA club competitions for the Champions League, Europa League, and Conference League.
 
-## Overview
+The project reconstructs the tournament graph from local data, simulates club progression through qualifying and league phases, and produces aggregated club reports from many independent runs.
 
-A Java-based simulator that runs thousands of independent UEFA club competitions (Champions League, Europa League, and Conference League) in parallel to explore possible tournament outcomes. Each simulation models the complete tournament flow from qualification rounds through the knockout stage, with realistic match outcomes driven by Elo ratings and a probabilistic goal model.
+## What the project actually does
 
-**Primary use case:** Analyze the likelihood of different competition outcomes, study seeding effects, and understand how tournament structures impact club progression.
+- Reads tournament data from JSON files in the repository and builds a complete round graph for all supported competitions.
+- Models clubs as mutable simulation state with Elo ratings, while keeping the base club registry separate from round-specific state.
+- Resolves tie-backed slots so later rounds can depend on earlier rounds without losing bracket structure.
+- Simulates qualifying rounds, the league phase, knockout round play-offs, and the round of 16 as modeled in `Rounds`.
+- Aggregates statistics per round, per club, and per opponent for later reporting.
+- Verifies key invariants in the tests, including illegal draws, league-phase structure, and deep-copy isolation.
 
-## Core Features
+## Core building blocks
 
-### Tournament Simulation
+The codebase is organized around a small number of central layers:
 
-- **Full tournament flow** from qualification rounds → league phase → knockout playoffs → knockout rounds
-- **Qualification rounds** with seeding, constrained draws (respecting political/regional restrictions), and winner/loser pathways
-- **League phase** with pot-based seeding, draw constraints, matchday scheduling, and final standings calculation
-- **Knockout stage** including playoff draws and progressive elimination
+- `UefaCCSim` is the application entry point and starts the parallel simulations.
+- `Rounds` is the orchestrator that links all rounds together and controls the flow between them.
+- `Round`, `QRound`, `LeaguePhaseRound`, `KnockoutRoundPlayoff`, and `RoundOf16` model the different round types.
+- `ClubSlot` is a bracket wrapper that can represent either a concrete club or a tie that has not yet been resolved.
+- `JsonDataLoader` loads clubs, ties, and league-phase scheduling from `data.json`.
+- `ClubEloRatingsInitializer` populates Elo ratings by fetching ClubElo data and falls back to a cached CSV if the download fails.
+- `DefaultMatchSimulator` simulates match results with an Elo-based goal model and overdispersion.
+- `StatsAggregator`, `RoundStats`, `ClubRoundStats`, and `ClubRoundCounters` build the statistics used by the reports.
+- `ClubReportWriter` and `RoundStatsReportFormatter` turn the aggregated data into readable club reports.
 
-### Match Simulation Engine
+The repository is intentionally split by responsibility rather than by competition only. That makes it easier to reason about one concern at a time:
 
-- **Elo-based ratings** — Club strength determined by live Elo ratings from ClubElo API
-- **Probabilistic goal model** — Match outcomes (goals, results) generated stochastically based on team strength
-- **Dynamic Elo updates** — Ratings adjusted after each match to reflect recent performance
-- **Realistic variance** — Upsets and surprises occur proportionally to actual football dynamics
+- configuration lives in `config`;
+- tournament enums and static competition labels live in `enums`;
+- bracket and match logic live in `model/competition`;
+- ranking, team metadata, and repositories live in `model`, `repository`, and `service`;
+- reporting is isolated in `reporting` so the simulation logic stays focused on bracket and result generation.
 
-### Large-Scale Analysis
+## Repository structure
 
-- **Parallel execution** — Runs 8000+ independent simulations concurrently using Java's Fork/Join framework
-- **Isolated state** — Each simulation is a deep copy of the baseline, ensuring no cross-contamination
-- **Performance optimized** — Processes thousands of simulations efficiently
+- `src/main/java/com/github/jkaste03/uefaccsim/UefaCCSim.java` - main program.
+- `src/main/java/com/github/jkaste03/uefaccsim/config/SimulationConfig.java` - core parameters for the goal model and tie-break behavior.
+- `src/main/java/com/github/jkaste03/uefaccsim/data/` - input data, ClubElo cache, and historical snapshots.
+- `src/main/java/com/github/jkaste03/uefaccsim/enums/` - tournament, country, round type, path type, and leg type enums.
+- `src/main/java/com/github/jkaste03/uefaccsim/model/` - domain objects for clubs and competition structure.
+- `src/main/java/com/github/jkaste03/uefaccsim/model/rule/` - restrictions such as political tie prohibitions.
+- `src/main/java/com/github/jkaste03/uefaccsim/repository/` - in-memory repositories for clubs and simulation state.
+- `src/main/java/com/github/jkaste03/uefaccsim/reporting/` - statistics and report generation.
+- `src/main/java/com/github/jkaste03/uefaccsim/service/` - data import, Elo initialization, and match simulation.
+- `src/test/java/com/github/jkaste03/uefaccsim/` - tests covering the structural and probabilistic logic.
 
-### Data Integration
+Important subpackages in the model layer:
 
-- **JSON configuration** — Tournament structure, club rosters, and round specifications
-- **Live Elo ratings** — Fetches from ClubElo API (with local CSV fallback)
-- **Deterministic seeding** — Pot assignments and draw constraints based on real tournament rules
+- `model/competition` contains the round graph, ties, league table, and bracket resolution logic.
+- `model/rule` contains restrictions that affect draw legality.
+- `model` holds the base `Club` type used by the repository and the data loader.
 
-## Tech Stack
+## Tournament and round flow
+
+`Rounds` sets up a chronological chain of rounds for the three tournaments. That means the project does not just have separate classes for each phase; it also has explicit links between phases.
+
+The flow is effectively:
+
+- qualifying rounds with champions path, league path, and main path where relevant,
+- a league phase with pot-based draws and a fixed matchday schedule,
+- knockout round play-offs where reordering and legal pairing rules are explicit,
+- the round of 16 as the next step after the play-offs.
+
+The `Round` hierarchy handles, among other things:
+
+- which clubs are part of a round,
+- which tie combinations are allowed,
+- how slots are resolved when a tie is decided,
+- how statistics are recorded for the current round.
+
+`ClubSlot` is important because it can point to a concrete club or to a previous tie. That is what makes the qualifying and knockout flow a connected graph rather than a set of isolated lists.
+
+At a more concrete level:
+
+- `QRound` is responsible for seeded/unseeded pairing, draw legality, and qualifying-round matchup accounting.
+- `LeaguePhaseRound` handles pot creation, matchday scheduling, league-table initialization, and league-phase matchup recording.
+- `KnockoutRoundPlayoff` uses a specialized draw strategy for the 9-16 versus 17-24 bracket structure.
+- `RoundOf16` continues the post-league knockout flow once the play-off round is finished.
+
+That separation matters because each round type has its own legality rules and its own statistics model.
+
+## Data and input
+
+The primary data model lives in:
+
+- `src/main/java/com/github/jkaste03/uefaccsim/data/data.json`
+
+That file contains, among other things:
+
+- the clubs participating in the simulation,
+- the predefined ties for each round,
+- the league-phase play order grouped by day,
+- the previous Champions League winner used in seeding logic.
+
+`JsonDataLoader` loads that data into the concrete round objects at startup. Clubs are registered in `ClubRepository`, and tie references are built through a cache of `ClubSlot` instances.
+
+`ClubEloRatingsInitializer` fills the clubs with Elo values by reading the current ClubElo CSV. If the download fails, it uses the most recent cached CSV file in the same data folder. That makes the repo more robust, but it also means that club names in `data.json` must match the names in the ClubElo source.
+
+The data flow is layered:
+
+1. clubs are created first and stored in the repository,
+2. round-specific club slots are created from those clubs,
+3. ties are loaded and linked to the cached slots,
+4. round validation checks that the loaded structure is internally consistent,
+5. Elo values are injected so simulation logic can use them during draw and match computation.
+
+That design makes the input files the authoritative source for the competition structure while keeping simulation state separate from the static definitions.
+
+## Simulation model
+
+The match simulation is not deterministic. It combines:
+
+- Elo difference,
+- home advantage,
+- a negative binomial goal model for overdispersed scores,
+- draw inflation for selected small scorelines,
+- extra time and penalty-shootout configuration where needed.
+
+`SimulationConfig` collects these parameters in one place so the model can be tuned without spreading constants through the codebase.
+
+The simulation flow in `UefaCCSim` works like this:
+
+1. A baseline `Rounds` object is created once.
+2. Each simulation receives a deep copy of the baseline so mutable state is not shared.
+3. The simulations run in parallel.
+4. Worker threads write statistics into their own aggregators.
+5. The results are merged into a final aggregator used for reporting.
+
+The code avoids shared mutable round state by deep-copying the full `Rounds` object before each run. That is important because the bracket graph contains many interconnected references, and simple shallow copies would let one run affect another.
+
+`DefaultMatchSimulator` is designed to be self-contained: it receives the two Elo values, the time-state flag, and the simulation configuration, then returns a validated `MatchResult`. That keeps the actual round code focused on bracket logic rather than score generation.
+
+## Reporting
+
+Reports are written to:
+
+- `temp/club-reports/<country>/<club>.txt`
+
+For each club, a separate file is created inside a country-specific folder.
+
+`RoundStatsReportFormatter` controls how these blocks are laid out. `StatsAggregator` and `RoundStats` keep both raw matchup totals and seeding splits, so the reports can show more than just opponent lists.
+
+## Building and running
+
+Requirements:
 
 - Java 22
-- Maven
-- Gson
-- JUnit 5
+- Maven 3.9+ recommended
 
-## Project Structure (Explained)
-
-### Core Simulation
-
-- **[UefaCCSim.java](src/main/java/com/github/jkaste03/uefaccsim/UefaCCSim.java)** — Entry point; manages parallel simulation execution via Fork/Join
-- **src/main/java/com/github/jkaste03/uefaccsim/model/competition/** — Tournament structure:
-    - `Rounds.java` — Orchestrates the complete tournament flow
-    - `Round.java`, `QRound.java`, `LeaguePhaseRound.java`, `KnockoutRound.java` — Different round types
-    - `Tie.java` — Individual match/matchup representation
-    - `LeagueTable.java` — Standings and progression logic
-    - `RoundOf16.java`, `KnockoutRoundPlayoff.java` — Knockout stage implementations
-
-### Match Simulation
-
-- **src/main/java/com/github/jkaste03/uefaccsim/service/match/** — Match execution:
-    - `MatchSimulator.java` — Interface for match simulation
-    - `DefaultMatchSimulator.java` — Elo-based match simulation with probabilistic goals
-
-### Data & Configuration
-
-- **[ClubEloRatingsInitializer.java](src/main/java/com/github/jkaste03/uefaccsim/service/ClubEloRatingsInitializer.java)** — Fetches/loads live Elo ratings from ClubElo API or CSV fallback
-- **[JsonDataLoader.java](src/main/java/com/github/jkaste03/uefaccsim/service/JsonDataLoader.java)** — Loads tournament configuration
-- **[data/data.json](src/main/java/com/github/jkaste03/uefaccsim/data/data.json)** — Tournament setup (clubs, rounds, league phase calendar)
-
-### Models
-
-- **[Club.java](src/main/java/com/github/jkaste03/uefaccsim/model/Club.java)** — Represents a club with Elo rating and metadata
-- **[ClubSimState.java](src/main/java/com/github/jkaste03/uefaccsim/model/competition/ClubSimState.java)** — Tracks club progression status during a simulation
-- **Enums** — `Tournament.java`, `RoundType.java`, `Country.java`, `PathType.java` for structured data
-
-### Testing
-
-- **[UefaCCSimTest.java](src/test/java/com/github/jkaste03/uefaccsim/UefaCCSimTest.java)** — Probabilistic and structural validation tests (stochastic invariant checking)
-
-## Getting Started
-
-### Prerequisites
-
-- JDK 22 installed
-- Maven installed
-
-Check locally:
+Build and test the project with:
 
 ```bash
-java -version
-mvn -version
+mvn test
 ```
 
-### Build And Test
+If you only want to compile the project:
 
 ```bash
-mvn -q -DskipTests=false test
+mvn compile
 ```
 
-### Run The Simulator
+The simplest way to run the simulator is to launch `com.github.jkaste03.uefaccsim.UefaCCSim` from your IDE.
 
-If you want to run the main class directly via Maven:
+If you want to run it from Maven on the command line, you can call the Exec plugin explicitly:
 
 ```bash
-mvn -DskipTests exec:java -Dexec.mainClass="com.github.jkaste03.uefaccsim.UefaCCSim"
+mvn -q -DskipTests compile org.codehaus.mojo:exec-maven-plugin:3.5.0:java -Dexec.mainClass=com.github.jkaste03.uefaccsim.UefaCCSim -Dexec.classpathScope=runtime
 ```
 
-Note: The first run may download required Maven plugins.
+The simulator writes its output into `temp/club-reports/` and prints progress to the console while it runs.
 
-## Data And Input
+## Testing
 
-The project uses two main sources:
+The tests in this repo are designed to catch structural and draw-related failures, not just startup problems.
 
-- **Static structure/input in [data/data.json](src/main/java/com/github/jkaste03/uefaccsim/data/data.json)** — Tournament rounds, clubs, previous CL winner, and league phase play calendar
-- **Live Elo ratings** — Fetched from the ClubElo API on each run; falls back to the latest locally stored CSV if the network call fails
+They cover, among other things:
 
-## Key Concepts
+- that qualifying rounds do not produce illegal ties,
+- that the league phase keeps its pot structure intact,
+- that each club meets the correct number and type of opponents,
+- that deep-copying the simulation graph actually isolates state,
+- that generated matchings do not contain duplicates or invalid pairs.
 
-### Elo Ratings
+That is useful when changing `Rounds`, `JsonDataLoader`, draw algorithms, or report logic.
 
-- **Strength Assessment** — Each club has a live Elo rating that reflects its recent performance
-- **Match Prediction** — Higher Elo clubs have a higher win probability, but upsets are possible
-- **Dynamic Updates** — Elo adjusts after each match based on the result and pre-match expectations
+## Where changes usually belong
 
-### Probabilistic Match Model
+The most common extension points in the repo are:
 
-- **Goal Generation** — Match outcomes (goals scored) are generated stochastically using expected goals weighted by Elo difference
-- **Realistic Variance** — Stronger teams are favored but weaker teams can still win (reflecting real football)
-- **Context Matters** — Home/away, tournament stage, and other factors influence match dynamics
+- `SimulationConfig` if you want to calibrate the match model.
+- `JsonDataLoader` if you want to change the input format or tournament data.
+- `Rounds` if you want to add more rounds or adjust tournament flow.
+- `KnockoutRoundPlayoff` if you want to change the playoff bracket.
+- `DefaultMatchSimulator` if you want to adjust how goals and results are simulated.
+- `RoundStatsReportFormatter` if you want to change how the reports look.
 
-## Simulation Workflow
+## Practical notes
 
-1. **Initialization**
-    - Load tournament structure from `data.json` (clubs, qualification rounds, league phase layout, etc.)
-    - Fetch current Elo ratings for all clubs from ClubElo API (or use cached CSV if offline)
-    - Create a baseline `Rounds` object representing the tournament template
-
-2. **Parallel Simulate**
-    - Execute 8000 independent simulations concurrently
-    - Each simulation:
-        - Deep copies the baseline to isolate mutable state
-        - Executes all rounds in sequence (qualification → league phase → playoffs → knockout)
-        - Updates Elo ratings after each match
-        - Records final outcomes
-
-3. **Output**
-    - Tournament progression for each simulation
-    - Club advancement/elimination at each stage
-    - Final winners of each competition
-    - Can be analyzed to compute probabilities (e.g., "What % chance does Club X have of winning?")
-
-## Current Status
-
-### Implemented & Stable
-
-✅ Qualification rounds with constrained draws and progression logic  
-✅ League phase structure, draw generation, matchday scheduling, and table calculation  
-✅ Knockout playoff draw after league phase  
-✅ Match simulation engine (Elo + probabilistic goals)  
-✅ Parallel execution of 8000+ simulations  
-✅ Comprehensive stochastic testing of invariants
-
-### In Progress / Not Yet Complete
-
-⚙️ Round of 16 draw and subsequent knockout rounds  
-⚙️ Full knockout phase completion and post-tournament analysis  
-⚙️ Enhanced logging and observability for draw analysis and outcomes  
-⚙️ Reduction of technical debt and expanded test coverage
-
-### Known Limitations
-
-- Some knockout-stage implementations are incomplete or under development
-- Data currently focuses on current/recent season; historical data support is limited
-- Draw analysis logging could be more detailed
-
-## Next Work
-
-### High Priority
-
-- Stabilize and complete the full knockout flow (Round of 16 through final)
-- Implement proper Round of 16 draw with seeding constraints
-- Add logging and analytics for tournament progression tracking
-
-### Medium Priority
-
-- Improve observability — better logging for draw analysis and simulation outcomes
-- Expand test coverage for knockout and playoff stages
-- Reduce technical debt in competition flow orchestration
-
-### Future Enhancements
-
-- More realistic match simulation (fatigue, momentum, weather effects)
-- Historical data support and comparative analysis
-- Web UI for simulation parameter control and result visualization
+- The simulation is stochastic, so two runs can produce different results.
+- Reports are based on aggregated statistics from many simulations, not a single run.
+- The repository also contains historical data files and cached ClubElo snapshots in the data folder.
+- Output under `temp/club-reports/` can be regenerated safely.
